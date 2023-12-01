@@ -1,0 +1,9 @@
+node_modules/
+.env
+efs
+build
+build.zip
+src/db
+TRUNCATEDB.txt
+*.log
+*.log.*

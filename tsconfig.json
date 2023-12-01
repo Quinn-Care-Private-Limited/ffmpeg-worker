@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "lib": ["es2020"],
+    "module": "commonjs",
+    "target": "es2020",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "incremental": true,
+    "noImplicitAny": true,
+    "moduleResolution": "node",
+    "noUnusedLocals": false,
+    "sourceMap": true,
+    "baseUrl": "./src",
+    "outDir": "./build",
+    "allowJs": false,
+    "strictNullChecks": true,
+    "paths": {
+      "*": ["*"]
+    },
+  },
+  "include": ["src"],
+  }
+  
