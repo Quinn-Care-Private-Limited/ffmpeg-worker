@@ -10,6 +10,10 @@ const listSchema = z.object({
   path: z.string().optional(),
 });
 
+const checkSchema = z.object({
+  path: z.string(),
+});
+
 const createFileSchema = z.object({
   path: z.string(),
   data: z.string().optional(),
@@ -30,6 +34,25 @@ filesRoutes.post(`/list`, validateRequest(listSchema), async (req: Request, res:
     res.status(200).json({ data });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+filesRoutes.post(`/check`, validateRequest(checkSchema), async (req: Request, res: Response) => {
+  try {
+    const { path } = req.body as z.infer<typeof checkSchema>;
+    const stat = await fs.promises.stat(`${fsPath}/${path}`);
+    res.status(200).json({
+      data: {
+        isExist: true,
+        isDirectory: stat.isDirectory(),
+      },
+    });
+  } catch (error) {
+    res.status(200).json({
+      data: {
+        isExist: false,
+      },
+    });
   }
 });
 
