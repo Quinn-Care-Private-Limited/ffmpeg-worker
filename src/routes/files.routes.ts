@@ -31,9 +31,9 @@ filesRoutes.post(`/list`, validateRequest(listSchema), async (req: Request, res:
   try {
     const { path = "" } = req.body as z.infer<typeof listSchema>;
     const data = await fs.promises.readdir(`${fsPath}/${path}`);
-    res.status(200).json({ data });
+    res.status(200).json({ list: data });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).send(error.message);
   }
 });
 
@@ -42,16 +42,12 @@ filesRoutes.post(`/check`, validateRequest(checkSchema), async (req: Request, re
     const { path } = req.body as z.infer<typeof checkSchema>;
     const stat = await fs.promises.stat(`${fsPath}/${path}`);
     res.status(200).json({
-      data: {
-        isExist: true,
-        isDirectory: stat.isDirectory(),
-      },
+      isExist: true,
+      isDirectory: stat.isDirectory(),
     });
   } catch (error) {
     res.status(200).json({
-      data: {
-        isExist: false,
-      },
+      isExist: false,
     });
   }
 });
@@ -77,7 +73,7 @@ filesRoutes.post(`/read`, validateRequest(readFileSchema), async (req: Request, 
     const data = await fs.promises.readFile(`${fsPath}/${path}`, "utf8");
     res.status(200).json({ data });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).send(error.message);
   }
 });
 
@@ -92,6 +88,6 @@ filesRoutes.post(`/delete`, validateRequest(deleteSchema), async (req: Request, 
     }
     res.status(200).json({});
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).send(error.message);
   }
 });

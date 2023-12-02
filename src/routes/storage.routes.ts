@@ -1,9 +1,10 @@
 import fs from "fs";
 import cuid2 from "@paralleldrive/cuid2";
-import axios, { AxiosError } from "axios";
 import { CloudStorageType, getStorageConnector } from "cloud-storage/connector";
 import express, { Request, Response } from "express";
 import { z } from "zod";
+import { sendWebhook } from "utils/webhook";
+import { WebhookType } from "types";
 
 export const storageRoutes = express.Router();
 
@@ -17,6 +18,7 @@ const downloadSchema = z.object({
   key: z.string(),
   path: z.string(),
   multipart: z.boolean().optional(),
+  partSize: z.number().optional(),
   callbackId: z.string().optional(),
   callbackUrl: z.string().optional(),
 });
@@ -27,6 +29,8 @@ const uploadSchema = z.object({
   path: z.string(),
   contentType: z.string(),
   multipart: z.boolean().optional(),
+  partSize: z.number().optional(),
+  batchSize: z.number().optional(),
   callbackId: z.string().optional(),
   callbackUrl: z.string().optional(),
 });
@@ -38,12 +42,13 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
       key,
       path,
       multipart,
+      partSize,
       callbackId = cuid2.createId(),
       callbackUrl = "",
     } = req.body as z.infer<typeof downloadSchema>;
 
     if (callbackUrl) {
-      res.status(200).json({ callbackId, callbackUrl });
+      res.status(200).json({ callbackId });
     }
 
     const filePath = `${fsPath}/${path}`;
@@ -51,19 +56,25 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
 
     if (multipart) {
-      await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath });
+      await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize });
     } else {
       await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath });
     }
     if (callbackUrl) {
-      axios.post(callbackUrl, { callbackId }).catch((error: AxiosError) => {
-        console.log("Error invoking callbackUrl", error);
+      sendWebhook(callbackUrl, {
+        callbackId,
+        type: WebhookType.STORAGE_DOWNLOAD,
+        data: {
+          bucket,
+          key,
+          path,
+        },
       });
-      return;
+    } else {
+      res.status(200).json({ bucket, key, path });
     }
-    res.status(200).json({ callbackId });
   } catch (error) {
-    res.status(400).json({ error });
+    res.status(400).send("Error downloading file");
   }
 });
 
@@ -75,38 +86,49 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
       path,
       contentType,
       multipart,
+      partSize,
+      batchSize,
       callbackId = cuid2.createId(),
       callbackUrl = "",
     } = req.body as z.infer<typeof uploadSchema>;
 
     if (callbackUrl) {
-      res.status(200).json({ callbackId, callbackUrl });
+      res.status(200).json({ callbackId });
     }
 
+    const filePath = `${fsPath}/${path}`;
     if (multipart) {
       await storage.uploadMultipartObject({
         bucketName: bucket,
         objectKey: key,
-        filePath: `${fsPath}/${path}`,
+        filePath,
         contentType,
+        partSize,
+        batchSize,
       });
     } else {
       await storage.uploadObject({
         bucketName: bucket,
         objectKey: key,
-        filePath: `${fsPath}/${path}`,
+        filePath,
         contentType,
       });
     }
 
     if (callbackUrl) {
-      axios.post(callbackUrl, { callbackId }).catch((error: AxiosError) => {
-        console.log("Error invoking callbackUrl", error);
+      sendWebhook(callbackUrl, {
+        callbackId,
+        type: WebhookType.STORAGE_UPLOAD,
+        data: {
+          bucket,
+          key,
+          path,
+        },
       });
-      return;
+    } else {
+      res.status(200).json({ bucket, key, path });
     }
-    res.status(200).json({ callbackId });
   } catch (error) {
-    res.status(400).json({ error });
+    res.status(400).send("Error uploading file");
   }
 });

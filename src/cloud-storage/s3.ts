@@ -65,38 +65,45 @@ export class S3Connector implements CloudStorageConnector {
     filePath: string;
     partSize?: number;
   }) {
-    const fileStream = fs.createWriteStream(payload.filePath);
-    const partSize = payload.partSize || 1024 * 1024 * 1;
+    const partSize = payload.partSize || 5 * 1024 * 1024;
+    const s3Client = new S3Client();
 
-    let startByte = 0;
-    let endByte = partSize - 1;
-    let partNumber = 1;
+    // Step 1: Get the object metadata to determine the total file size
+    const getObjectMetadataCommand = new GetObjectCommand({
+      Bucket: payload.bucketName,
+      Key: payload.objectKey,
+    });
 
-    while (startByte < endByte) {
-      const range = `bytes=${startByte}-${endByte}`;
-      const params = {
-        Bucket: payload.bucketName,
-        Key: payload.objectKey,
-        Range: range,
-      };
-      const command = new GetObjectCommand(params);
-      const { Body } = await s3Client.send(command);
+    const { ContentLength } = await s3Client.send(getObjectMetadataCommand);
 
-      if (Body) {
-        fileStream.write(await Body.transformToByteArray());
-      }
-
-      startByte = endByte + 1;
-      endByte += partSize;
-      partNumber++;
+    if (!ContentLength) {
+      throw new Error("ContentLength is undefined");
     }
 
-    fileStream.end();
+    // Step 2: Determine the number of parts needed
+    const numberOfParts = Math.ceil(ContentLength / partSize);
 
-    return new Promise<void>((resolve, reject) => {
-      fileStream.on("finish", resolve);
-      fileStream.on("error", reject);
-    });
+    // Step 3: Download each part and append to the local file
+    const writeStream = fs.createWriteStream(payload.filePath, { flags: "a" });
+
+    for (let partNumber = 1; partNumber <= numberOfParts; partNumber++) {
+      const startByte = (partNumber - 1) * partSize;
+      const endByte = Math.min(partNumber * partSize - 1, ContentLength - 1);
+
+      const getObjectCommand = new GetObjectCommand({
+        Bucket: payload.bucketName,
+        Key: payload.objectKey,
+        Range: `bytes=${startByte}-${endByte}`,
+      });
+
+      const { Body } = await s3Client.send(getObjectCommand);
+      if (Body) {
+        const buffer = await Body.transformToByteArray();
+        writeStream.write(buffer);
+      }
+    }
+
+    writeStream.end();
   }
 
   async uploadMultipartObject(payload: {

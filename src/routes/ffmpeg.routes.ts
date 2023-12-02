@@ -1,10 +1,12 @@
 import path from "path";
+import fs from "fs";
 import { z } from "zod";
 import express, { Request, Response } from "express";
 import { validateRequest } from "middlewares/req-validator";
 import { runcmd } from "utils/app";
 import cuid2 from "@paralleldrive/cuid2";
-import axios, { AxiosError } from "axios";
+import { sendWebhook } from "utils/webhook";
+import { WebhookType } from "types";
 
 export const ffmpegRoutes = express.Router();
 
@@ -12,11 +14,11 @@ const fsPath = process.env.FS_PATH || ".";
 const ffmpegPath = process.env.FFMPEG_PATH || "";
 
 const processSchema = z.object({
+  input: z.string().optional(),
   chainCmds: z.array(z.string()).optional(),
   filterCmds: z.array(z.string()).optional(),
-  input: z.string().optional(),
+  cmdString: z.string().optional(),
   output: z.string().optional(),
-  createDir: z.boolean().optional(),
   callbackId: z.string().optional(),
   callbackUrl: z.string().optional(),
 });
@@ -33,23 +35,21 @@ const vmafSchema = z.object({
   model: z.string(),
   subsample: z.number().optional(),
   threads: z.number().optional(),
-  callbackId: z.string().optional(),
-  callbackUrl: z.string().optional(),
 });
 
 ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Request, res: Response) => {
   try {
     const {
+      input,
       chainCmds,
       filterCmds,
-      input,
+      cmdString,
       output,
-      createDir = true,
       callbackId = cuid2.createId(),
       callbackUrl,
     } = req.body as z.infer<typeof processSchema>;
     if (callbackUrl) {
-      res.status(200).json({ callbackId, callbackUrl });
+      res.status(200).json({ callbackId });
     }
 
     let cmd = `${ffmpegPath}ffmpeg -y`;
@@ -59,32 +59,31 @@ ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Reques
     if (chainCmds && chainCmds.length > 0) {
       chainCmds.forEach((chainCmd) => {
         const [key, value] = chainCmd.split(" ");
-        if (key === "-i") {
+        if (key === "-i" || key === "-passlogfile") {
           cmd += ` ${key} ${fsPath}/${value}`;
         } else {
-          cmd += ` ${key} ${value}`;
+          cmd += ` ${chainCmd}`;
         }
       });
     }
     if (filterCmds && filterCmds.length > 0) {
       cmd += ` -vf "${filterCmds.join(", ")}"`;
     }
-    if (createDir && output) {
-      await runcmd(`mkdir -p ${fsPath}/${output.split("/").slice(0, -1).join("/")}`);
+    if (cmdString) {
+      cmd += ` ${cmdString}`;
     }
     if (output) {
+      await fs.promises.mkdir(`${fsPath}/${output.split("/").slice(0, -1).join("/")}`, { recursive: true });
       cmd += ` ${fsPath}/${output}`;
     }
-    await runcmd(cmd);
+    const data = await runcmd(cmd);
     if (callbackUrl) {
-      axios.post(callbackUrl, { callbackId }).catch((error: AxiosError) => {
-        console.log("Error invoking callbackUrl", error);
-      });
-      return;
+      sendWebhook(callbackUrl, { callbackId, type: WebhookType.FFMPEG, data });
+    } else {
+      res.status(200).json({ data });
     }
-    res.status(200).json({ callbackId });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).send(error.message);
   }
 });
 
@@ -100,25 +99,14 @@ ffmpegRoutes.post(`/probe`, validateRequest(probeSchema), async (req: Request, r
     const data = await runcmd(cmd);
     res.status(200).json({ data });
   } catch (error) {
-    res.status(400).json({ error });
+    res.status(400).send(error.message);
   }
 });
 
 ffmpegRoutes.post(`/vmaf`, validateRequest(vmafSchema), async (req: Request, res: Response) => {
   try {
-    const {
-      input1,
-      input2,
-      scale,
-      model,
-      subsample = 10,
-      threads = 8,
-      callbackId = cuid2.createId(),
-      callbackUrl,
-    } = req.body as z.infer<typeof vmafSchema>;
-    if (callbackUrl) {
-      res.status(200).json({ callbackId, callbackUrl });
-    }
+    const { input1, input2, scale, model, subsample = 10, threads = 8 } = req.body as z.infer<typeof vmafSchema>;
+
     let cmd = `${ffmpegPath}ffmpeg`;
     const modelPath = path.join(__dirname, "..", "models", `${model}.json`);
 
@@ -127,14 +115,8 @@ ffmpegRoutes.post(`/vmaf`, validateRequest(vmafSchema), async (req: Request, res
     let score = Math.floor(parseFloat(data.split("VMAF score:")[1]));
     score = isNaN(score) ? 0 : score;
 
-    if (callbackUrl) {
-      axios.post(callbackUrl, { callbackId, data: { score } }).catch((error: AxiosError) => {
-        console.log("Error invoking callbackUrl", error);
-      });
-      return;
-    }
-    res.status(200).json({ data: { score } });
+    res.status(200).json({ score });
   } catch (error) {
-    res.status(400).json({ error });
+    res.status(400).send(error.message);
   }
 });
