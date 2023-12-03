@@ -71,7 +71,7 @@ filesRoutes.post(`/create`, validateRequest(createFileSchema), async (req: Reque
     }
     res.status(200).json({});
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).send(error.message);
   }
 });
 
