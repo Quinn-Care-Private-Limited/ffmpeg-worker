@@ -50,12 +50,12 @@ filesRoutes.post(`/check`, validateRequest(checkSchema), async (req: Request, re
     const { path } = req.body as z.infer<typeof checkSchema>;
     const stat = await fs.promises.stat(`${fsPath}/${path}`);
     res.status(200).json({
-      isExist: true,
+      isExists: true,
       isDirectory: stat.isDirectory(),
     });
   } catch (error) {
     res.status(200).json({
-      isExist: false,
+      isExists: false,
     });
   }
 });
