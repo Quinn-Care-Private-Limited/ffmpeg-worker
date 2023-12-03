@@ -130,7 +130,7 @@ export class FFProcess {
 
   segment(segmentTime?: number) {
     if (!segmentTime) return this;
-    this.chainCmds.push(`-f segment -segment_time ${segmentTime} -map 0`);
+    this.chainCmds.push(`-f segment -segment_time ${segmentTime}`);
     return this;
   }
 
@@ -191,9 +191,9 @@ export class FFProcess {
     return this;
   }
 
-  file(file?: string) {
-    if (!file) return this;
-    this.chainCmds.push(`-f ${file}`);
+  format(format?: string) {
+    if (!format) return this;
+    this.chainCmds.push(`-f ${format}`);
     return this;
   }
 

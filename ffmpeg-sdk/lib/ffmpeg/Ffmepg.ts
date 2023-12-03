@@ -99,7 +99,13 @@ export class Ffmpeg {
     const concatFilePath = outputFile.replace(".mp4", ".txt");
     await this.files.create(concatFilePath, concatFileContent);
 
-    await this.process().file("concat").flag("safe", "0").input(concatFilePath).codec("copy").output(outputFile).run();
+    await this.process()
+      .format("concat")
+      .flag("safe", "0")
+      .input(concatFilePath)
+      .codec("copy")
+      .output(outputFile)
+      .run();
     await this.files.delete(concatFilePath);
   }
 
@@ -144,7 +150,7 @@ export class Ffmpeg {
       .preset("slow")
       .pass(1, logPath)
       .noAudio()
-      .file("mp4")
+      .format("mp4")
       .output(outputFile)
       .run();
 
