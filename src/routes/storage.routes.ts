@@ -36,17 +36,17 @@ const uploadSchema = z.object({
 });
 
 storageRoutes.post(`/download`, async (req: Request, res: Response) => {
-  try {
-    const {
-      bucket,
-      key,
-      path,
-      multipart,
-      partSize,
-      callbackId = cuid2.createId(),
-      callbackUrl = "",
-    } = req.body as z.infer<typeof downloadSchema>;
+  const {
+    bucket,
+    key,
+    path,
+    multipart,
+    partSize,
+    callbackId = cuid2.createId(),
+    callbackUrl = "",
+  } = req.body as z.infer<typeof downloadSchema>;
 
+  try {
     if (callbackUrl) {
       res.status(200).json({ callbackId });
     }
@@ -64,6 +64,7 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
       sendWebhook(callbackUrl, {
         callbackId,
         type: WebhookType.STORAGE_DOWNLOAD,
+        success: true,
         data: {
           bucket,
           key,
@@ -74,24 +75,32 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
       res.status(200).json({ bucket, key, path });
     }
   } catch (error) {
-    res.status(400).send("Error downloading file");
+    if (callbackUrl) {
+      sendWebhook(callbackUrl, {
+        callbackId,
+        type: WebhookType.STORAGE_DOWNLOAD,
+        success: false,
+        data: "Error downloading file",
+      });
+    } else {
+      res.status(400).send("Error downloading file");
+    }
   }
 });
 
 storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
+  const {
+    bucket,
+    key,
+    path,
+    contentType,
+    multipart,
+    partSize,
+    batchSize,
+    callbackId = cuid2.createId(),
+    callbackUrl = "",
+  } = req.body as z.infer<typeof uploadSchema>;
   try {
-    const {
-      bucket,
-      key,
-      path,
-      contentType,
-      multipart,
-      partSize,
-      batchSize,
-      callbackId = cuid2.createId(),
-      callbackUrl = "",
-    } = req.body as z.infer<typeof uploadSchema>;
-
     if (callbackUrl) {
       res.status(200).json({ callbackId });
     }
@@ -119,6 +128,7 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
       sendWebhook(callbackUrl, {
         callbackId,
         type: WebhookType.STORAGE_UPLOAD,
+        success: true,
         data: {
           bucket,
           key,
@@ -129,6 +139,15 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
       res.status(200).json({ bucket, key, path });
     }
   } catch (error) {
-    res.status(400).send("Error uploading file");
+    if (callbackUrl) {
+      sendWebhook(callbackUrl, {
+        callbackId,
+        type: WebhookType.STORAGE_UPLOAD,
+        success: false,
+        data: "Error uploading file",
+      });
+    } else {
+      res.status(400).send("Error uploading file");
+    }
   }
 });

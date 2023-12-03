@@ -38,16 +38,17 @@ const vmafSchema = z.object({
 });
 
 ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Request, res: Response) => {
+  const {
+    input,
+    chainCmds,
+    filterCmds,
+    cmdString,
+    output,
+    callbackId = cuid2.createId(),
+    callbackUrl,
+  } = req.body as z.infer<typeof processSchema>;
+
   try {
-    const {
-      input,
-      chainCmds,
-      filterCmds,
-      cmdString,
-      output,
-      callbackId = cuid2.createId(),
-      callbackUrl,
-    } = req.body as z.infer<typeof processSchema>;
     if (callbackUrl) {
       res.status(200).json({ callbackId });
     }
@@ -78,12 +79,16 @@ ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Reques
     }
     const data = await runcmd(cmd);
     if (callbackUrl) {
-      sendWebhook(callbackUrl, { callbackId, type: WebhookType.FFMPEG, data });
+      sendWebhook(callbackUrl, { callbackId, type: WebhookType.FFMPEG, success: true, data });
     } else {
       res.status(200).json({ data });
     }
   } catch (error) {
-    res.status(400).send(error.message);
+    if (callbackUrl) {
+      sendWebhook(callbackUrl, { callbackId, type: WebhookType.FFMPEG, success: false, data: error.message });
+    } else {
+      res.status(400).send(error.message);
+    }
   }
 });
 
