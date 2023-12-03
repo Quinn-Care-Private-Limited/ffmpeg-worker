@@ -9,6 +9,10 @@ export class Files {
     this.axios = getAxiosInstance(credentials);
   }
 
+  path() {
+    return request<{ path: string }>(this.axios, "/files/path", {});
+  }
+
   list(path: string) {
     return request<{ list: string[] }>(this.axios, "/files/list", { path });
   }

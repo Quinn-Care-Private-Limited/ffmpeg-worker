@@ -202,6 +202,15 @@ export class FFProcess {
     return this;
   }
 
+  flag(key: string, value?: string) {
+    if (value) {
+      this.chainCmds.push(`-${key} ${value}`);
+    } else {
+      this.chainCmds.push(`-${key}`);
+    }
+    return this;
+  }
+
   cmd(cmd: string) {
     this.cmdString = cmd;
     return this;

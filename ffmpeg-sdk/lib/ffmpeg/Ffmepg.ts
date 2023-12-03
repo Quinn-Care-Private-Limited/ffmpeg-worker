@@ -52,7 +52,7 @@ export class Ffmpeg {
   }
 
   async getRelativeScore(payload: IRelativeScore) {
-    const { originalFile, compareFile, scale, threads = 8, model = "vmaf_v0.6.1", device = "desktop" } = payload;
+    const { originalFile, compareFile, scale, threads, subsample, model = "vmaf_v0.6.1", device = "desktop" } = payload;
 
     let scale_filter = "";
 
@@ -63,7 +63,14 @@ export class Ffmpeg {
       scale_filter = `scale=${width}:${height}`;
     }
 
-    return this.vmaf().run({ input1: originalFile, input2: compareFile, scale: scale_filter, model, threads });
+    return this.vmaf().run({
+      input1: originalFile,
+      input2: compareFile,
+      scale: scale_filter,
+      model,
+      threads,
+      subsample,
+    });
   }
 
   async getScenes(inputFile: string, threshold = 0.4) {
@@ -87,11 +94,12 @@ export class Ffmpeg {
   }
 
   async concat(inputFiles: string[], outputFile: string): Promise<void> {
-    const concatFileContent = inputFiles.map((item) => `file '${item}'`).join("\n");
+    const { path } = await this.files.path();
+    const concatFileContent = inputFiles.map((item) => `file '${path}/${item}'`).join("\n");
     const concatFilePath = outputFile.replace(".mp4", ".txt");
     await this.files.create(concatFilePath, concatFileContent);
 
-    await this.process().cmd("-f concat -safe 0").input(concatFilePath).codec("copy").output(outputFile).run();
+    await this.process().file("concat").flag("safe", "0").input(concatFilePath).codec("copy").output(outputFile).run();
     await this.files.delete(concatFilePath);
   }
 
