@@ -27,6 +27,14 @@ const deleteSchema = z.object({
   path: z.string(),
 });
 
+filesRoutes.post(`/path`, async (req: Request, res: Response) => {
+  try {
+    res.status(200).json({ path: fsPath });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
 filesRoutes.post(`/list`, validateRequest(listSchema), async (req: Request, res: Response) => {
   try {
     const { path = "" } = req.body as z.infer<typeof listSchema>;
