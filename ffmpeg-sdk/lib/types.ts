@@ -32,5 +32,6 @@ export enum WebhookType {
 export interface IWebhookResponse {
   callbackId: string;
   type: WebhookType;
+  success: boolean;
   data: any;
 }
