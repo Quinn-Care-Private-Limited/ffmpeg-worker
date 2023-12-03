@@ -130,7 +130,7 @@ export class FFProcess {
 
   segment(segmentTime?: number) {
     if (!segmentTime) return this;
-    this.chainCmds.push(`-f segment -segment_time ${segmentTime}`);
+    this.chainCmds.push(`-f segment -segment_time ${segmentTime} -reset_timestamps 0`);
     return this;
   }
 
