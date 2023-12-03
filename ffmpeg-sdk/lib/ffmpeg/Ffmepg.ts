@@ -114,12 +114,12 @@ export class Ffmpeg {
       .input(inputFile)
       .codec("copy")
       .segment(targetDuration)
-      .output(`${outputDir}/chunk_%d.mp4`)
+      .output(`${outputDir}/segment_%d.mp4`)
       .run();
 
     const { list } = await this.files.list(outputDir);
     const segments = list
-      .filter((item) => item.includes("chunk_"))
+      .filter((item) => item.includes("segment_"))
       .map((item) => {
         const chunknumber = +item.split("_")[1].split(".")[0];
         const chunkPath = `${outputDir}/${item}`;
