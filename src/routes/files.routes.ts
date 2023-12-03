@@ -65,6 +65,7 @@ filesRoutes.post(`/create`, validateRequest(createFileSchema), async (req: Reque
     const { path, data } = req.body as z.infer<typeof createFileSchema>;
 
     if (data) {
+      await fs.promises.mkdir(`${fsPath}/${path.split("/").slice(0, -1).join("/")}`, { recursive: true });
       await fs.promises.writeFile(`${fsPath}/${path}`, data);
     } else {
       await fs.promises.mkdir(`${fsPath}/${path}`, { recursive: true });
