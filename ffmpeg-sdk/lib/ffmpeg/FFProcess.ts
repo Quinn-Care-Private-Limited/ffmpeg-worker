@@ -197,7 +197,8 @@ export class FFProcess {
     return this;
   }
 
-  noAudio() {
+  muted(val?: boolean) {
+    if (!val) return this;
     this.chainCmds.push(`-an`);
     return this;
   }

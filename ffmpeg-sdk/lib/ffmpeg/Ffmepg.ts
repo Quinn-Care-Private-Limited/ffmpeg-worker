@@ -149,7 +149,7 @@ export class Ffmpeg {
       .resolution(resolution)
       .preset("slow")
       .pass(1, logPath)
-      .noAudio()
+      .muted(true)
       .format("mp4")
       .output(outputFile)
       .run();
