@@ -13,17 +13,21 @@ async function main() {
   // const chunkProcessPath = `output/asset3/tmp/chunk_${chunk.chunknumber}_720_1000.mp4`;
   // await ffmpeg.twoPassEncode(chunk.chunkPath, chunkProcessPath, 720, "1000k");
 
-  // const { score } = await ffmpeg.getRelativeScore({
-  //   originalFile: "output/asset4/chunks/chunk_3.mp4",
-  //   compareFile: "output/asset4/tmp/chunk_3_1080_5760.mp4",
-  // });
-  // console.log(score);
+  const { score } = await ffmpeg.getRelativeScore({
+    originalFile: "output/asset4/chunks/chunk_3.mp4",
+    compareFile: "output/asset4/tmp/chunk_3_2160_0.mp4",
+    scale: {
+      width: 1920,
+      height: 1080,
+    },
+  });
+  console.log(score);
 
-  await ffmpeg.segment("source/asset4/original.mp4", "output/asset4/tmp", 4);
-  await ffmpeg.concat(
-    ["output/asset4/tmp/segment_0.mp4", "output/asset4/tmp/segment_1.mp4"],
-    "output/asset4/chunks/chunk_0.mp4",
-  );
+  // await ffmpeg.segment("source/asset4/original.mp4", "output/asset4/tmp", 4);
+  // await ffmpeg.concat(
+  //   ["output/asset4/tmp/segment_0.mp4", "output/asset4/tmp/segment_1.mp4"],
+  //   "output/asset4/chunks/chunk_0.mp4",
+  // );
 }
 
 main();
