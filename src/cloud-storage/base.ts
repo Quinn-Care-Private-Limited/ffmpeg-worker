@@ -11,6 +11,8 @@ export abstract class CloudStorageConnector {
     objectKey: string;
     filePath: string;
     partSize?: number;
+    batchSize?: number;
+    debug?: boolean;
   }): Promise<void>;
   abstract uploadMultipartObject(payload: {
     bucketName: string;
@@ -19,5 +21,6 @@ export abstract class CloudStorageConnector {
     contentType: string;
     partSize?: number;
     batchSize?: number;
+    debug?: boolean;
   }): Promise<void>;
 }

@@ -7,6 +7,7 @@ import {
   UploadPartCommandOutput,
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import fs from "fs";
 import { CloudStorageConnector } from "./base";
@@ -64,46 +65,69 @@ export class S3Connector implements CloudStorageConnector {
     objectKey: string;
     filePath: string;
     partSize?: number;
+    batchSize?: number;
+    debug?: boolean;
   }) {
-    const partSize = payload.partSize || 5 * 1024 * 1024;
+    const { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
     const s3Client = new S3Client();
 
-    // Step 1: Get the object metadata to determine the total file size
-    const getObjectMetadataCommand = new GetObjectCommand({
-      Bucket: payload.bucketName,
-      Key: payload.objectKey,
+    const headObjectCommand = new HeadObjectCommand({
+      Bucket: bucketName,
+      Key: objectKey,
     });
 
-    const { ContentLength } = await s3Client.send(getObjectMetadataCommand);
+    const { ContentLength: fileSize } = await s3Client.send(headObjectCommand);
+    if (!fileSize) throw new Error("ContentLength is undefined");
 
-    if (!ContentLength) {
-      throw new Error("ContentLength is undefined");
-    }
+    if (debug) console.log(`File size: ${fileSize} bytes`);
 
-    // Step 2: Determine the number of parts needed
-    const numberOfParts = Math.ceil(ContentLength / partSize);
+    let bytesRead = 0;
+    let partNumber = 1;
 
-    // Step 3: Download each part and append to the local file
-    const writeStream = fs.createWriteStream(payload.filePath, { flags: "a" });
+    const writeStream = fs.createWriteStream(filePath);
 
-    for (let partNumber = 1; partNumber <= numberOfParts; partNumber++) {
-      const startByte = (partNumber - 1) * partSize;
-      const endByte = Math.min(partNumber * partSize - 1, ContentLength - 1);
-
+    const downloadPart = async (startByte: number, endByte: number) => {
       const getObjectCommand = new GetObjectCommand({
-        Bucket: payload.bucketName,
-        Key: payload.objectKey,
+        Bucket: bucketName,
+        Key: objectKey,
         Range: `bytes=${startByte}-${endByte}`,
       });
 
       const { Body } = await s3Client.send(getObjectCommand);
-      if (Body) {
-        const buffer = await Body.transformToByteArray();
-        writeStream.write(buffer);
+
+      if (!Body) throw new Error(`Part ${partNumber} not found`);
+      const chunk = await Body.transformToByteArray();
+      // bytesRead += chunks.length;
+      // writeStream.write(chunks);
+
+      if (debug) console.log(`Downloaded part ${partNumber}`);
+      partNumber++;
+      return chunk;
+    };
+
+    const downloadPromises: Promise<Uint8Array>[] = [];
+
+    while (bytesRead < fileSize) {
+      const startByte = bytesRead;
+      const endByte = Math.min(bytesRead + partSize - 1, fileSize - 1);
+
+      bytesRead += endByte - startByte + 1;
+
+      downloadPromises.push(downloadPart(startByte, endByte));
+
+      if (downloadPromises.length >= batchSize) {
+        // Wait for the current batch to complete before starting a new one
+        const chunks = await Promise.all(downloadPromises);
+        writeStream.write(Buffer.concat(chunks));
+        downloadPromises.length = 0; // Clear the array for the next batch
       }
     }
 
+    // Wait for any remaining parts to be downloaded
+    await Promise.all(downloadPromises);
+
     writeStream.end();
+    if (debug) console.log("Download complete");
   }
 
   async uploadMultipartObject(payload: {
