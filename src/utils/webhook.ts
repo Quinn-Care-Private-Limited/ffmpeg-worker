@@ -11,6 +11,6 @@ export const sendWebhook = async (url: string, payload: IWebhookResponse) => {
       },
     });
   } catch (error) {
-    console.log("Error invoking callbackUrl", error.message);
+    console.log(`Error invoking callbackUrl ${url}`, error.message);
   }
 };
