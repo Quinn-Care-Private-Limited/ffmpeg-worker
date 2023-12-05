@@ -59,7 +59,7 @@ export class FFProcess {
     const ar = aspectRatio.replace(":", "/");
     this.filterCmds.push(`pad='ceil(iw/2)*2:ceil(ih/2)*2'`);
     const width = `'min(if(gte(dar,${ar}),if(gte(iw,ih),ih*${ar},ih/(${ar})),iw),iw)'`;
-    const height = `'min(if(gte(dar,${ar}),ih,if(gte(iw,ih),iw/(${ar}),iw*${ar})),ih)'`;
+    const height = `'min(if(gte(dar,${ar}),ih,if(gte(ih,iw),iw/(${ar}),iw*${ar})),ih)'`;
     this.filterCmds.push(`crop=${width}:${height}`);
     return this;
   }

@@ -35,7 +35,14 @@ async function main() {
   //   "output/asset4/chunks/chunk_0.mp4",
   // );
 
-  await files.delete("output/asset1");
+  await ffmpeg
+    .process()
+    .input("source/test.mp4")
+    .resolution(720)
+    .preset("ultrafast")
+    .cropAspectRatio("9/16")
+    .output("output/test.mp4")
+    .run();
 }
 
 main();
