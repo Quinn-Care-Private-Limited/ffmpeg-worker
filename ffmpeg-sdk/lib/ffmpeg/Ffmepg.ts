@@ -109,13 +109,8 @@ export class Ffmpeg {
     await this.files.delete(concatFilePath);
   }
 
-  async segment(inputFile: string, outputDir: string, targetDuration: number, segmentName = "segment_%d.mp4") {
-    await this.process()
-      .input(inputFile)
-      .codec("copy")
-      .segment(targetDuration)
-      .output(`${outputDir}/${segmentName}`)
-      .run();
+  async segment(inputFile: string, outputDir: string, targetDuration: number) {
+    await this.process().input(inputFile).codec("copy").segment(targetDuration).output(outputDir).run();
 
     const { list } = await this.files.list(outputDir);
     const segments = list
