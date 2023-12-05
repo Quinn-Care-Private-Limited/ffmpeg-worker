@@ -17,7 +17,7 @@ export class Storage {
     return request<{ bucket: string; key: string; path: string }>(this.axios, "/storage/download", config);
   }
 
-  async scheduleUpload(config: {
+  async scheduleUpload<T = {}>(config: {
     callbackId?: string;
     callbackUrl?: string;
     bucket: string;
@@ -27,12 +27,12 @@ export class Storage {
     multipart?: boolean;
     partSize?: number;
     batchSize?: number;
-    callbackMeta?: Record<string, any>;
+    callbackMeta?: T;
   }) {
     return request<{ callbackId: string }>(this.axios, "/storage/upload", config);
   }
 
-  async scheduleDownload(config: {
+  async scheduleDownload<T = {}>(config: {
     callbackId?: string;
     callbackUrl?: string;
     bucket: string;
@@ -40,7 +40,7 @@ export class Storage {
     path: string;
     multipart?: boolean;
     partSize?: number;
-    callbackMeta?: Record<string, any>;
+    callbackMeta?: T;
   }) {
     return request<{ callbackId: string }>(this.axios, "/storage/download", config);
   }

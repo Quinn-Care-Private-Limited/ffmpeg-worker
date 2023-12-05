@@ -226,7 +226,7 @@ export class FFProcess {
     });
   }
 
-  async schedule(config: { callbackId?: string; callbackUrl?: string; callbackMeta?: Record<string, any> } = {}) {
+  async schedule<T = {}>(config: { callbackId?: string; callbackUrl?: string; callbackMeta?: T } = {}) {
     return request<{ callbackId: string }>(this.axios, "/ffmpeg/process", {
       chainCmds: this.chainCmds,
       filterCmds: this.filterCmds,
