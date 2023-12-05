@@ -2,11 +2,12 @@ import { Storage } from "@google-cloud/storage";
 import { CloudStorageConnector } from "./base";
 import fs from "fs";
 
-export class GCPStorageConnector implements CloudStorageConnector {
+const storage = new Storage();
+
+export class GCStorageConnector implements CloudStorageConnector {
   async downloadObject(payload: { bucketName: string; objectKey: string; filePath: string }): Promise<void> {
     const { bucketName, objectKey, filePath } = payload;
 
-    const storage = new Storage();
     const bucket = storage.bucket(bucketName);
     const file = bucket.file(objectKey);
 
@@ -39,7 +40,6 @@ export class GCPStorageConnector implements CloudStorageConnector {
     contentType: string;
   }): Promise<void> {
     const { bucketName, objectKey, filePath, contentType } = payload;
-    const storage = new Storage();
     const bucket = storage.bucket(bucketName);
 
     await bucket.upload(filePath, {
@@ -47,6 +47,7 @@ export class GCPStorageConnector implements CloudStorageConnector {
       contentType,
     });
   }
+
   async downloadMultipartObject(payload: {
     bucketName: string;
     objectKey: string;
@@ -55,10 +56,10 @@ export class GCPStorageConnector implements CloudStorageConnector {
     batchSize?: number;
     debug?: boolean;
   }): Promise<void> {
-    const { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
-    const storage = new Storage();
+    let { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
 
-    const file = storage.bucket(bucketName).file(objectKey);
+    const bucket = storage.bucket(bucketName);
+    const file = bucket.file(objectKey);
     const fileExists = await file.exists();
 
     if (!fileExists[0]) {
@@ -72,6 +73,7 @@ export class GCPStorageConnector implements CloudStorageConnector {
     if (!fileSize) throw new Error("File size is undefined");
 
     fileSize = +fileSize;
+    partSize = Math.min(partSize, fileSize);
 
     if (debug) console.log(`File size: ${fileSize} bytes`);
 
@@ -80,26 +82,26 @@ export class GCPStorageConnector implements CloudStorageConnector {
 
     const writeStream = fs.createWriteStream(filePath);
 
-    const downloadPart = async (startByte: number, endByte: number): Promise<Uint8Array> => {
+    const downloadPart = async (startByte: number, endByte: number): Promise<Buffer[]> => {
       return new Promise((resolve, reject) => {
         const readStream = file.createReadStream({
           start: startByte,
           end: endByte,
         });
 
-        let streamchunk: any;
+        const stream: Buffer[] = [];
 
         readStream.on("data", (chunk) => {
           // bytesRead += chunk.length;
           // writeStream.write(chunk);
           if (!chunk) reject(`Part ${partNumber} not found`);
-          streamchunk = chunk;
+          stream.push(chunk);
         });
 
         readStream.on("end", () => {
           if (debug) console.log(`Downloaded part ${partNumber}`);
           partNumber++;
-          resolve(streamchunk);
+          resolve(stream);
         });
 
         readStream.on("error", (error) => {
@@ -109,7 +111,7 @@ export class GCPStorageConnector implements CloudStorageConnector {
       });
     };
 
-    const downloadPromises: Promise<Uint8Array>[] = [];
+    const downloadPromises: Promise<Buffer[]>[] = [];
 
     while (bytesRead < fileSize) {
       const startByte = bytesRead;
@@ -121,14 +123,23 @@ export class GCPStorageConnector implements CloudStorageConnector {
 
       if (downloadPromises.length >= batchSize) {
         // Wait for the current batch to complete before starting a new one
-        const chunks = await Promise.all(downloadPromises);
-        writeStream.write(Buffer.concat(chunks));
+        const streams = await Promise.all(downloadPromises);
+        for (const stream of streams) {
+          writeStream.write(Buffer.concat(stream));
+        }
+
         downloadPromises.length = 0; // Clear the array for the next batch
       }
     }
 
     // Wait for any remaining parts to be downloaded
-    await Promise.all(downloadPromises);
+    const streams = await Promise.all(downloadPromises);
+
+    for (const stream of streams) {
+      writeStream.write(Buffer.concat(stream));
+    }
+
+    // bucket.combine()
 
     writeStream.end();
     if (debug) console.log("Download complete");
@@ -143,68 +154,72 @@ export class GCPStorageConnector implements CloudStorageConnector {
     batchSize?: number;
     debug?: boolean;
   }): Promise<void> {
-    const { bucketName, objectKey, filePath, contentType, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
+    let { bucketName, objectKey, filePath, contentType, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
+
     const storage = new Storage();
+    const bucket = storage.bucket(bucketName);
 
-    const file = storage.bucket(bucketName).file(objectKey);
-
-    const stat = await fs.promises.stat(filePath);
-    const fileSize = stat.size;
-
-    if (debug) {
-      console.log(`File size: ${fileSize} bytes`);
-    }
+    const { size: fileSize } = await fs.promises.stat(filePath);
+    if (debug) console.log(`File size: ${fileSize} bytes`);
+    partSize = Math.min(partSize, fileSize);
 
     let bytesRead = 0;
     let partNumber = 1;
-    const readStream = fs.createReadStream(filePath, { highWaterMark: partSize });
 
-    const uploadPart = async (partData: Buffer): Promise<void> => {
+    const uploadPart = async (startByte: number, endByte: number): Promise<string> => {
+      const partStream = fs.createReadStream(filePath, {
+        start: startByte,
+        end: endByte,
+      });
+
+      const file = bucket.file(objectKey);
+      const writeStream = file.createWriteStream({
+        isPartialUpload: true,
+        chunkSize: endByte - startByte + 1,
+        resumable: false, // Disable resumable uploads for simplicity
+        metadata: {
+          contentType,
+        },
+      });
+
       return new Promise((resolve, reject) => {
-        const partUploadStream = file.createWriteStream({
-          resumable: true,
-          metadata: {
-            contentType,
-          },
-        });
+        partStream.pipe(writeStream);
 
-        partUploadStream.on("finish", () => {
-          if (debug) {
-            console.log(`Uploaded part ${partNumber}`);
-          }
+        writeStream.on("finish", async () => {
+          if (debug)
+            console.log(`Uploading Part ${partNumber} (${Math.ceil((endByte - startByte || 0) / (1024 * 1024))} MB)`);
           partNumber++;
-          resolve();
+          resolve(file.name);
         });
 
-        partUploadStream.on("error", (error) => {
-          if (debug) {
-            console.error(`Error uploading part ${partNumber}:`, error);
-          }
-          reject("Error uploading video");
+        writeStream.on("error", (error) => {
+          reject(error);
         });
-
-        partUploadStream.write(partData);
-        partUploadStream.end();
       });
     };
 
-    for await (const chunk of readStream) {
-      bytesRead += chunk.length;
-      const remainingBytes = fileSize - bytesRead;
-      const partData = chunk.slice();
+    const uploadPromises: Promise<string>[] = [];
 
-      if (remainingBytes < partSize) {
-        // If it's the last part, upload it immediately without waiting for the batch
-        await uploadPart(partData);
-      } else {
-        // Upload parts in parallel in batches
-        const batchPromises: Promise<void>[] = [];
-        for (let i = 0; i < batchSize; i++) {
-          batchPromises.push(uploadPart(partData));
-        }
+    while (bytesRead < fileSize) {
+      const startByte = bytesRead;
+      const endByte = Math.min(bytesRead + partSize - 1, fileSize - 1);
 
-        await Promise.all(batchPromises);
+      uploadPromises.push(uploadPart(startByte, endByte));
+
+      if (uploadPromises.length >= batchSize) {
+        // Wait for the current batch to complete before starting a new one
+        const etags = await Promise.all(uploadPromises);
+        uploadPromises.length = 0; // Clear the array for the next batch
       }
+
+      bytesRead += partSize;
     }
+
+    // Wait for any remaining parts to be uploaded
+    const etags = await Promise.all(uploadPromises);
+
+    // If needed, you can perform additional actions with the etags here
+
+    if (debug) console.log("Upload complete");
   }
 }

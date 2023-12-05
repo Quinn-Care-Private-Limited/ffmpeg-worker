@@ -68,7 +68,7 @@ export class S3Connector implements CloudStorageConnector {
     batchSize?: number;
     debug?: boolean;
   }) {
-    const { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
+    let { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
     const s3Client = new S3Client();
 
     const headObjectCommand = new HeadObjectCommand({
@@ -79,6 +79,7 @@ export class S3Connector implements CloudStorageConnector {
     const { ContentLength: fileSize } = await s3Client.send(headObjectCommand);
     if (!fileSize) throw new Error("ContentLength is undefined");
 
+    partSize = Math.max(partSize, fileSize);
     if (debug) console.log(`File size: ${fileSize} bytes`);
 
     let bytesRead = 0;
@@ -124,7 +125,8 @@ export class S3Connector implements CloudStorageConnector {
     }
 
     // Wait for any remaining parts to be downloaded
-    await Promise.all(downloadPromises);
+    const chunks = await Promise.all(downloadPromises);
+    writeStream.write(Buffer.concat(chunks));
 
     writeStream.end();
     if (debug) console.log("Download complete");
@@ -139,8 +141,12 @@ export class S3Connector implements CloudStorageConnector {
     batchSize?: number;
     debug?: boolean;
   }) {
-    const { bucketName, objectKey, filePath, contentType, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
+    let { bucketName, objectKey, filePath, contentType, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
     const s3Client = new S3Client();
+    const { size: fileSize } = await fs.promises.stat(filePath);
+    if (debug) console.log(`File size: ${fileSize} bytes`);
+
+    partSize = Math.min(partSize, fileSize);
 
     // Step 1: Create a multipart upload
     const createMultipartUploadCommand = new CreateMultipartUploadCommand({
