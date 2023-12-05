@@ -21,6 +21,7 @@ const downloadSchema = z.object({
   partSize: z.number().optional(),
   callbackId: z.string().optional(),
   callbackUrl: z.string().optional(),
+  callbackMeta: z.record(z.any()).optional(),
 });
 
 const uploadSchema = z.object({
@@ -33,6 +34,7 @@ const uploadSchema = z.object({
   batchSize: z.number().optional(),
   callbackId: z.string().optional(),
   callbackUrl: z.string().optional(),
+  callbackMeta: z.record(z.any()).optional(),
 });
 
 storageRoutes.post(`/download`, async (req: Request, res: Response) => {
@@ -44,6 +46,7 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
     partSize,
     callbackId = cuid2.createId(),
     callbackUrl = "",
+    callbackMeta = {},
   } = req.body as z.infer<typeof downloadSchema>;
 
   try {
@@ -63,6 +66,7 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
     if (callbackUrl) {
       sendWebhook(callbackUrl, {
         callbackId,
+        callbackMeta,
         type: WebhookType.STORAGE_DOWNLOAD,
         success: true,
         data: {
@@ -78,6 +82,7 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
     if (callbackUrl) {
       sendWebhook(callbackUrl, {
         callbackId,
+        callbackMeta,
         type: WebhookType.STORAGE_DOWNLOAD,
         success: false,
         data: "Error downloading file",
@@ -99,6 +104,7 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
     batchSize,
     callbackId = cuid2.createId(),
     callbackUrl = "",
+    callbackMeta = {},
   } = req.body as z.infer<typeof uploadSchema>;
   try {
     if (callbackUrl) {
@@ -127,6 +133,7 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
     if (callbackUrl) {
       sendWebhook(callbackUrl, {
         callbackId,
+        callbackMeta,
         type: WebhookType.STORAGE_UPLOAD,
         success: true,
         data: {
@@ -142,6 +149,7 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
     if (callbackUrl) {
       sendWebhook(callbackUrl, {
         callbackId,
+        callbackMeta,
         type: WebhookType.STORAGE_UPLOAD,
         success: false,
         data: "Error uploading file",

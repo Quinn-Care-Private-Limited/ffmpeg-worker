@@ -21,6 +21,7 @@ const processSchema = z.object({
   output: z.string().optional(),
   callbackId: z.string().optional(),
   callbackUrl: z.string().optional(),
+  callbackMeta: z.record(z.any()).optional(),
 });
 
 const probeSchema = z.object({
@@ -46,6 +47,7 @@ ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Reques
     output,
     callbackId = cuid2.createId(),
     callbackUrl,
+    callbackMeta = {},
   } = req.body as z.infer<typeof processSchema>;
 
   try {
@@ -79,13 +81,19 @@ ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Reques
     }
     const data = await runcmd(cmd);
     if (callbackUrl) {
-      sendWebhook(callbackUrl, { callbackId, type: WebhookType.FFMPEG, success: true, data });
+      sendWebhook(callbackUrl, { callbackId, callbackMeta, type: WebhookType.FFMPEG, success: true, data });
     } else {
       res.status(200).json({ data });
     }
   } catch (error) {
     if (callbackUrl) {
-      sendWebhook(callbackUrl, { callbackId, type: WebhookType.FFMPEG, success: false, data: error.message });
+      sendWebhook(callbackUrl, {
+        callbackId,
+        callbackMeta,
+        type: WebhookType.FFMPEG,
+        success: false,
+        data: error.message,
+      });
     } else {
       res.status(400).send(error.message);
     }
