@@ -27,6 +27,7 @@ export class Storage {
     multipart?: boolean;
     partSize?: number;
     batchSize?: number;
+    callbackMeta?: Record<string, any>;
   }) {
     return request<{ callbackId: string }>(this.axios, "/storage/upload", config);
   }
@@ -39,6 +40,7 @@ export class Storage {
     path: string;
     multipart?: boolean;
     partSize?: number;
+    callbackMeta?: Record<string, any>;
   }) {
     return request<{ callbackId: string }>(this.axios, "/storage/download", config);
   }

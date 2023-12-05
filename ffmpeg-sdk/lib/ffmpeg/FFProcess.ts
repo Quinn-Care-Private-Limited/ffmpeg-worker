@@ -226,14 +226,13 @@ export class FFProcess {
     });
   }
 
-  async schedule(config: { callbackId?: string; callbackUrl?: string } = {}) {
+  async schedule(config: { callbackId?: string; callbackUrl?: string; callbackMeta?: Record<string, any> } = {}) {
     return request<{ callbackId: string }>(this.axios, "/ffmpeg/process", {
       chainCmds: this.chainCmds,
       filterCmds: this.filterCmds,
       cmdString: this.cmdString,
       output: this.outputFile,
-      callbackId: config.callbackId,
-      callbackUrl: config.callbackUrl,
+      ...config,
     });
   }
 }
