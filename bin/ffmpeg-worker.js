@@ -63,6 +63,36 @@ function start() {
   const cwd = process.cwd();
   dotenv.config(cwd + "/.env");
 
+  const envs = ["PORT", "FS_PATH", "CLIENT_ID", "CLIENT_SECRET", "CLOUD_STORAGE"];
+
+  for (let v of envs) {
+    if (!process.env[v]) {
+      console.log(`Missing ${v} in .env file`);
+      return;
+    }
+  }
+
+  if (process.env.CLOUD_STORAGE === "S3") {
+    const vars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"];
+    for (let v of vars) {
+      if (!process.env[v]) {
+        console.log(`Missing ${v} in .env file`);
+        return;
+      }
+    }
+  } else if (process.env.CLOUD_STORAGE === "GCP") {
+    const vars = [];
+    for (let v of vars) {
+      if (!process.env[v]) {
+        console.log(`Missing ${v} in .env file`);
+        return;
+      }
+    }
+  } else {
+    console.log("Invalid CLOUD_STORAGE in .env file");
+    return;
+  }
+
   const scriptPath = path.join(__dirname, "..", "build", "index.js");
   forever.startDaemon(scriptPath, {
     max: 1,
