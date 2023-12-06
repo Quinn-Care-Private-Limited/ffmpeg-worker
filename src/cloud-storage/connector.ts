@@ -14,6 +14,6 @@ export const getStorageConnector = (type: CloudStorageType): CloudStorageConnect
     case CloudStorageType.GCS:
       return new GCStorageConnector();
     default:
-      throw new Error(`Unknown cloud storage type: ${type}`);
+      return new S3Connector();
   }
 };

@@ -5,18 +5,20 @@
   "main": "build/index.js",
   "scripts": {
     "env": "dotenv -e",
-    "build": "bash scripts/build.sh",
     "forever": "forever",
-    "start": "forever start build/index.js",
-    "stop": "forever stop build/index.js",
+    "build": "bash scripts/build.sh",
     "test": "NODE_PATH=./src dotenv -e .env ts-node",
     "dev": "NODE_PATH=./src dotenv -e .env ts-node src/index.ts",
     "deploy": "npm run build && npm publish --access public"
+  },
+  "bin": {
+    "ffmpeg-worker": "./bin/ffmpeg-worker.js"
   },
   "author": "Shubhankar Das",
   "license": "ISC",
   "files": [
     "build",
+    "bin",
     "package.json",
     "README.md",
     "tsconfig.json"
@@ -26,6 +28,8 @@
     "@google-cloud/storage": "^7.7.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "axios": "^1.5.0",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
     "dotenv": "^16.0.0",
     "dotenv-cli": "^5.1.0",
     "express": "^4.18.2",

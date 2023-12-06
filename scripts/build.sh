@@ -1,5 +1,5 @@
 #!/bin/bash
-sudo rm -rf build
-sudo npx tsc && \
-sudo npx tsc-alias && \
-sudo cp -r src/models build/
+rm -rf build
+npx tsc && \
+npx tsc-alias && \
+cp -r src/models build/
