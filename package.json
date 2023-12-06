@@ -9,7 +9,7 @@
     "build": "bash scripts/build.sh",
     "test": "NODE_PATH=./src dotenv -e .env ts-node",
     "dev": "NODE_PATH=./src dotenv -e .env ts-node src/index.ts",
-    "deploy": "npm run build && npm publish --access public"
+    "deploy": "npm run build && npm version patch && npm publish --access public"
   },
   "bin": {
     "ffmpeg-worker": "./bin/ffmpeg-worker.js"

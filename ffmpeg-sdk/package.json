@@ -4,7 +4,7 @@
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
-    "deploy": "npm run build && npm publish --access public"
+    "deploy": "npm run build && npm version patch && npm publish --access public"
   },
   "author": "Shubhankar Das",
   "license": "ISC",
