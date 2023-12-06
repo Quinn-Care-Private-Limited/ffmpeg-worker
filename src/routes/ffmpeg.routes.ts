@@ -123,7 +123,7 @@ ffmpegRoutes.post(`/vmaf`, validateRequest(vmafSchema), async (req: Request, res
     let cmd = `${ffmpegPath}ffmpeg`;
     const modelPath = path.join(__dirname, "..", "models", `${model}.json`);
 
-    cmd += ` -i ${fsPath}/${input1} -i ${fsPath}/${input2} -lavfi "[0:v]${scale}:flags=bicubic[distorted];[1:v]${scale}:flags=bicubic[reference];[distorted][reference]libvmaf=model='path=${modelPath}':n_subsample=${subsample}:n_threads=${threads}" -f null -`;
+    cmd += ` -i ${fsPath}/${input1} -i ${fsPath}/${input2} -lavfi "[0:v]${scale}:flags=bicubic,setpts=PTS-STARTPTS[distorted];[1:v]${scale}:flags=bicubic,setpts=PTS-STARTPTS[reference];[distorted][reference]libvmaf=model='path=${modelPath}':n_subsample=${subsample}:n_threads=${threads}" -f null -`;
     const data = await runcmd(cmd);
     let score = Math.floor(parseFloat(data.split("VMAF score:")[1]));
     score = isNaN(score) ? 0 : score;

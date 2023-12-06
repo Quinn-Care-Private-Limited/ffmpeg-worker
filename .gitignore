@@ -7,3 +7,5 @@ src/db
 TRUNCATEDB.txt
 *.log
 *.log.*
+terraform/.terraform*
+*.tfstate*
