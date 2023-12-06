@@ -1,6 +1,6 @@
 {
   "name": "@quinninc/ffmpeg-worker",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Ffmpeg Worker Server",
   "main": "build/index.js",
   "scripts": {
