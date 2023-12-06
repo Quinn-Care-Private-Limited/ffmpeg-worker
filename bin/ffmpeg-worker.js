@@ -30,9 +30,7 @@ async function createEnvFile() {
 
   let data;
 
-  let envfile = await question("Enter env file name (default .env): ");
-  envfile = envfile.trim();
-  if (!envfile) envfile = ".env";
+  const envfile = ".env";
   fs.writeFileSync(`${cwd}/${envfile}`, "");
 
   const provider = await question("Enter provider AWS/GCP: ");
