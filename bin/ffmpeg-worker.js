@@ -36,7 +36,7 @@ async function createEnvFile() {
   const provider = await question("Enter provider AWS/GCP: ");
   if (provider === "AWS") {
     fs.appendFileSync(`${cwd}/${envfile}`, `CLOUD_STORAGE=S3\n`);
-    const vars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"];
+    const vars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"];
     for (let v of vars) {
       data = await question(`Enter ${v}: `);
       fs.appendFileSync(`${cwd}/${envfile}`, `${v}=${data}\n`);

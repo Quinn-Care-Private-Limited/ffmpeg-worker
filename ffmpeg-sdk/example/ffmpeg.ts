@@ -3,8 +3,8 @@ import { Ffmpeg, Files, IClientCredentials, Storage } from "../lib";
 const client: IClientCredentials = {
   clientId: "QUINNCLIENTID",
   clientSecret: "QUINNCLIENTSECRET",
-  // clientServerUrl: "http://3.17.142.165:3000/api",
-  clientServerUrl: "http://localhost:4000/api",
+  clientServerUrl: "http://3.17.142.165:3000/api",
+  // clientServerUrl: "http://localhost:4000/api",
 };
 
 async function main() {
