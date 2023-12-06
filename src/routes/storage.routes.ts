@@ -90,6 +90,7 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
     } else {
       res.status(400).send("Error downloading file");
     }
+    console.log(error);
   }
 });
 
@@ -157,5 +158,6 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
     } else {
       res.status(400).send("Error uploading file");
     }
+    console.log(error);
   }
 });

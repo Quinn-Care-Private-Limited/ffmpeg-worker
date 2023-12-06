@@ -1,5 +1,5 @@
 node_modules/
-.env
+.env*
 efs
 build
 build.zip

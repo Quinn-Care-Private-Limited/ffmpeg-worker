@@ -1,18 +1,26 @@
-import { Ffmpeg, Files } from "../lib";
+import { Ffmpeg, Files, IClientCredentials, Storage } from "../lib";
+
+const client: IClientCredentials = {
+  clientId: "QUINNCLIENTID",
+  clientSecret: "QUINNCLIENTSECRET",
+  // clientServerUrl: "http://3.17.142.165:3000/api",
+  clientServerUrl: "http://localhost:4000/api",
+};
 
 async function main() {
   const currentTimeStamp = Date.now();
-  const ffmpeg = new Ffmpeg({
-    clientId: "QUINNCLIENTID",
-    clientSecret: "QUINNCLIENTSECRET",
-    clientServerUrl: "http://localhost:4000/api",
-  });
+  const ffmpeg = new Ffmpeg(client);
+  const files = new Files(client);
+  const storage = new Storage(client);
 
-  const files = new Files({
-    clientId: "QUINNCLIENTID",
-    clientSecret: "QUINNCLIENTSECRET",
-    clientServerUrl: "http://localhost:4000/api",
+  await storage.download({
+    bucket: "cdnsampletest",
+    key: "organisationid/envid/asset4/original.mp4",
+    path: "source/asset1/original.mp4",
+    multipart: true,
   });
+  // await files.create("test.txt", "Hello World");
+  return;
 
   const chunks = await ffmpeg.segment(
     "source/tirf56pdoq3ox6w1zolszr8v/original.mp4",
