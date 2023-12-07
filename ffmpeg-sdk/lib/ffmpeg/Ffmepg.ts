@@ -64,8 +64,8 @@ export class Ffmpeg {
     }
 
     return this.vmaf().run({
-      input1: originalFile,
-      input2: compareFile,
+      input1: compareFile,
+      input2: originalFile,
       scale: scale_filter,
       model,
       threads,
