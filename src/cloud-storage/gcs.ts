@@ -1,11 +1,16 @@
 import { Storage } from "@google-cloud/storage";
 import { CloudStorageConnector } from "./base";
 import fs from "fs";
-
-const storage = new Storage();
+import { IGCPCredentials } from "types";
 
 export class GCStorageConnector implements CloudStorageConnector {
-  async downloadObject(payload: { bucketName: string; objectKey: string; filePath: string }): Promise<void> {
+  async downloadObject(
+    payload: { bucketName: string; objectKey: string; filePath: string },
+    credentials?: IGCPCredentials,
+  ): Promise<void> {
+    const storage = new Storage({
+      credentials,
+    });
     const { bucketName, objectKey, filePath } = payload;
 
     const bucket = storage.bucket(bucketName);
@@ -33,12 +38,19 @@ export class GCStorageConnector implements CloudStorageConnector {
     });
   }
 
-  async uploadObject(payload: {
-    bucketName: string;
-    objectKey: string;
-    filePath: string;
-    contentType: string;
-  }): Promise<void> {
+  async uploadObject(
+    payload: {
+      bucketName: string;
+      objectKey: string;
+      filePath: string;
+      contentType: string;
+    },
+    credentials?: IGCPCredentials,
+  ): Promise<void> {
+    const storage = new Storage({
+      credentials,
+    });
+
     const { bucketName, objectKey, filePath, contentType } = payload;
     const bucket = storage.bucket(bucketName);
 
@@ -48,14 +60,21 @@ export class GCStorageConnector implements CloudStorageConnector {
     });
   }
 
-  async downloadMultipartObject(payload: {
-    bucketName: string;
-    objectKey: string;
-    filePath: string;
-    partSize?: number;
-    batchSize?: number;
-    debug?: boolean;
-  }): Promise<void> {
+  async downloadMultipartObject(
+    payload: {
+      bucketName: string;
+      objectKey: string;
+      filePath: string;
+      partSize?: number;
+      batchSize?: number;
+      debug?: boolean;
+    },
+    credentials?: IGCPCredentials,
+  ): Promise<void> {
+    const storage = new Storage({
+      credentials,
+    });
+
     let { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
 
     const bucket = storage.bucket(bucketName);
@@ -145,18 +164,23 @@ export class GCStorageConnector implements CloudStorageConnector {
     if (debug) console.log("Download complete");
   }
 
-  async uploadMultipartObject(payload: {
-    bucketName: string;
-    objectKey: string;
-    filePath: string;
-    contentType: string;
-    partSize?: number;
-    batchSize?: number;
-    debug?: boolean;
-  }): Promise<void> {
+  async uploadMultipartObject(
+    payload: {
+      bucketName: string;
+      objectKey: string;
+      filePath: string;
+      contentType: string;
+      partSize?: number;
+      batchSize?: number;
+      debug?: boolean;
+    },
+    credentials?: IGCPCredentials,
+  ): Promise<void> {
+    const storage = new Storage({
+      credentials,
+    });
     let { bucketName, objectKey, filePath, contentType, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
 
-    const storage = new Storage();
     const bucket = storage.bucket(bucketName);
 
     const { size: fileSize } = await fs.promises.stat(filePath);

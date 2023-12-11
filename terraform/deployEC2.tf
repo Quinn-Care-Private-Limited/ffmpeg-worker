@@ -23,12 +23,14 @@ variable "key_pair_name" {
   default = "ec2-maintainer"
 }
 
-
+variable "subnet_prefix" {
+  default = "quinnvpcsubnet*"
+}
 
 data "aws_subnets" "public" {
   filter {
     name   = "tag:Name"
-    values = ["quinnvpcsubnet*"]
+    values = [var.subnet_prefix]
   }
 }
 
@@ -111,7 +113,6 @@ resource "aws_instance" "ffmpeg-worker" {
     done < ${var.env_file_path}
     sudo npm install -g @quinninc/ffmpeg-worker
   EOF
-
 
   # depends_on = [aws_efs_mount_target.ffmpeg_efs_mount]
 }

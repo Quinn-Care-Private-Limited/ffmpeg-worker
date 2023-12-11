@@ -36,3 +36,13 @@ export interface IWebhookResponse {
   success: boolean;
   data: any;
 }
+
+export interface IAWSCredentials {
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
+}
+
+export interface IGCPCredentials {}
+
+export type ICloudStorageCredentials = IAWSCredentials | IGCPCredentials;

@@ -11,11 +11,14 @@ import {
 } from "@aws-sdk/client-s3";
 import fs from "fs";
 import { CloudStorageConnector } from "./base";
-
-const s3Client = new S3Client({ region: "us-east-2" });
+import { IAWSCredentials } from "types";
 
 export class S3Connector implements CloudStorageConnector {
-  async downloadObject(payload: { bucketName: string; objectKey: string; filePath: string }) {
+  async downloadObject(
+    payload: { bucketName: string; objectKey: string; filePath: string },
+    credentials?: IAWSCredentials,
+  ) {
+    const s3Client = new S3Client({ credentials, region: credentials?.region });
     const { bucketName, objectKey } = payload;
     const params = {
       Bucket: bucketName,
@@ -38,9 +41,12 @@ export class S3Connector implements CloudStorageConnector {
     });
   }
 
-  async uploadObject(payload: { bucketName: string; objectKey: string; filePath: string; contentType: string }) {
+  async uploadObject(
+    payload: { bucketName: string; objectKey: string; filePath: string; contentType: string },
+    credentials?: IAWSCredentials,
+  ) {
+    const s3Client = new S3Client({ credentials, region: credentials?.region });
     const { bucketName, objectKey, filePath, contentType } = payload;
-
     const data: Buffer = await new Promise((resolve, reject) => {
       fs.readFile(filePath, (err, data) => {
         if (err) {
@@ -60,16 +66,19 @@ export class S3Connector implements CloudStorageConnector {
     await s3Client.send(command);
   }
 
-  async downloadMultipartObject(payload: {
-    bucketName: string;
-    objectKey: string;
-    filePath: string;
-    partSize?: number;
-    batchSize?: number;
-    debug?: boolean;
-  }) {
+  async downloadMultipartObject(
+    payload: {
+      bucketName: string;
+      objectKey: string;
+      filePath: string;
+      partSize?: number;
+      batchSize?: number;
+      debug?: boolean;
+    },
+    credentials?: IAWSCredentials,
+  ) {
+    const s3Client = new S3Client({ credentials, region: credentials?.region });
     let { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
-    const s3Client = new S3Client();
 
     const headObjectCommand = new HeadObjectCommand({
       Bucket: bucketName,
@@ -132,17 +141,21 @@ export class S3Connector implements CloudStorageConnector {
     if (debug) console.log("Download complete");
   }
 
-  async uploadMultipartObject(payload: {
-    bucketName: string;
-    objectKey: string;
-    filePath: string;
-    contentType: string;
-    partSize?: number;
-    batchSize?: number;
-    debug?: boolean;
-  }) {
+  async uploadMultipartObject(
+    payload: {
+      bucketName: string;
+      objectKey: string;
+      filePath: string;
+      contentType: string;
+      partSize?: number;
+      batchSize?: number;
+      debug?: boolean;
+    },
+    credentials?: IAWSCredentials,
+  ) {
+    const s3Client = new S3Client({ credentials, region: credentials?.region });
     let { bucketName, objectKey, filePath, contentType, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
-    const s3Client = new S3Client();
+
     const { size: fileSize } = await fs.promises.stat(filePath);
     if (debug) console.log(`File size: ${fileSize} bytes`);
 

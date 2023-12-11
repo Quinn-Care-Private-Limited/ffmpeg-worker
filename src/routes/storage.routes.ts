@@ -13,6 +13,10 @@ const cloudStorage = process.env.CLOUD_STORAGE as CloudStorageType;
 
 const storage = getStorageConnector(cloudStorage);
 
+const credentialsSchema = z.object({
+  credentials: z.any(),
+});
+
 const downloadSchema = z.object({
   bucket: z.string(),
   key: z.string(),
@@ -22,6 +26,7 @@ const downloadSchema = z.object({
   callbackId: z.string().optional(),
   callbackUrl: z.string().optional(),
   callbackMeta: z.record(z.any()).optional(),
+  credentials: credentialsSchema.optional(),
 });
 
 const uploadSchema = z.object({
@@ -35,6 +40,7 @@ const uploadSchema = z.object({
   callbackId: z.string().optional(),
   callbackUrl: z.string().optional(),
   callbackMeta: z.record(z.any()).optional(),
+  credentials: credentialsSchema.optional(),
 });
 
 storageRoutes.post(`/download`, async (req: Request, res: Response) => {
@@ -47,6 +53,7 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
     callbackId = cuid2.createId(),
     callbackUrl = "",
     callbackMeta = {},
+    credentials,
   } = req.body as z.infer<typeof downloadSchema>;
 
   try {
@@ -59,9 +66,9 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
 
     if (multipart) {
-      await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize });
+      await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
     } else {
-      await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath });
+      await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
     }
     if (callbackUrl) {
       sendWebhook(callbackUrl, {
@@ -106,6 +113,7 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
     callbackId = cuid2.createId(),
     callbackUrl = "",
     callbackMeta = {},
+    credentials,
   } = req.body as z.infer<typeof uploadSchema>;
   try {
     if (callbackUrl) {
@@ -114,21 +122,27 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
 
     const filePath = `${fsPath}/${path}`;
     if (multipart) {
-      await storage.uploadMultipartObject({
-        bucketName: bucket,
-        objectKey: key,
-        filePath,
-        contentType,
-        partSize,
-        batchSize,
-      });
+      await storage.uploadMultipartObject(
+        {
+          bucketName: bucket,
+          objectKey: key,
+          filePath,
+          contentType,
+          partSize,
+          batchSize,
+        },
+        credentials,
+      );
     } else {
-      await storage.uploadObject({
-        bucketName: bucket,
-        objectKey: key,
-        filePath,
-        contentType,
-      });
+      await storage.uploadObject(
+        {
+          bucketName: bucket,
+          objectKey: key,
+          filePath,
+          contentType,
+        },
+        credentials,
+      );
     }
 
     if (callbackUrl) {

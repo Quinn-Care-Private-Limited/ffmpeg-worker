@@ -1,20 +1,26 @@
 import { AxiosInstance } from "axios";
 import { getAxiosInstance, request } from "../request";
-import { IClientCredentials } from "../types";
+import { IClientCredentials, ICloudStorageCredentials } from "../types";
 
 export class Storage {
   private axios: AxiosInstance;
 
-  constructor(private credentials: IClientCredentials) {
+  constructor(credentials: IClientCredentials, private cloudCredentials?: ICloudStorageCredentials) {
     this.axios = getAxiosInstance(credentials);
   }
 
   async upload(config: { bucket: string; key: string; path: string; contentType: string; multipart?: boolean }) {
-    return request<{ bucket: string; key: string; path: string }>(this.axios, "/storage/upload", config);
+    return request<{ bucket: string; key: string; path: string }>(this.axios, "/storage/upload", {
+      ...config,
+      credentials: this.cloudCredentials,
+    });
   }
 
   async download(config: { bucket: string; key: string; path: string; multipart?: boolean }) {
-    return request<{ bucket: string; key: string; path: string }>(this.axios, "/storage/download", config);
+    return request<{ bucket: string; key: string; path: string }>(this.axios, "/storage/download", {
+      ...config,
+      credentials: this.cloudCredentials,
+    });
   }
 
   async scheduleUpload<T = {}>(config: {
@@ -29,7 +35,10 @@ export class Storage {
     batchSize?: number;
     callbackMeta?: T;
   }) {
-    return request<{ callbackId: string }>(this.axios, "/storage/upload", config);
+    return request<{ callbackId: string }>(this.axios, "/storage/upload", {
+      ...config,
+      credentials: this.cloudCredentials,
+    });
   }
 
   async scheduleDownload<T = {}>(config: {
@@ -42,6 +51,9 @@ export class Storage {
     partSize?: number;
     callbackMeta?: T;
   }) {
-    return request<{ callbackId: string }>(this.axios, "/storage/download", config);
+    return request<{ callbackId: string }>(this.axios, "/storage/download", {
+      ...config,
+      credentials: this.cloudCredentials,
+    });
   }
 }

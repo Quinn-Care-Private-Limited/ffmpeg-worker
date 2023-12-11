@@ -4,6 +4,15 @@ export enum WebhookType {
   STORAGE_DOWNLOAD = "STORAGE_DOWNLOAD",
 }
 
+export interface IAWSCredentials {
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
+}
+
+export interface IGCPCredentials {}
+
+export type ICloudStorageCredentials = IAWSCredentials | IGCPCredentials;
 export interface IWebhookResponse {
   callbackId: string;
   callbackMeta?: Record<string, any>;
