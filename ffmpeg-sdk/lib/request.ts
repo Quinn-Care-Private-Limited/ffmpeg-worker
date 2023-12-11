@@ -9,6 +9,7 @@ export const getAxiosInstance = (credentials: IClientCredentials) => {
       "x-client-secret": credentials.clientSecret,
       "Content-Type": "application/json",
     },
+    timeout: 10 * 60 * 1000,
   });
 
   return axiosInstance;
