@@ -4,5 +4,6 @@ WORKDIR /app
 COPY . .
 RUN npm install && npm run build
 RUN chmod +x /app/scripts/run.sh
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/app/scripts/run.sh"]
+# ENTRYPOINT ["/usr/bin/tini", "--"]
+# CMD ["/app/scripts/run.sh"]
+CMD ["node", "build/index.js"]
