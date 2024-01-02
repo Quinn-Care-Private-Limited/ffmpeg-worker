@@ -5,7 +5,7 @@ import { IClientCredentials, ICloudStorageCredentials } from "../types";
 export class Storage {
   private axios: AxiosInstance;
 
-  constructor(credentials: IClientCredentials, private cloudCredentials?: ICloudStorageCredentials) {
+  constructor(credentials: IClientCredentials, private cloudCredentials?: ICloudStorageCredentials | null) {
     this.axios = getAxiosInstance(credentials);
   }
 
