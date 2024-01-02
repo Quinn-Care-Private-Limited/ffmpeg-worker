@@ -9,7 +9,7 @@ mount -o nolock $FS_IP:/$FS_SHARE_NAME $FS_PATH
 echo "Mounting completed."
 
 # Start the application
-npm start &
+node /app/build/index.js &
 
 # Exit immediately when one of the background processes terminate.
 wait -n
