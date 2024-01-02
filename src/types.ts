@@ -10,7 +10,7 @@ export interface IAWSCredentials {
   region: string;
 }
 
-export interface IGCPCredentials {}
+export type IGCPCredentials = any;
 
 export type ICloudStorageCredentials = IAWSCredentials | IGCPCredentials;
 export interface IWebhookResponse {
