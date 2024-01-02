@@ -1,9 +1,9 @@
 FROM us-west1-docker.pkg.dev/quinn-video-platform/xelp/ffmpeg:latest
-# RUN apt-get update -y && apt-get install -y tini nfs-common libtool 
+RUN apt-get update -y && apt-get install -y nfs-common libtool 
 WORKDIR /app
 COPY . .
 RUN npm install && npm run build
-# RUN chmod +x /app/scripts/run.sh
-# ENTRYPOINT ["/usr/bin/tini", "--"]
-# CMD ["/app/scripts/run.sh"]
+RUN mkdir -p $FS_PATH
+RUN mount -o nolock $FS_IP:/$FS_SHARE_NAME $FS_PATH
+
 CMD ["node", "build/index.js"]
