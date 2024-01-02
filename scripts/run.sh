@@ -5,7 +5,7 @@ set -eo pipefail
 mkdir -p $FS_PATH
 
 echo "Mounting Cloud Filestore."
-mount -o nolock $FS_IP:/$FS_SHARE_NAME $MNT_DIR
+mount -o nolock $FS_IP:/$FS_SHARE_NAME $FS_PATH
 echo "Mounting completed."
 
 # Start the application
