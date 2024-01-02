@@ -21,6 +21,10 @@ jobs:
       - name: "Set up Cloud SDK"
         uses: "google-github-actions/setup-gcloud@v1"
 
+      - name: Configure Docker Client
+        run: |
+          gcloud auth configure-docker us-west1-docker.pkg.dev --quiet
+
       - name: Build Docker Image
         run: docker build -t $IMAGE_NAME:latest .
 
@@ -28,11 +32,6 @@ jobs:
         id: increment-git-tag
         run: |
           bash ./scripts/git_update.sh -v major
-
-      - name: Configure Docker Client
-        run: |-
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker us-west1-docker.pkg.dev --quiet
 
       - name: Push Docker Image to Artifact Registry
         env:
