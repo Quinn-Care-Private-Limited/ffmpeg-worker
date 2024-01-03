@@ -85,7 +85,7 @@ export class GCStorageConnector implements CloudStorageConnector {
       if (debug) {
         console.error(`File ${objectKey} does not exist in bucket ${bucketName}`);
       }
-      return;
+      throw new Error(`File ${objectKey} does not exist in bucket ${bucketName}`);
     }
 
     let fileSize = (await file.getMetadata())[0].size;
