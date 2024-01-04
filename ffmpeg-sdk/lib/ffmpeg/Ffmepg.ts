@@ -165,8 +165,5 @@ export class Ffmpeg {
       .pass(2, logPath)
       .output(outputFile)
       .run();
-
-    this.files.delete(`${logPath}-0.log`);
-    this.files.delete(`${logPath}-0.log.mbtree`);
   }
 }
