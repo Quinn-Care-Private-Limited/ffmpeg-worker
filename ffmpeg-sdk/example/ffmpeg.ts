@@ -3,7 +3,7 @@ import { Ffmpeg, Files, IClientCredentials, Storage } from "../lib";
 const client: IClientCredentials = {
   clientId: "QUINNCLIENTID",
   clientSecret: "QUINNCLIENTSECRET",
-  clientServerUrl: "http://3.17.142.165:3000/api",
+  clientServerUrl: "https://ffmpeg-worker-ojvgri6aga-uw.a.run.app/api",
   // clientServerUrl: "http://localhost:4000/api",
 };
 
@@ -13,13 +13,18 @@ async function main() {
   const files = new Files(client);
   const storage = new Storage(client);
 
-  await storage.download({
-    bucket: "cdnsampletest",
-    key: "organisationid/envid/asset4/original.mp4",
-    path: "source/asset1/original.mp4",
-    multipart: true,
-  });
+  // await storage.download({
+  //   bucket: "cdnsampletest",
+  //   key: "organisationid/envid/asset4/original.mp4",
+  //   path: "source/asset1/original.mp4",
+  //   multipart: true,
+  // });
   // await files.create("test.txt", "Hello World");
+
+  const chunkPath = "output/crj4bromxsetfsvueu5bcj6qg/chunks/chunk_7.mp4";
+  const chunkProcessPath = `output/crj4bromxsetfsvueu5bcj6qg/tmp/chunk_7_1080_2000.mp4`;
+  await ffmpeg.twoPassEncode(chunkPath, chunkProcessPath, 1080, "2000k");
+
   return;
 
   const chunks = await ffmpeg.segment(
@@ -33,8 +38,8 @@ async function main() {
   // const chunkProcessPath = `output/asset3/tmp/chunk_${chunk.chunknumber}_1080_3484.mp4`;
   // await ffmpeg.twoPassEncode(chunk.chunkPath, chunkProcessPath, 1080, "3484k");
 
-  const chunkProcessPath = `output/asset1/tmp/chunk_${chunk.chunknumber}_20.mp4`;
-  await ffmpeg.process().input(chunk.chunkPath).videoCodec("libx264").crf(20).output(chunkProcessPath).run();
+  // const chunkProcessPath = `output/asset1/tmp/chunk_${chunk.chunknumber}_20.mp4`;
+  // await ffmpeg.process().input(chunk.chunkPath).videoCodec("libx264").crf(20).output(chunkProcessPath).run();
 
   // await ffmpeg.segment("source/asset4/original.mp4", "output/asset4/tmp", 4);
   // await ffmpeg.concat(
