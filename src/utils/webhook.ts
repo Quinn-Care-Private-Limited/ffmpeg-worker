@@ -1,7 +1,8 @@
 import axios from "axios";
 import { IWebhookResponse } from "types";
 
-export const sendWebhook = async (url: string, payload: IWebhookResponse) => {
+const MAX_RETRIES = 3;
+export const sendWebhook = async (url: string, payload: IWebhookResponse, retries = 0) => {
   try {
     await axios.post(url, payload, {
       headers: {
@@ -11,6 +12,10 @@ export const sendWebhook = async (url: string, payload: IWebhookResponse) => {
       },
     });
   } catch (error) {
-    console.log(`Error invoking callbackUrl ${url}`, error.message);
+    if (retries < MAX_RETRIES) {
+      await sendWebhook(url, payload, retries + 1);
+    } else {
+      console.log(`Error invoking callbackUrl ${url}`, error.message);
+    }
   }
 };

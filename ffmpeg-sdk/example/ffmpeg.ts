@@ -21,9 +21,9 @@ async function main() {
   // });
   // await files.create("test.txt", "Hello World");
 
-  const chunkPath = "output/crj4bromxsetfsvueu5bcj6qg/chunks/chunk_7.mp4";
-  const chunkProcessPath = `output/crj4bromxsetfsvueu5bcj6qg/tmp/chunk_7_1080_2000.mp4`;
-  await ffmpeg.twoPassEncode(chunkPath, chunkProcessPath, 1080, "2000k");
+  const chunkPath = "output/cwez8znhnh7z5emtsdj9g5bfn/chunks/chunk_2.mp4";
+  const chunkProcessPath = `output/cwez8znhnh7z5emtsdj9g5bfn/tmp/chunk_2_1440_2000.mp4`;
+  await ffmpeg.twoPassEncode(chunkPath, chunkProcessPath, 1440, "2000k");
 
   return;
 
