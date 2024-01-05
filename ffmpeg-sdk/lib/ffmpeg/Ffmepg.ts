@@ -24,31 +24,24 @@ export class Ffmpeg {
   }
 
   async getFileInfo(inputfile: string): Promise<ISourceData> {
-    const fileInfoPromise = this.probe().verbose("error").stream(0).info().input(inputfile).run();
-    const fileSizePromise = this.probe().verbose("error").stream(0).size().input(inputfile).run();
+    const { data } = await this.files.info(inputfile);
 
-    const [fileInfo, sizeData] = await Promise.all([fileInfoPromise, fileSizePromise]);
-    const data: any = {};
-
-    const lines = `${fileInfo.data}\n${sizeData.data}`.split("\n");
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const [key, value] = line.split("=");
-      if (key && value) {
-        if (key === "bit_rate") {
-          data.avgbitrate = Math.floor(+value / 1000);
-        } else if (key === "r_frame_rate") {
-          const [num, den] = value.split("/");
-          data.framerate = Math.round(+num / +den);
-        } else if (key === "size") {
-          data.size = Math.floor(+value / 1000);
-        } else {
-          data[key] = +value;
-        }
+    const sourceData: any = {};
+    for (const key in data) {
+      const value = data[key];
+      if (key === "bit_rate") {
+        sourceData.avgbitrate = Math.floor(+value / 1000);
+      } else if (key === "r_frame_rate") {
+        const [num, den] = value.split("/");
+        sourceData.framerate = Math.round(+num / +den);
+      } else if (key === "size") {
+        sourceData.size = Math.floor(+value / 1000);
+      } else {
+        sourceData[key] = +value;
       }
     }
 
-    return data as ISourceData;
+    return sourceData as ISourceData;
   }
 
   async getRelativeScore(payload: IRelativeScore) {

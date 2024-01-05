@@ -32,4 +32,8 @@ export class Files {
   delete(path: string) {
     return request<{}>(this.axios, "/files/delete", { path });
   }
+
+  info(path: string) {
+    return request<{ data: Record<string, string> }>(this.axios, "/files/info", { input: path });
+  }
 }
