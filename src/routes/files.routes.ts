@@ -2,6 +2,9 @@ import fs from "fs";
 import { z } from "zod";
 import express, { Request, Response } from "express";
 import { validateRequest } from "middlewares/req-validator";
+import { runcmd } from "utils/app";
+
+const ffmpegPath = process.env.FFMPEG_PATH || "";
 
 export const filesRoutes = express.Router();
 const fsPath = process.env.FS_PATH || ".";
@@ -25,6 +28,10 @@ const readFileSchema = z.object({
 
 const deleteSchema = z.object({
   path: z.string(),
+});
+
+const infoSchema = z.object({
+  input: z.string(),
 });
 
 filesRoutes.post(`/path`, async (req: Request, res: Response) => {
@@ -96,6 +103,32 @@ filesRoutes.post(`/delete`, validateRequest(deleteSchema), async (req: Request, 
       await fs.promises.unlink(`${fsPath}/${path}`);
     }
     res.status(200).json({});
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
+filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res: Response) => {
+  try {
+    const { input } = req.body as z.infer<typeof infoSchema>;
+    let cmd = `${ffmpegPath}ffprobe`;
+
+    const infoCmd = `${cmd} -v error -select_streams v:0 -show_entries stream=duration,width,height,bit_rate,r_frame_rate -of default=noprint_wrappers=1 ${fsPath}/${input}`;
+    const sizeCmd = `${cmd} -v error -select_streams v:0 -show_entries format=size -of default=noprint_wrappers=1 ${fsPath}/${input}`;
+
+    const [fileInfo, sizeData] = await Promise.all([runcmd(infoCmd), runcmd(sizeCmd)]);
+    const data: any = {};
+    const lines = `${fileInfo}\n${sizeData}`.split("\n");
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const [key, value] = line.split("=");
+      if (key && value) {
+        data[key] = value;
+      }
+    }
+
+    res.status(200).json({ data });
   } catch (error) {
     res.status(400).send(error.message);
   }
