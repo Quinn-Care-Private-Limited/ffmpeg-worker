@@ -3,8 +3,8 @@ import { Ffmpeg, Files, IClientCredentials, Storage } from "../lib";
 const client: IClientCredentials = {
   clientId: "QUINNCLIENTID",
   clientSecret: "QUINNCLIENTSECRET",
-  // clientServerUrl: "https://ffmpeg-worker-ojvgri6aga-uw.a.run.app/api",
-  clientServerUrl: "http://localhost:4000/api",
+  clientServerUrl: "https://worker.quinn.live/api",
+  // clientServerUrl: "http://localhost:4000/api",
 };
 
 async function main() {
@@ -21,12 +21,12 @@ async function main() {
   // });
   // await files.create("test.txt", "Hello World");
 
-  // const info = await ffmpeg.getFileInfo("source/asset1/original.mp4");
-  // console.log(info);
-  // return;
+  const info = await ffmpeg.getFileInfo("source/asset1/original.mp4");
+  console.log(info);
+  return;
 
-  const chunkPath = "output/cwez8znhnh7z5emtsdj9g5bfn/chunks/chunk_2.mp4";
-  const chunkProcessPath = `output/cwez8znhnh7z5emtsdj9g5bfn/tmp/chunk_2_1440_2000.mp4`;
+  const chunkPath = "source/test/original.mp4";
+  const chunkProcessPath = `output/test/tmp/original_2000.mp4`;
   await ffmpeg.twoPassEncode(chunkPath, chunkProcessPath, 1440, "2000k");
 
   return;
