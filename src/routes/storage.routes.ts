@@ -29,7 +29,7 @@ const downloadSchema = z.object({
 
 const downloadScheduleSchema = downloadSchema.extend({
   async: z.boolean().optional(),
-  callbackId: z.string(),
+  callbackId: z.string().optional(),
   callbackUrl: z.string(),
   callbackMeta: z.record(z.any()).optional(),
 });
@@ -47,7 +47,7 @@ const uploadSchema = z.object({
 
 const uploadScheduleSchema = uploadSchema.extend({
   async: z.boolean().optional(),
-  callbackId: z.string(),
+  callbackId: z.string().optional(),
   callbackUrl: z.string(),
   callbackMeta: z.record(z.any()).optional(),
 });

@@ -13,17 +13,20 @@ async function main() {
   const files = new Files(client);
   const storage = new Storage(client);
 
-  // await storage.download({
-  //   bucket: "cdnsampletest",
-  //   key: "organisationid/envid/asset4/original.mp4",
-  //   path: "source/asset1/original.mp4",
-  //   multipart: true,
-  // });
+  await storage.scheduleDownload({
+    bucket: "xelp-source",
+    key: "clqy6726w0007tovs4ewgvwom/clqy6726x0008tovs1qu6vnk1/c3ucdd3ttosbvc12jlgri4n1p/c3ucdd3ttosbvc12jlgri4n1p.mp4",
+    path: "source/test/original1.mp4",
+    multipart: true,
+    callbackUrl: "https://razbotics.ngrok.io/test",
+    callbackId: "test",
+  });
   // await files.create("test.txt", "Hello World");
+
+  return;
 
   const info = await files.list("source");
   console.log(info);
-  return;
 
   const chunkPath = "source/test/original.mp4";
   const chunkProcessPath = `output/test/tmp/original_2000.mp4`;
