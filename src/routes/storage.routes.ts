@@ -43,6 +43,7 @@ const uploadSchema = z.object({
   partSize: z.number().optional(),
   batchSize: z.number().optional(),
   credentials: credentialsSchema.optional(),
+  ttl: z.number().optional(),
 });
 
 const uploadScheduleSchema = uploadSchema.extend({
@@ -136,7 +137,7 @@ storageRoutes.post(
 );
 
 storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request, res: Response) => {
-  const { bucket, key, path, contentType, multipart, partSize, batchSize, credentials } = req.body as z.infer<
+  const { bucket, key, path, contentType, multipart, partSize, batchSize, credentials, ttl } = req.body as z.infer<
     typeof uploadSchema
   >;
   try {
@@ -150,6 +151,7 @@ storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request
           contentType,
           partSize,
           batchSize,
+          ttl,
         },
         credentials,
       );
@@ -160,6 +162,7 @@ storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request
           objectKey: key,
           filePath,
           contentType,
+          ttl,
         },
         credentials,
       );
