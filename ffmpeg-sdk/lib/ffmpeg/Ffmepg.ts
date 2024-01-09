@@ -83,7 +83,7 @@ export class Ffmpeg {
   }
 
   async copy(inputFile: string, outputFile: string): Promise<void> {
-    await this.process().input(inputFile).codec("copy").output(outputFile).run();
+    await this.files.copy(inputFile, outputFile);
   }
 
   async concat(inputFiles: string[], outputFile: string): Promise<void> {

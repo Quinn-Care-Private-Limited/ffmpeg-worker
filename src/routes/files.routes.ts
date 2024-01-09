@@ -34,6 +34,11 @@ const infoSchema = z.object({
   input: z.string(),
 });
 
+const copySchema = z.object({
+  input: z.string(),
+  output: z.string(),
+});
+
 filesRoutes.post(`/path`, async (req: Request, res: Response) => {
   try {
     res.status(200).json({ path: fsPath });
@@ -129,6 +134,16 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
     }
 
     res.status(200).json({ data });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
+filesRoutes.post(`/copy`, validateRequest(copySchema), async (req: Request, res: Response) => {
+  try {
+    const { input, output } = req.body as z.infer<typeof copySchema>;
+    await fs.promises.copyFile(`${fsPath}/${input}`, `${fsPath}/${output}`);
+    res.status(200).json({});
   } catch (error) {
     res.status(400).send(error.message);
   }
