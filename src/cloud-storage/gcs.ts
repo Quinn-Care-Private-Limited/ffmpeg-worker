@@ -2,6 +2,7 @@ import { Storage, TransferManager } from "@google-cloud/storage";
 import { CloudStorageConnector } from "./base";
 import fs from "fs";
 import { IGCPCredentials } from "types";
+import { ConfigMetadata } from "@google-cloud/storage/build/cjs/src/resumable-upload";
 
 export class GCStorageConnector implements CloudStorageConnector {
   async downloadObject(
@@ -44,6 +45,7 @@ export class GCStorageConnector implements CloudStorageConnector {
       objectKey: string;
       filePath: string;
       contentType: string;
+      ttl?: number;
     },
     credentials?: IGCPCredentials,
   ): Promise<void> {
@@ -53,10 +55,14 @@ export class GCStorageConnector implements CloudStorageConnector {
 
     const { bucketName, objectKey, filePath, contentType } = payload;
     const bucket = storage.bucket(bucketName);
-
+    const metadata: ConfigMetadata = {};
+    if (payload.ttl) {
+      metadata.cacheControl = `public, max-age=${payload.ttl}`;
+    }
     await bucket.upload(filePath, {
       destination: objectKey,
       contentType,
+      metadata,
     });
   }
 
@@ -173,11 +179,12 @@ export class GCStorageConnector implements CloudStorageConnector {
       partSize?: number;
       batchSize?: number;
       debug?: boolean;
+      ttl?: number;
     },
     credentials?: IGCPCredentials,
   ): Promise<void> {
     const storage = new Storage();
-    let { bucketName, filePath, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
+    let { bucketName, objectKey, filePath, partSize = 5 * 1024 * 1024, batchSize = 10, ttl } = payload;
 
     const stats = fs.statSync(filePath);
     const fileSizeInBytes = stats.size;
@@ -195,9 +202,16 @@ export class GCStorageConnector implements CloudStorageConnector {
      */
     // Creates a transfer manager client
     const transferManager = new TransferManager(storage.bucket(bucketName));
+    const headers: {
+      [key: string]: string;
+    } = {};
+    if (ttl) {
+      headers["Cache-Control"] = `"public, max-age=${ttl}"`;
+    }
     await transferManager.uploadFileInChunks(filePath, {
       chunkSizeBytes: partSize,
       concurrencyLimit: batchSize,
+      headers,
     });
   }
 }

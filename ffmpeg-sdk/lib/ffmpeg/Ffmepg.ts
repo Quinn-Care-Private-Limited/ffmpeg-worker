@@ -83,7 +83,7 @@ export class Ffmpeg {
   }
 
   async copy(inputFile: string, outputFile: string): Promise<void> {
-    await this.files.copy(inputFile, outputFile);
+    await this.process().input(inputFile).codec("copy").output(outputFile).run();
   }
 
   async concat(inputFiles: string[], outputFile: string): Promise<void> {
@@ -99,7 +99,6 @@ export class Ffmpeg {
       .codec("copy")
       .output(outputFile)
       .run();
-    await this.files.delete(concatFilePath);
   }
 
   async segment(inputFile: string, outputDir: string, chunkPrefix: string, targetDuration: number) {

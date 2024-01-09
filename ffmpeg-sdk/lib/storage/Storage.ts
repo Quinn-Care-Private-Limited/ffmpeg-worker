@@ -9,7 +9,14 @@ export class Storage {
     this.axios = getAxiosInstance(credentials);
   }
 
-  async upload(config: { bucket: string; key: string; path: string; contentType: string; multipart?: boolean }) {
+  async upload(config: {
+    bucket: string;
+    key: string;
+    path: string;
+    contentType: string;
+    multipart?: boolean;
+    ttl?: number;
+  }) {
     return request<{ bucket: string; key: string; path: string }>(this.axios, "/storage/upload", {
       ...config,
       credentials: this.cloudCredentials,
@@ -34,6 +41,7 @@ export class Storage {
     callbackId?: string;
     callbackUrl: string;
     callbackMeta?: T;
+    ttl?: number;
   }) {
     return requestWithResponseAbort(this.axios, "/storage/upload/schedule", {
       ...config,
