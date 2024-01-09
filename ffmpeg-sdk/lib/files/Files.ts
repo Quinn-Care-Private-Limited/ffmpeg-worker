@@ -36,4 +36,8 @@ export class Files {
   info(path: string) {
     return request<{ data: Record<string, string> }>(this.axios, "/files/info", { input: path });
   }
+
+  copy(input: string, output: string) {
+    return request<{}>(this.axios, "/files/copy", { input, output });
+  }
 }
