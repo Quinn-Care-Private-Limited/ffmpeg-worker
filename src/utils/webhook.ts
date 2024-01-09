@@ -1,5 +1,6 @@
 import axios from "axios";
 import { IWebhookResponse } from "types";
+import { sleep } from "./app";
 
 const MAX_RETRIES = 3;
 export const sendWebhook = async (url: string, payload: IWebhookResponse, retries = 0) => {
@@ -13,6 +14,7 @@ export const sendWebhook = async (url: string, payload: IWebhookResponse, retrie
     });
   } catch (error) {
     if (retries < MAX_RETRIES) {
+      await sleep(1000);
       await sendWebhook(url, payload, retries + 1);
     } else {
       console.log(`Error invoking callbackUrl ${url}`, error.message);

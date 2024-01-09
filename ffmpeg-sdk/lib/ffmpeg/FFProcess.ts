@@ -1,6 +1,6 @@
 import { IClientCredentials } from "../types";
 import { AxiosInstance } from "axios";
-import { getAxiosInstance, request } from "../request";
+import { getAxiosInstance, request, requestWithResponseAbort } from "../request";
 
 export class FFProcess {
   private axios: AxiosInstance;
@@ -227,7 +227,7 @@ export class FFProcess {
   }
 
   async schedule<T = {}>(config: { callbackId?: string; callbackUrl?: string; callbackMeta?: T } = {}) {
-    return request<{ callbackId: string }>(this.axios, "/ffmpeg/process", {
+    return requestWithResponseAbort(this.axios, "/ffmpeg/process/schedule", {
       chainCmds: this.chainCmds,
       filterCmds: this.filterCmds,
       cmdString: this.cmdString,

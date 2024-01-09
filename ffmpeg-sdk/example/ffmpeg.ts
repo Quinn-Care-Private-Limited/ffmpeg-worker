@@ -21,7 +21,7 @@ async function main() {
   // });
   // await files.create("test.txt", "Hello World");
 
-  const info = await ffmpeg.getFileInfo("source/asset1/original.mp4");
+  const info = await files.list("source");
   console.log(info);
   return;
 
