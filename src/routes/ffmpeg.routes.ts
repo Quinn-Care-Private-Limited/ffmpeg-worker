@@ -19,8 +19,12 @@ const processSchema = z.object({
   filterCmds: z.array(z.string()).optional(),
   cmdString: z.string().optional(),
   output: z.string().optional(),
-  callbackId: z.string().optional(),
-  callbackUrl: z.string().optional(),
+});
+
+const processScheduleSchema = processSchema.extend({
+  async: z.boolean().optional(),
+  callbackId: z.string(),
+  callbackUrl: z.string(),
   callbackMeta: z.record(z.any()).optional(),
 });
 
@@ -38,63 +42,86 @@ const vmafSchema = z.object({
   threads: z.number().optional(),
 });
 
+const runProcess = async (payload: {
+  input?: string;
+  chainCmds?: string[];
+  filterCmds?: string[];
+  cmdString?: string;
+  output?: string;
+}) => {
+  const { input, chainCmds, filterCmds, cmdString, output } = payload;
+
+  let cmd = `${ffmpegPath}ffmpeg -y`;
+  if (input) {
+    cmd += ` -i ${fsPath}/${input}`;
+  }
+  if (chainCmds && chainCmds.length > 0) {
+    chainCmds.forEach((chainCmd) => {
+      const [key, value] = chainCmd.split(" ");
+      if (key === "-i" || key === "-passlogfile") {
+        cmd += ` ${key} ${fsPath}/${value}`;
+      } else {
+        cmd += ` ${chainCmd}`;
+      }
+    });
+  }
+  if (filterCmds && filterCmds.length > 0) {
+    cmd += ` -vf "${filterCmds.join(", ")}"`;
+  }
+  if (cmdString) {
+    cmd += ` ${cmdString}`;
+  }
+  if (output) {
+    await fs.promises.mkdir(`${fsPath}/${output.split("/").slice(0, -1).join("/")}`, { recursive: true });
+    cmd += ` ${fsPath}/${output}`;
+  }
+  return runcmd(cmd);
+};
+
 ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Request, res: Response) => {
+  const { input, chainCmds, filterCmds, cmdString, output } = req.body as z.infer<typeof processSchema>;
+
+  try {
+    const data = await runProcess({ input, chainCmds, filterCmds, cmdString, output });
+    res.status(200).json({ data });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
+ffmpegRoutes.post(`/process/schedule`, validateRequest(processScheduleSchema), async (req: Request, res: Response) => {
   const {
     input,
     chainCmds,
     filterCmds,
     cmdString,
     output,
+    async,
     callbackId = cuid2.createId(),
     callbackUrl,
     callbackMeta = {},
-  } = req.body as z.infer<typeof processSchema>;
+  } = req.body as z.infer<typeof processScheduleSchema>;
 
   try {
-    if (callbackUrl) {
+    if (async) {
       res.status(200).json({ callbackId });
     }
+    const data = await runProcess({ input, chainCmds, filterCmds, cmdString, output });
+    await sendWebhook(callbackUrl, { callbackId, callbackMeta, type: WebhookType.FFMPEG, success: true, data });
 
-    let cmd = `${ffmpegPath}ffmpeg -y`;
-    if (input) {
-      cmd += ` -i ${fsPath}/${input}`;
-    }
-    if (chainCmds && chainCmds.length > 0) {
-      chainCmds.forEach((chainCmd) => {
-        const [key, value] = chainCmd.split(" ");
-        if (key === "-i" || key === "-passlogfile") {
-          cmd += ` ${key} ${fsPath}/${value}`;
-        } else {
-          cmd += ` ${chainCmd}`;
-        }
-      });
-    }
-    if (filterCmds && filterCmds.length > 0) {
-      cmd += ` -vf "${filterCmds.join(", ")}"`;
-    }
-    if (cmdString) {
-      cmd += ` ${cmdString}`;
-    }
-    if (output) {
-      await fs.promises.mkdir(`${fsPath}/${output.split("/").slice(0, -1).join("/")}`, { recursive: true });
-      cmd += ` ${fsPath}/${output}`;
-    }
-    const data = await runcmd(cmd);
-    if (callbackUrl) {
-      sendWebhook(callbackUrl, { callbackId, callbackMeta, type: WebhookType.FFMPEG, success: true, data });
-    } else {
+    if (!async) {
       res.status(200).json({ data });
     }
   } catch (error) {
-    if (callbackUrl) {
-      sendWebhook(callbackUrl, {
-        callbackId,
-        callbackMeta,
-        type: WebhookType.FFMPEG,
-        success: false,
-        data: error.message,
-      });
-    } else {
+    await sendWebhook(callbackUrl, {
+      callbackId,
+      callbackMeta,
+      type: WebhookType.FFMPEG,
+      success: false,
+      data: error.message,
+    });
+
+    if (!async) {
       res.status(400).send(error.message);
     }
   }

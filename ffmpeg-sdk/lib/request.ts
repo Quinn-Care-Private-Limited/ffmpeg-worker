@@ -9,7 +9,7 @@ export const getAxiosInstance = (credentials: IClientCredentials) => {
       "x-client-secret": credentials.clientSecret,
       "Content-Type": "application/json",
     },
-    timeout: 10 * 60 * 1000,
+    timeout: 60 * 60 * 1000,
   });
 
   return axiosInstance;
@@ -22,5 +22,18 @@ export async function request<T = any>(axiosInstance: AxiosInstance, url: string
   } catch (error) {
     const err = error as AxiosError<string>;
     throw new Error(err.response?.data || err.message);
+  }
+}
+
+export async function requestWithResponseAbort(axiosInstance: AxiosInstance, url: string, body: Record<string, any>) {
+  try {
+    await axiosInstance.post(url, body, {
+      signal: AbortSignal.timeout(1000),
+    });
+  } catch (error) {
+    const err = error as AxiosError<string>;
+    if (err.code !== "ERR_ABORTED") {
+      throw new Error(err.response?.data || err.message);
+    }
   }
 }

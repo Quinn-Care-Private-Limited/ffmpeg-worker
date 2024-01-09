@@ -1,5 +1,5 @@
 import { AxiosInstance } from "axios";
-import { getAxiosInstance, request } from "../request";
+import { getAxiosInstance, request, requestWithResponseAbort } from "../request";
 import { IClientCredentials, ICloudStorageCredentials } from "../types";
 
 export class Storage {
@@ -24,8 +24,6 @@ export class Storage {
   }
 
   async scheduleUpload<T = {}>(config: {
-    callbackId?: string;
-    callbackUrl?: string;
     bucket: string;
     key: string;
     path: string;
@@ -33,25 +31,27 @@ export class Storage {
     multipart?: boolean;
     partSize?: number;
     batchSize?: number;
+    callbackId?: string;
+    callbackUrl?: string;
     callbackMeta?: T;
   }) {
-    return request<{ callbackId: string }>(this.axios, "/storage/upload", {
+    return requestWithResponseAbort(this.axios, "/storage/upload/schedule", {
       ...config,
       credentials: this.cloudCredentials,
     });
   }
 
   async scheduleDownload<T = {}>(config: {
-    callbackId?: string;
-    callbackUrl?: string;
     bucket: string;
     key: string;
     path: string;
     multipart?: boolean;
     partSize?: number;
+    callbackId?: string;
+    callbackUrl?: string;
     callbackMeta?: T;
   }) {
-    return request<{ callbackId: string }>(this.axios, "/storage/download", {
+    return requestWithResponseAbort(this.axios, "/storage/download/schedule", {
       ...config,
       credentials: this.cloudCredentials,
     });

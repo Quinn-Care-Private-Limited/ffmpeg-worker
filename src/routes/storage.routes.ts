@@ -5,6 +5,7 @@ import express, { Request, Response } from "express";
 import { z } from "zod";
 import { sendWebhook } from "utils/webhook";
 import { WebhookType } from "types";
+import { validateRequest } from "middlewares/req-validator";
 
 export const storageRoutes = express.Router();
 
@@ -23,10 +24,14 @@ const downloadSchema = z.object({
   path: z.string(),
   multipart: z.boolean().optional(),
   partSize: z.number().optional(),
-  callbackId: z.string().optional(),
-  callbackUrl: z.string().optional(),
-  callbackMeta: z.record(z.any()).optional(),
   credentials: credentialsSchema.optional(),
+});
+
+const downloadScheduleSchema = downloadSchema.extend({
+  async: z.boolean().optional(),
+  callbackId: z.string(),
+  callbackUrl: z.string(),
+  callbackMeta: z.record(z.any()).optional(),
 });
 
 const uploadSchema = z.object({
@@ -37,30 +42,20 @@ const uploadSchema = z.object({
   multipart: z.boolean().optional(),
   partSize: z.number().optional(),
   batchSize: z.number().optional(),
-  callbackId: z.string().optional(),
-  callbackUrl: z.string().optional(),
-  callbackMeta: z.record(z.any()).optional(),
   credentials: credentialsSchema.optional(),
 });
 
-storageRoutes.post(`/download`, async (req: Request, res: Response) => {
-  const {
-    bucket,
-    key,
-    path,
-    multipart,
-    partSize,
-    callbackId = cuid2.createId(),
-    callbackUrl = "",
-    callbackMeta = {},
-    credentials,
-  } = req.body as z.infer<typeof downloadSchema>;
+const uploadScheduleSchema = uploadSchema.extend({
+  async: z.boolean().optional(),
+  callbackId: z.string(),
+  callbackUrl: z.string(),
+  callbackMeta: z.record(z.any()).optional(),
+});
+
+storageRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Request, res: Response) => {
+  const { bucket, key, path, multipart, partSize, credentials } = req.body as z.infer<typeof downloadSchema>;
 
   try {
-    if (callbackUrl) {
-      res.status(200).json({ callbackId });
-    }
-
     const filePath = `${fsPath}/${path}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
@@ -70,8 +65,46 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
     } else {
       await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
     }
-    if (callbackUrl) {
-      sendWebhook(callbackUrl, {
+
+    res.status(200).json({ bucket, key, path });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send("Error downloading file");
+  }
+});
+
+storageRoutes.post(
+  `/download/schedule`,
+  validateRequest(downloadScheduleSchema),
+  async (req: Request, res: Response) => {
+    const {
+      bucket,
+      key,
+      path,
+      multipart,
+      partSize,
+      credentials,
+      async,
+      callbackId = cuid2.createId(),
+      callbackUrl = "",
+      callbackMeta = {},
+    } = req.body as z.infer<typeof downloadScheduleSchema>;
+
+    try {
+      if (async) {
+        res.status(200).json({ callbackId });
+      }
+      const filePath = `${fsPath}/${path}`;
+      const dirPath = filePath.split("/").slice(0, -1).join("/");
+      await fs.promises.mkdir(dirPath, { recursive: true });
+
+      if (multipart) {
+        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
+      } else {
+        await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+      }
+
+      await sendWebhook(callbackUrl, {
         callbackId,
         callbackMeta,
         type: WebhookType.STORAGE_DOWNLOAD,
@@ -82,26 +115,64 @@ storageRoutes.post(`/download`, async (req: Request, res: Response) => {
           path,
         },
       });
-    } else {
-      res.status(200).json({ bucket, key, path });
-    }
-  } catch (error) {
-    if (callbackUrl) {
-      sendWebhook(callbackUrl, {
+
+      if (!async) {
+        res.status(200).json({ bucket, key, path });
+      }
+    } catch (error) {
+      console.log(error);
+      await sendWebhook(callbackUrl, {
         callbackId,
         callbackMeta,
         type: WebhookType.STORAGE_DOWNLOAD,
         success: false,
         data: "Error downloading file",
       });
-    } else {
-      res.status(400).send("Error downloading file");
+      if (!async) {
+        res.status(400).send("Error downloading file");
+      }
     }
+  },
+);
+
+storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request, res: Response) => {
+  const { bucket, key, path, contentType, multipart, partSize, batchSize, credentials } = req.body as z.infer<
+    typeof uploadSchema
+  >;
+  try {
+    const filePath = `${fsPath}/${path}`;
+    if (multipart) {
+      await storage.uploadMultipartObject(
+        {
+          bucketName: bucket,
+          objectKey: key,
+          filePath,
+          contentType,
+          partSize,
+          batchSize,
+        },
+        credentials,
+      );
+    } else {
+      await storage.uploadObject(
+        {
+          bucketName: bucket,
+          objectKey: key,
+          filePath,
+          contentType,
+        },
+        credentials,
+      );
+    }
+
+    res.status(200).json({ bucket, key, path });
+  } catch (error) {
     console.log(error);
+    res.status(400).send("Error uploading file");
   }
 });
 
-storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
+storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), async (req: Request, res: Response) => {
   const {
     bucket,
     key,
@@ -110,13 +181,14 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
     multipart,
     partSize,
     batchSize,
+    credentials,
+    async,
     callbackId = cuid2.createId(),
     callbackUrl = "",
     callbackMeta = {},
-    credentials,
-  } = req.body as z.infer<typeof uploadSchema>;
+  } = req.body as z.infer<typeof uploadScheduleSchema>;
   try {
-    if (callbackUrl) {
+    if (async) {
       res.status(200).json({ callbackId });
     }
 
@@ -145,33 +217,33 @@ storageRoutes.post(`/upload`, async (req: Request, res: Response) => {
       );
     }
 
-    if (callbackUrl) {
-      sendWebhook(callbackUrl, {
-        callbackId,
-        callbackMeta,
-        type: WebhookType.STORAGE_UPLOAD,
-        success: true,
-        data: {
-          bucket,
-          key,
-          path,
-        },
-      });
-    } else {
+    await sendWebhook(callbackUrl, {
+      callbackId,
+      callbackMeta,
+      type: WebhookType.STORAGE_UPLOAD,
+      success: true,
+      data: {
+        bucket,
+        key,
+        path,
+      },
+    });
+
+    if (!async) {
       res.status(200).json({ bucket, key, path });
     }
   } catch (error) {
-    if (callbackUrl) {
-      sendWebhook(callbackUrl, {
-        callbackId,
-        callbackMeta,
-        type: WebhookType.STORAGE_UPLOAD,
-        success: false,
-        data: "Error uploading file",
-      });
-    } else {
+    console.log(error);
+    await sendWebhook(callbackUrl, {
+      callbackId,
+      callbackMeta,
+      type: WebhookType.STORAGE_UPLOAD,
+      success: false,
+      data: "Error uploading file",
+    });
+
+    if (!async) {
       res.status(400).send("Error uploading file");
     }
-    console.log(error);
   }
 });
