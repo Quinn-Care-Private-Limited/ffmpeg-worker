@@ -11,6 +11,7 @@ export abstract class CloudStorageConnector {
       objectKey: string;
       filePath: string;
       contentType: string;
+      ttl?: number;
     },
     credentials?: ICloudStorageCredentials,
   ): Promise<void>;
@@ -34,6 +35,7 @@ export abstract class CloudStorageConnector {
       partSize?: number;
       batchSize?: number;
       debug?: boolean;
+      ttl?: number;
     },
     credentials?: ICloudStorageCredentials,
   ): Promise<void>;
