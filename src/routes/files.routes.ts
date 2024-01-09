@@ -142,6 +142,12 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
 filesRoutes.post(`/copy`, validateRequest(copySchema), async (req: Request, res: Response) => {
   try {
     const { input, output } = req.body as z.infer<typeof copySchema>;
+    const dirPath = `${fsPath}/${output.split("/").slice(0, -1).join("/")}`;
+
+    const isExists = await fs.promises.stat(dirPath).catch(() => false);
+    if (!isExists) {
+      await fs.promises.mkdir(dirPath, { recursive: true });
+    }
     await fs.promises.copyFile(`${fsPath}/${input}`, `${fsPath}/${output}`);
     res.status(200).json({});
   } catch (error) {
