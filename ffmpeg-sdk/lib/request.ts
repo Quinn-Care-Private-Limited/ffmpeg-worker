@@ -28,11 +28,11 @@ export async function request<T = any>(axiosInstance: AxiosInstance, url: string
 export async function requestWithResponseAbort(axiosInstance: AxiosInstance, url: string, body: Record<string, any>) {
   try {
     await axiosInstance.post(url, body, {
-      signal: AbortSignal.timeout(1000),
+      signal: AbortSignal.timeout(5000),
     });
   } catch (error) {
     const err = error as AxiosError<string>;
-    if (err.code !== "ERR_ABORTED") {
+    if (err.code !== "ERR_CANCELED") {
       throw new Error(err.response?.data || err.message);
     }
   }

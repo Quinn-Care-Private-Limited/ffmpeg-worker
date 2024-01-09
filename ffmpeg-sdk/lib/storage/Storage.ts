@@ -32,7 +32,7 @@ export class Storage {
     partSize?: number;
     batchSize?: number;
     callbackId?: string;
-    callbackUrl?: string;
+    callbackUrl: string;
     callbackMeta?: T;
   }) {
     return requestWithResponseAbort(this.axios, "/storage/upload/schedule", {
@@ -48,7 +48,7 @@ export class Storage {
     multipart?: boolean;
     partSize?: number;
     callbackId?: string;
-    callbackUrl?: string;
+    callbackUrl: string;
     callbackMeta?: T;
   }) {
     return requestWithResponseAbort(this.axios, "/storage/download/schedule", {

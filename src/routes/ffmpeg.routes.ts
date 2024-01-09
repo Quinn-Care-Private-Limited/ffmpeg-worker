@@ -23,7 +23,7 @@ const processSchema = z.object({
 
 const processScheduleSchema = processSchema.extend({
   async: z.boolean().optional(),
-  callbackId: z.string(),
+  callbackId: z.string().optional(),
   callbackUrl: z.string(),
   callbackMeta: z.record(z.any()).optional(),
 });
