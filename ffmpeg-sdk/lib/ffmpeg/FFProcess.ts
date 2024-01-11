@@ -41,6 +41,12 @@ export class FFProcess {
     return this;
   }
 
+  fpsMode(mode?: string) {
+    if (!mode) return this;
+    this.chainCmds.push(`-fps_mode ${mode}`);
+    return this;
+  }
+
   crf(crf?: number) {
     if (!crf && crf != 0) return this;
     this.chainCmds.push(`-crf ${crf}`);
