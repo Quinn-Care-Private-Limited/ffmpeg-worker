@@ -22,7 +22,7 @@ export async function request<T = any>(
 ): Promise<T & { responseTime: number }> {
   try {
     const { data, headers } = await axiosInstance.post(url, body);
-    return { ...data, responseTime: +headers["X-Response-Time"] };
+    return { ...data, responseTime: +headers["x-response-time"] };
   } catch (error) {
     const err = error as AxiosError<string>;
     throw new Error(err.response?.data || err.message);
