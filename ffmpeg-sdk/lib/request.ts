@@ -15,10 +15,14 @@ export const getAxiosInstance = (credentials: IClientCredentials) => {
   return axiosInstance;
 };
 
-export async function request<T = any>(axiosInstance: AxiosInstance, url: string, body: Record<string, any>) {
+export async function request<T = any>(
+  axiosInstance: AxiosInstance,
+  url: string,
+  body: Record<string, any>,
+): Promise<T & { responseTime: number }> {
   try {
-    const { data } = await axiosInstance.post(url, body);
-    return data as T;
+    const { data, headers } = await axiosInstance.post(url, body);
+    return { ...data, responseTime: +headers["X-Response-Time"] };
   } catch (error) {
     const err = error as AxiosError<string>;
     throw new Error(err.response?.data || err.message);
