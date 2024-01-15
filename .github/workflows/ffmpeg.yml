@@ -16,7 +16,6 @@ jobs:
       - id: "auth"
         uses: "google-github-actions/auth@v2"
         with:
-          project_id: $PROJECT_ID
           credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
 
       - name: "Set up Cloud SDK"
