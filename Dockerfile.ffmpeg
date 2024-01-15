@@ -7,9 +7,9 @@ RUN apt-get install -y tzdata
 
 RUN apt install build-essential wget ninja-build meson pkg-config libx264-dev libx265-dev curl gnupg ruby-full nasm openssl libssl-dev ca-certificates -y
 
-RUN wget -O vmaf.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v2.3.1.tar.gz
+RUN wget -O vmaf.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v3.0.0.tar.gz
 RUN tar -xf vmaf.tar.gz
-RUN cd vmaf-2.3.1/libvmaf && meson build --buildtype release && ninja -vC build && ninja -vC build install
+RUN cd vmaf-3.0.0/libvmaf && meson build --buildtype release && ninja -vC build && ninja -vC build install
 
 RUN wget -O ffmpeg.tar.xz https://ffmpeg.org/releases/ffmpeg-6.0.tar.xz
 RUN tar -xf ffmpeg.tar.xz
