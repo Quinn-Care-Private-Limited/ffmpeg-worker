@@ -5,7 +5,27 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 RUN apt-get install -y tzdata
 
-RUN apt install build-essential wget ninja-build meson pkg-config libx264-dev libx265-dev curl gnupg ruby-full nasm openssl libssl-dev ca-certificates -y
+RUN apt install -y \
+    build-essential \
+    wget \
+    ninja-build \
+    pkg-config \
+    libx264-dev \
+    libx265-dev \
+    curl \
+    gnupg \
+    ruby-full \
+    nasm \
+    openssl \
+    libssl-dev \
+    ca-certificates \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel
+
+RUN pip3 install --upgrade pip
+RUN pip3 install --no-cache-dir meson cython numpy
 
 RUN wget -O vmaf.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v3.0.0.tar.gz
 RUN tar -xf vmaf.tar.gz
