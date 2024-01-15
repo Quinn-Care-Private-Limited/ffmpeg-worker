@@ -5,11 +5,7 @@ import { Files } from "../files/Files";
 import { FFVmaf } from "./FFVmaf";
 
 export class Ffmpeg {
-  private files: Files;
-
-  constructor(private credentials: IClientCredentials) {
-    this.files = new Files(this.credentials);
-  }
+  constructor(private credentials: IClientCredentials) {}
 
   process() {
     return new FFProcess(this.credentials);
@@ -23,8 +19,9 @@ export class Ffmpeg {
     return new FFVmaf(this.credentials);
   }
 
-  async getFileInfo(inputfile: string): Promise<ISourceData> {
-    const { data } = await this.files.info(inputfile);
+  async getFileInfo(inputfile: string) {
+    const files = new Files(this.credentials);
+    const { data, responseTime } = await files.info(inputfile);
 
     const sourceData: any = {};
     for (const key in data) {
@@ -41,7 +38,10 @@ export class Ffmpeg {
       }
     }
 
-    return sourceData as ISourceData;
+    return {
+      info: sourceData as ISourceData,
+      responseTime,
+    };
   }
 
   async getRelativeScore(payload: IRelativeScore) {
@@ -52,7 +52,9 @@ export class Ffmpeg {
     if (scale) {
       scale_filter = `scale=${scale.width || -2}:${scale.height || -2}`;
     } else {
-      const { width, height } = await this.getFileInfo(originalFile);
+      const {
+        info: { width, height },
+      } = await this.getFileInfo(originalFile);
       scale_filter = `scale=${width}:${height}`;
     }
 
@@ -67,7 +69,7 @@ export class Ffmpeg {
   }
 
   async getScenes(inputFile: string, threshold = 0.4) {
-    const { data } = await this.process()
+    const { data, responseTime } = await this.process()
       .input(inputFile)
       .cmd(
         `-filter:v "select='gt(scene,${threshold})',showinfo" -f null - 2>&1 | grep showinfo | awk -F 'pts_time:' '{print $2}' | awk '{print $1}'`,
@@ -79,37 +81,42 @@ export class Ffmpeg {
       .filter((item: string) => !!item)
       .map((item: string) => +item);
 
-    return pts;
+    return { pts, responseTime };
   }
 
-  async copy(inputFile: string, outputFile: string): Promise<void> {
-    await this.process().input(inputFile).codec("copy").output(outputFile).run();
+  async copy(inputFile: string, outputFile: string) {
+    return this.process().input(inputFile).codec("copy").output(outputFile).run();
   }
 
-  async concat(inputFiles: string[], outputFile: string): Promise<void> {
-    const { path } = await this.files.path();
+  async concat(inputFiles: string[], outputFile: string) {
+    const files = new Files(this.credentials);
+
+    const { path, responseTime: time1 } = await files.path();
     const concatFileContent = inputFiles.map((item) => `file '${path}/${item}'`).join("\n");
     const concatFilePath = outputFile.replace(".mp4", ".txt");
-    await this.files.create(concatFilePath, concatFileContent);
+    const { responseTime: time2 } = await files.create(concatFilePath, concatFileContent);
 
-    await this.process()
+    const { responseTime: time3 } = await this.process()
       .format("concat")
       .flag("safe", "0")
       .input(concatFilePath)
       .codec("copy")
       .output(outputFile)
       .run();
+
+    return { responseTime: time1 + time2 + time3 };
   }
 
   async segment(inputFile: string, outputDir: string, chunkPrefix: string, targetDuration: number) {
-    await this.process()
+    const { responseTime: time1 } = await this.process()
       .input(inputFile)
       .codec("copy")
       .segment(targetDuration)
       .output(`${outputDir}/${chunkPrefix}_%d.mp4`)
       .run();
 
-    const { list } = await this.files.list(outputDir);
+    const files = new Files(this.credentials);
+    const { list, responseTime: time2 } = await files.list(outputDir);
     const segments = list
       .filter((item) => item.includes(`${chunkPrefix}_`))
       .map((item) => {
@@ -122,7 +129,7 @@ export class Ffmpeg {
       })
       .sort((a, b) => a.chunknumber - b.chunknumber);
 
-    return segments;
+    return { segments, responseTime: time1 + time2 };
   }
 
   async twoPassEncode(
@@ -134,7 +141,7 @@ export class Ffmpeg {
   ) {
     const logPath = outputFile.replace(".mp4", "");
 
-    await this.process()
+    const { responseTime: time1 } = await this.process()
       .input(inputFile)
       .videoCodec("libx264")
       .videoBitrate(videoBitrate)
@@ -146,7 +153,7 @@ export class Ffmpeg {
       .output(outputFile)
       .run();
 
-    await this.process()
+    const { responseTime: time2 } = await this.process()
       .input(inputFile)
       .audioCodec("aac")
       .audioBitrate(audioBitrate)
@@ -157,5 +164,7 @@ export class Ffmpeg {
       .pass(2, logPath)
       .output(outputFile)
       .run();
+
+    return { responseTime: time1 + time2 };
   }
 }

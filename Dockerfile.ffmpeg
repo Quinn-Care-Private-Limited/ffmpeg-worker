@@ -1,15 +1,34 @@
 FROM ubuntu:20.04
 
 RUN apt-get update
-ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
-RUN apt-get install -y tzdata
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN apt install build-essential wget ninja-build meson pkg-config libx264-dev libx265-dev curl gnupg ruby-full nasm openssl libssl-dev ca-certificates -y
+RUN apt-get update && \
+    apt install -y \
+    build-essential \
+    wget \
+    ninja-build \
+    pkg-config \
+    libx264-dev \
+    libx265-dev \
+    curl \
+    gnupg \
+    nasm \
+    openssl \
+    libssl-dev \
+    ca-certificates \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel
 
-RUN wget -O vmaf.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v2.3.1.tar.gz
+RUN pip3 install --upgrade pip
+RUN pip3 install --no-cache-dir meson cython numpy
+
+RUN wget -O vmaf.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v3.0.0.tar.gz
 RUN tar -xf vmaf.tar.gz
-RUN cd vmaf-2.3.1/libvmaf && meson build --buildtype release && ninja -vC build && ninja -vC build install
+RUN cd vmaf-3.0.0/libvmaf && meson build --buildtype release && ninja -vC build && ninja -vC build install
 
 RUN wget -O ffmpeg.tar.xz https://ffmpeg.org/releases/ffmpeg-6.0.tar.xz
 RUN tar -xf ffmpeg.tar.xz
@@ -24,5 +43,5 @@ RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesourc
 RUN apt update
 RUN apt install nodejs -y
 
-RUN rm -rf vmaf-2.3.1/ ffmpeg-6.0/ install ffmpeg.tar.xz vmaf.tar.gz
+RUN rm -rf vmaf-3.0.0/ ffmpeg-6.0/ install ffmpeg.tar.xz vmaf.tar.gz
 RUN echo 'export LD_LIBRARY_PATH=/usr/local/lib/aarch64-linux-gnu' >> ~/.bashrc
