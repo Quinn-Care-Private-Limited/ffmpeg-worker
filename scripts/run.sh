@@ -12,7 +12,9 @@ if [ -n "$FS_IP" ]; then
 fi
 
 ffmpeg -version
-vmaf -version
+echo "vmaf version:"
+vmaf --version
+
 # Start the application
 node /app/build/index.js &
 
