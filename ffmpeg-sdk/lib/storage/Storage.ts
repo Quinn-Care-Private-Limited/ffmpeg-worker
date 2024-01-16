@@ -47,7 +47,7 @@ export class Storage {
     callbackMeta?: T;
     ttl?: number;
   }) {
-    return requestWithResponseAbort(this.axios, "/storage/upload_schedule", {
+    return requestWithResponseAbort(this.axios, "/storage/upload/schedule", {
       ...config,
       credentials: this.cloudCredentials,
     });
@@ -63,7 +63,7 @@ export class Storage {
     callbackUrl: string;
     callbackMeta?: T;
   }) {
-    return requestWithResponseAbort(this.axios, "/storage/download_schedule", {
+    return requestWithResponseAbort(this.axios, "/storage/download/schedule", {
       ...config,
       credentials: this.cloudCredentials,
     });

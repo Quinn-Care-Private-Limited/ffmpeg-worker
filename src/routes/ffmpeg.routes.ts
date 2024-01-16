@@ -89,7 +89,7 @@ ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Reques
   }
 });
 
-ffmpegRoutes.post(`/process_schedule`, validateRequest(processScheduleSchema), async (req: Request, res: Response) => {
+ffmpegRoutes.post(`/process/schedule`, validateRequest(processScheduleSchema), async (req: Request, res: Response) => {
   const {
     input,
     chainCmds,

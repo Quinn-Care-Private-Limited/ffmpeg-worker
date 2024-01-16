@@ -233,7 +233,7 @@ export class FFProcess {
   }
 
   async schedule<T = {}>(config: { callbackId?: string; callbackUrl: string; callbackMeta?: T }) {
-    return requestWithResponseAbort(this.axios, "/ffmpeg/process_schedule", {
+    return requestWithResponseAbort(this.axios, "/ffmpeg/process/schedule", {
       chainCmds: this.chainCmds,
       filterCmds: this.filterCmds,
       cmdString: this.cmdString,

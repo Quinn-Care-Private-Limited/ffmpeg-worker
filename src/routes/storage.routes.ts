@@ -76,7 +76,7 @@ storageRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Req
 });
 
 storageRoutes.post(
-  `/download_schedule`,
+  `/download/schedule`,
   validateRequest(downloadScheduleSchema),
   async (req: Request, res: Response) => {
     const {
@@ -178,7 +178,7 @@ storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request
   }
 });
 
-storageRoutes.post(`/upload_schedule`, validateRequest(uploadScheduleSchema), async (req: Request, res: Response) => {
+storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), async (req: Request, res: Response) => {
   const {
     bucket,
     key,
