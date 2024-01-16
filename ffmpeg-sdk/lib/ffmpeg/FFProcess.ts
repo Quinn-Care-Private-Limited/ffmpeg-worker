@@ -4,10 +4,10 @@ import { getAxiosInstance, request, requestWithResponseAbort } from "../request"
 
 export class FFProcess {
   private axios: AxiosInstance;
-  private outputFile: string = "";
-  private chainCmds: string[] = [];
-  private filterCmds: string[] = [];
-  private cmdString?: string;
+  public outputFile: string = "";
+  public chainCmds: string[] = [];
+  public filterCmds: string[] = [];
+  public cmdString?: string;
 
   constructor(private credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
     this.axios = getAxiosInstance(credentials, responseCallback);
@@ -232,12 +232,42 @@ export class FFProcess {
     });
   }
 
+  async runProcesses(ffmpegs: FFProcess[]) {
+    return request<{ data: any[] }>(this.axios, "/ffmpeg/multi_process", {
+      processes: ffmpegs.map((ffmpeg) => ({
+        chainCmds: ffmpeg.chainCmds,
+        filterCmds: ffmpeg.filterCmds,
+        cmdString: ffmpeg.cmdString,
+        output: ffmpeg.outputFile,
+      })),
+    });
+  }
+
   async schedule<T = {}>(config: { callbackId?: string; callbackUrl: string; callbackMeta?: T }) {
     return requestWithResponseAbort(this.axios, "/ffmpeg/process/schedule", {
       chainCmds: this.chainCmds,
       filterCmds: this.filterCmds,
       cmdString: this.cmdString,
       output: this.outputFile,
+      ...config,
+    });
+  }
+
+  async scheduleProcesses<T = {}>(
+    ffmpegs: FFProcess[],
+    config: {
+      callbackId?: string;
+      callbackUrl: string;
+      callbackMeta?: T;
+    },
+  ) {
+    return requestWithResponseAbort(this.axios, "/ffmpeg/multi_process/schedule", {
+      processes: ffmpegs.map((ffmpeg) => ({
+        chainCmds: ffmpeg.chainCmds,
+        filterCmds: ffmpeg.filterCmds,
+        cmdString: ffmpeg.cmdString,
+        output: ffmpeg.outputFile,
+      })),
       ...config,
     });
   }
