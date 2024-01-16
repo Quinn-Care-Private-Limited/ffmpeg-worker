@@ -1,5 +1,5 @@
 import { AxiosInstance } from "axios";
-import { IClientCredentials, ResponseCallback } from "../types";
+import { IClientCredentials, IFileInfo, ResponseCallback } from "../types";
 import { getAxiosInstance, request } from "../request";
 
 export class Files {
@@ -34,7 +34,7 @@ export class Files {
   }
 
   info(path: string) {
-    return request<{ data: Record<string, string> }>(this.axios, "/files/info", { input: path });
+    return request<{ data: IFileInfo }>(this.axios, "/files/info", { input: path });
   }
 
   copy(input: string, output: string) {

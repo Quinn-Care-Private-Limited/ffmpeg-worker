@@ -49,4 +49,13 @@ export interface IResponsePayload {
   status: number;
 }
 
+export interface IFileInfo {
+  height: number;
+  width: number;
+  duration: number;
+  avgbitrate: number;
+  framerate: number;
+  size: number;
+}
+
 export type ResponseCallback = (payload: IResponsePayload) => void;
