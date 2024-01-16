@@ -21,7 +21,7 @@ export function getWebhookResponsePayload(req: Request, status: number, response
   return {
     baseURL: req.baseUrl,
     method: req.method,
-    path: req.path,
+    path: req.originalUrl.replace("/api", ""),
     status,
     responseTime,
   };
