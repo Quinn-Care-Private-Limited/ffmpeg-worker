@@ -1,4 +1,4 @@
-import { IClientCredentials } from "../types";
+import { IClientCredentials, ResponseCallback } from "../types";
 import { AxiosInstance } from "axios";
 import { getAxiosInstance, request, requestWithResponseAbort } from "../request";
 
@@ -9,8 +9,8 @@ export class FFProcess {
   private filterCmds: string[] = [];
   private cmdString?: string;
 
-  constructor(private credentials: IClientCredentials) {
-    this.axios = getAxiosInstance(credentials);
+  constructor(private credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
+    this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
   input(path: string) {

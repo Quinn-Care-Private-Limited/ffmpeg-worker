@@ -3,7 +3,7 @@ import fs from "fs";
 import { z } from "zod";
 import express, { Request, Response } from "express";
 import { validateRequest } from "middlewares/req-validator";
-import { runcmd } from "utils/app";
+import { getWebhookResponsePayload, runcmd } from "utils/app";
 import cuid2 from "@paralleldrive/cuid2";
 import { sendWebhook } from "utils/webhook";
 import { WebhookType } from "types";
@@ -101,13 +101,22 @@ ffmpegRoutes.post(`/process/schedule`, validateRequest(processScheduleSchema), a
     callbackUrl,
     callbackMeta = {},
   } = req.body as z.infer<typeof processScheduleSchema>;
+  const start = Date.now();
 
   try {
     if (async) {
       res.status(200).json({ callbackId });
     }
     const data = await runProcess({ input, chainCmds, filterCmds, cmdString, output });
-    await sendWebhook(callbackUrl, { callbackId, callbackMeta, type: WebhookType.FFMPEG, success: true, data });
+
+    await sendWebhook(callbackUrl, {
+      callbackId,
+      callbackMeta,
+      type: WebhookType.FFMPEG,
+      success: true,
+      data,
+      responsePayload: getWebhookResponsePayload(req, 200, Date.now() - start),
+    });
 
     if (!async) {
       res.status(200).json({ data });
@@ -119,6 +128,7 @@ ffmpegRoutes.post(`/process/schedule`, validateRequest(processScheduleSchema), a
       type: WebhookType.FFMPEG,
       success: false,
       data: error.message,
+      responsePayload: getWebhookResponsePayload(req, 400, Date.now() - start),
     });
 
     if (!async) {

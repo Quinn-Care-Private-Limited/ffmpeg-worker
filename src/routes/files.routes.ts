@@ -129,7 +129,16 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
       const line = lines[i];
       const [key, value] = line.split("=");
       if (key && value) {
-        data[key] = value;
+        if (key === "bit_rate") {
+          data.avgbitrate = Math.floor(+value / 1000);
+        } else if (key === "r_frame_rate") {
+          const [num, den] = value.split("/");
+          data.framerate = Math.round(+num / +den);
+        } else if (key === "size") {
+          data.size = Math.floor(+value / 1000);
+        } else {
+          data[key] = +value;
+        }
       }
     }
 
