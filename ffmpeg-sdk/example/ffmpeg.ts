@@ -10,7 +10,9 @@ const client: IClientCredentials = {
 async function main() {
   const currentTimeStamp = Date.now();
   const ffmpeg = new Ffmpeg(client);
-  const files = new Files(client);
+  const files = new Files(client, (payload) => {
+    console.log(payload);
+  });
   const storage = new Storage(client);
 
   // await storage.scheduleDownload({
@@ -32,8 +34,8 @@ async function main() {
   const chunkProcessPath = `output/test/tmp/original_2000.mp4`;
 
   // const { responseTime } = await ffmpeg.twoPassEncode(chunkPath, chunkProcessPath, 1440, "2000k");
-  const { responseTime, data } = await files.info(chunkProcessPath);
-  console.log({ data, responseTime });
+  const { data } = await files.info(chunkProcessPath);
+  console.log({ data });
 
   // const chunks = await ffmpeg.segment(
   //   "source/tirf56pdoq3ox6w1zolszr8v/original.mp4",

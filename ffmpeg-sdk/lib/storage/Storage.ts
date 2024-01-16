@@ -1,12 +1,16 @@
 import { AxiosInstance } from "axios";
 import { getAxiosInstance, request, requestWithResponseAbort } from "../request";
-import { IClientCredentials, ICloudStorageCredentials } from "../types";
+import { IClientCredentials, ICloudStorageCredentials, ResponseCallback } from "../types";
 
 export class Storage {
   private axios: AxiosInstance;
 
-  constructor(credentials: IClientCredentials, private cloudCredentials?: ICloudStorageCredentials | null) {
-    this.axios = getAxiosInstance(credentials);
+  constructor(
+    private credentials: IClientCredentials,
+    private cloudCredentials?: ICloudStorageCredentials | null,
+    private responseCallback?: ResponseCallback,
+  ) {
+    this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
   async upload(config: {

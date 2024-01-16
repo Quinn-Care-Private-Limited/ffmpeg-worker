@@ -13,10 +13,10 @@ export enum WebhookType {
 export interface IWebhookResponse {
   callbackId: string;
   callbackMeta?: Record<string, any>;
-  responseTime: number;
   type: WebhookType;
   success: boolean;
   data: any;
+  responsePayload: IResponsePayload;
 }
 
 export interface IAWSCredentials {
@@ -40,3 +40,13 @@ export interface IGCPCredentials {
 }
 
 export type ICloudStorageCredentials = IAWSCredentials | IGCPCredentials;
+
+export interface IResponsePayload {
+  responseTime: number;
+  path: string;
+  method: string;
+  baseURL: string;
+  status: number;
+}
+
+export type ResponseCallback = (payload: IResponsePayload) => void;

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { sendWebhook } from "utils/webhook";
 import { WebhookType } from "types";
 import { validateRequest } from "middlewares/req-validator";
+import { getWebhookResponsePayload } from "utils/app";
 
 export const storageRoutes = express.Router();
 
@@ -90,7 +91,7 @@ storageRoutes.post(
       callbackUrl = "",
       callbackMeta = {},
     } = req.body as z.infer<typeof downloadScheduleSchema>;
-
+    const start = Date.now();
     try {
       if (async) {
         res.status(200).json({ callbackId });
@@ -115,6 +116,7 @@ storageRoutes.post(
           key,
           path,
         },
+        responsePayload: getWebhookResponsePayload(req, 200, Date.now() - start),
       });
 
       if (!async) {
@@ -128,6 +130,7 @@ storageRoutes.post(
         type: WebhookType.STORAGE_DOWNLOAD,
         success: false,
         data: "Error downloading file",
+        responsePayload: getWebhookResponsePayload(req, 400, Date.now() - start),
       });
       if (!async) {
         res.status(400).send("Error downloading file");
@@ -190,6 +193,7 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
     callbackUrl = "",
     callbackMeta = {},
   } = req.body as z.infer<typeof uploadScheduleSchema>;
+  const start = Date.now();
   try {
     if (async) {
       res.status(200).json({ callbackId });
@@ -230,6 +234,7 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
         key,
         path,
       },
+      responsePayload: getWebhookResponsePayload(req, 200, Date.now() - start),
     });
 
     if (!async) {
@@ -243,6 +248,7 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
       type: WebhookType.STORAGE_UPLOAD,
       success: false,
       data: "Error uploading file",
+      responsePayload: getWebhookResponsePayload(req, 400, Date.now() - start),
     });
 
     if (!async) {

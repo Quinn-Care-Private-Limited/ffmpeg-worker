@@ -1,5 +1,5 @@
 import { AxiosInstance } from "axios";
-import { IClientCredentials } from "../types";
+import { IClientCredentials, ResponseCallback } from "../types";
 import { getAxiosInstance, request } from "../request";
 
 export class FFProbe {
@@ -7,8 +7,8 @@ export class FFProbe {
   private chainCmds: string[] = [];
   private inputFile: string = "";
 
-  constructor(credentials: IClientCredentials) {
-    this.axios = getAxiosInstance(credentials);
+  constructor(private credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
+    this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
   verbose(verbose?: string) {

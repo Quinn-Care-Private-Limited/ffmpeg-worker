@@ -1,12 +1,12 @@
 import { AxiosInstance } from "axios";
-import { IClientCredentials } from "../types";
+import { IClientCredentials, ResponseCallback } from "../types";
 import { getAxiosInstance, request } from "../request";
 
 export class Files {
   private axios: AxiosInstance;
 
-  constructor(credentials: IClientCredentials) {
-    this.axios = getAxiosInstance(credentials);
+  constructor(credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
+    this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
   path() {
