@@ -13,7 +13,7 @@ export const ffmpegRoutes = express.Router();
 const fsPath = process.env.FS_PATH || ".";
 const ffmpegPath = process.env.FFMPEG_PATH || "";
 
-const processSchema = z.object({
+const processObjectSchema = z.object({
   input: z.string().optional(),
   chainCmds: z.array(z.string()).optional(),
   filterCmds: z.array(z.string()).optional(),
@@ -21,7 +21,20 @@ const processSchema = z.object({
   output: z.string().optional(),
 });
 
+const processSchema = processObjectSchema;
+
+const multiProcessSchema = z.object({
+  processes: z.array(processObjectSchema),
+});
+
 const processScheduleSchema = processSchema.extend({
+  async: z.boolean().optional(),
+  callbackId: z.string().optional(),
+  callbackUrl: z.string(),
+  callbackMeta: z.record(z.any()).optional(),
+});
+
+const multiProcessScheduleSchema = multiProcessSchema.extend({
   async: z.boolean().optional(),
   callbackId: z.string().optional(),
   callbackUrl: z.string(),
@@ -89,6 +102,22 @@ ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Reques
   }
 });
 
+ffmpegRoutes.post(`/multi_process`, validateRequest(processSchema), async (req: Request, res: Response) => {
+  const { processes } = req.body as z.infer<typeof multiProcessSchema>;
+
+  try {
+    const outputs = [];
+    for (const process of processes) {
+      const data = await runProcess(process);
+      outputs.push(data);
+    }
+
+    res.status(200).json({ data: outputs });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
 ffmpegRoutes.post(`/process/schedule`, validateRequest(processScheduleSchema), async (req: Request, res: Response) => {
   const {
     input,
@@ -136,6 +165,58 @@ ffmpegRoutes.post(`/process/schedule`, validateRequest(processScheduleSchema), a
     }
   }
 });
+
+ffmpegRoutes.post(
+  `/multi_process/schedule`,
+  validateRequest(multiProcessScheduleSchema),
+  async (req: Request, res: Response) => {
+    const {
+      processes,
+      async,
+      callbackId = cuid2.createId(),
+      callbackUrl,
+      callbackMeta = {},
+    } = req.body as z.infer<typeof multiProcessScheduleSchema>;
+    const start = Date.now();
+
+    try {
+      if (async) {
+        res.status(200).json({ callbackId });
+      }
+      const outputs = [];
+      for (const process of processes) {
+        const data = await runProcess(process);
+        outputs.push(data);
+      }
+
+      await sendWebhook(callbackUrl, {
+        callbackId,
+        callbackMeta,
+        type: WebhookType.FFMPEG,
+        success: true,
+        data: outputs,
+        responsePayload: getWebhookResponsePayload(req, 200, Date.now() - start),
+      });
+
+      if (!async) {
+        res.status(200).json({ data: outputs });
+      }
+    } catch (error) {
+      await sendWebhook(callbackUrl, {
+        callbackId,
+        callbackMeta,
+        type: WebhookType.FFMPEG,
+        success: false,
+        data: error.message,
+        responsePayload: getWebhookResponsePayload(req, 400, Date.now() - start),
+      });
+
+      if (!async) {
+        res.status(400).send(error.message);
+      }
+    }
+  },
+);
 
 ffmpegRoutes.post(`/probe`, validateRequest(probeSchema), async (req: Request, res: Response) => {
   try {
