@@ -3,8 +3,8 @@ import { Ffmpeg, Files, IClientCredentials, Storage } from "../lib";
 const client: IClientCredentials = {
   clientId: "QUINNCLIENTID",
   clientSecret: "QUINNCLIENTSECRET",
-  clientServerUrl: "https://worker.quinn.live/api",
-  // clientServerUrl: "http://localhost:4000/api",
+  // clientServerUrl: "https://worker.quinn.live/api",
+  clientServerUrl: "http://localhost:4000/api",
 };
 
 async function main() {
@@ -30,11 +30,27 @@ async function main() {
   // const info = await files.list("source");
   // console.log(info);
 
-  const chunkPath = "source/test/original1.mp4";
-  const chunkProcessPath = `output/test/tmp/original_2000.mp4`;
+  const chunkPath = "source/asset1/original.mp4";
+  const chunkProcessPath = `output/asset1/tmp/original_2000.mp4`;
+
+  await ffmpeg
+    .process()
+    .runProcesses([
+      ffmpeg
+        .process()
+        .input("source/asset1/original.mp4")
+        .videoCodec("libx264")
+        .crf(20)
+        .output("output/asset1/tmp/original_2000.mp4"),
+      ffmpeg
+        .process()
+        .input("output/asset1/tmp/original_2000.mp4")
+        .cropAspectRatio("4:3")
+        .output("output/asset1/tmp/original_2000_4_3.mp4"),
+    ]);
 
   // const { responseTime } = await ffmpeg.twoPassEncode(chunkPath, chunkProcessPath, 1440, "2000k");
-  const { data } = await files.info(chunkProcessPath);
+  const { data } = await files.info("output/asset1/tmp/original_2000_4_3.mp4");
   console.log({ data });
 
   // const chunks = await ffmpeg.segment(
