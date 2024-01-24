@@ -9,3 +9,4 @@ TRUNCATEDB.txt
 *.log.*
 terraform/.terraform*
 *.tfstate*
+video-sdk/xelp.json
