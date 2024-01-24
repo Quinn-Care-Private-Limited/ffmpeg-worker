@@ -1,8 +1,8 @@
 import { IVideo, VideoOperation } from "../types";
 class Video {
-  public assetId: string;
+  public id: string;
   constructor(payload: IVideo) {
-    this.assetId = payload.assetId;
+    this.id = payload.id;
   }
   private operations: VideoOperation[] = [];
 
@@ -28,7 +28,7 @@ class Video {
     return this;
   }
   getId() {
-    return this.assetId;
+    return this.id;
   }
   getOperations() {
     return this.operations;

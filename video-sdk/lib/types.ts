@@ -1,7 +1,8 @@
 import { VideoClassType } from "./video";
 
 export type IVideo = {
-  assetId: string;
+  id: string;
+  type: "source" | "intermediate";
 };
 
 export type VideoOperationTypes = "trim" | "crop" | "concat" | "blur" | "sharp" | "scale" | "splitscreen";
@@ -33,3 +34,12 @@ export type CombinedOperation = {
   outputName: string;
   params: ProcessOperation[];
 };
+export type GroupVideo = {
+  type: "group";
+  videos: VideoClassType[];
+  operationType: "concat" | "splitscreen";
+  id: string;
+  referenceVideo: VideoClassType;
+};
+export type SingleVideo = { type: "video"; video: VideoClassType };
+export type XelpVidoes = {} & (GroupVideo | SingleVideo);
