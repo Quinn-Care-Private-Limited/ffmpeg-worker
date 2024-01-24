@@ -1,11 +1,17 @@
+import { writeFileSync } from "fs";
 import { IVideo, VideoOperation } from "../types";
 class Video {
-  public id: string;
+  private id: string;
+  private outputId: string;
   constructor(payload: IVideo) {
     this.id = payload.id;
+    this.outputId = this.generateRandomId();
   }
   private operations: VideoOperation[] = [];
-
+  private generateRandomId() {
+    // generate 9 character random alphanumeric id
+    return Math.random().toString(36).substr(2, 9);
+  }
   blur(param: { radius: number }) {
     this.operations.push({ type: "blur", radius: param.radius });
     return this;
@@ -30,11 +36,25 @@ class Video {
   getId() {
     return this.id;
   }
+  getOutputId() {
+    return this.outputId;
+  }
   getOperations() {
     return this.operations;
   }
-  done() {
-    return this;
+  process() {
+    const json = {
+      inputs: [{ id: this.id }],
+      operations: this.operations.map((operation) => {
+        return {
+          name: operation.type,
+          inputs: [this.id],
+          params: operation,
+          outputName: this.outputId,
+        };
+      }),
+    };
+    return json;
   }
 }
 

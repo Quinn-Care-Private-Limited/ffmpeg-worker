@@ -25,11 +25,11 @@ class Xelp {
     this.videos.push({ type: "group", videos, operationType: "splitscreen", id, referenceVideo: video });
     return video;
   }
-  run() {
+  process() {
     const inputs = this.getInputs();
     const operations = this.getOperations();
     const json = { inputs, operations };
-    fs.writeFileSync("xelp.json", JSON.stringify(json, null, 2));
+    return json;
   }
   private getInputs(): Input[] {
     const singleVideos = this.videos.filter((video) => video.type == "video") as SingleVideo[];
@@ -56,22 +56,17 @@ class Xelp {
     const id = video.getId();
     const index = inputs.findIndex((item) => item!.id == id);
     const operationName = operations.length ? operations.map((operation) => operation.type).join("_") : `$${index}`;
-    const outputName = operations.length ? `${operationName}_$${index}` : `$${index}`;
     return {
       name: operationName,
       inputs: [id],
       params: operations,
-      outputName,
+      outputName: video.getOutputId(),
     };
   }
   private getMultieVideoOperation(video: GroupVideo, inputs: Input[]) {
     const { operationType, id, videos, referenceVideo } = video;
     const i = videos.map((video) => {
-      const operations = video.getOperations();
-      const index = inputs.findIndex((item) => item!.id == video.getId());
-      const operationName = operations.length ? operations.map((operation) => operation.type).join("_") : `$${index}`;
-      const outputName = operations.length ? `${operationName}_$${index}` : `$${index}`;
-      return outputName;
+      return video.getOutputId();
     });
 
     const outputs = [
