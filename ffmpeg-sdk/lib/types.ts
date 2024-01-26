@@ -58,4 +58,12 @@ export interface IFileInfo {
   size: number;
 }
 
+export interface IFfProcess {
+  chainCmds: string[];
+  videoFilterCmds: string[];
+  audioFilterCmds: string[];
+  filterGraphs: string[];
+  output: string;
+}
+
 export type ResponseCallback = (payload: IResponsePayload) => void;

@@ -1,9 +1,8 @@
 import path from "path";
-import fs from "fs";
 import { z } from "zod";
 import express, { Request, Response } from "express";
 import { validateRequest } from "middlewares/req-validator";
-import { getWebhookResponsePayload, runcmd } from "utils/app";
+import { getWebhookResponsePayload, runProcess, runcmd } from "utils/app";
 import cuid2 from "@paralleldrive/cuid2";
 import { sendWebhook } from "utils/webhook";
 import { WebhookType } from "types";
@@ -14,10 +13,7 @@ const fsPath = process.env.FS_PATH || ".";
 const ffmpegPath = process.env.FFMPEG_PATH || "";
 
 const processObjectSchema = z.object({
-  input: z.string().optional(),
   chainCmds: z.array(z.string()).optional(),
-  filterCmds: z.array(z.string()).optional(),
-  cmdString: z.string().optional(),
   output: z.string().optional(),
 });
 
@@ -55,47 +51,11 @@ const vmafSchema = z.object({
   threads: z.number().optional(),
 });
 
-const runProcess = async (payload: {
-  input?: string;
-  chainCmds?: string[];
-  filterCmds?: string[];
-  cmdString?: string;
-  output?: string;
-}) => {
-  const { input, chainCmds, filterCmds, cmdString, output } = payload;
-
-  let cmd = `${ffmpegPath}ffmpeg -y`;
-  if (input) {
-    cmd += ` -i ${fsPath}/${input}`;
-  }
-  if (chainCmds && chainCmds.length > 0) {
-    chainCmds.forEach((chainCmd) => {
-      const [key, value] = chainCmd.split(" ");
-      if (key === "-i" || key === "-passlogfile") {
-        cmd += ` ${key} ${fsPath}/${value}`;
-      } else {
-        cmd += ` ${chainCmd}`;
-      }
-    });
-  }
-  if (filterCmds && filterCmds.length > 0) {
-    cmd += ` -vf "${filterCmds.join(", ")}"`;
-  }
-  if (cmdString) {
-    cmd += ` ${cmdString}`;
-  }
-  if (output) {
-    await fs.promises.mkdir(`${fsPath}/${output.split("/").slice(0, -1).join("/")}`, { recursive: true });
-    cmd += ` ${fsPath}/${output}`;
-  }
-  return runcmd(cmd);
-};
-
 ffmpegRoutes.post(`/process`, validateRequest(processSchema), async (req: Request, res: Response) => {
-  const { input, chainCmds, filterCmds, cmdString, output } = req.body as z.infer<typeof processSchema>;
+  const process = req.body as z.infer<typeof processSchema>;
 
   try {
-    const data = await runProcess({ input, chainCmds, filterCmds, cmdString, output });
+    const data = await runProcess(process);
     res.status(200).json({ data });
   } catch (error) {
     res.status(400).send(error.message);
@@ -120,15 +80,11 @@ ffmpegRoutes.post(`/multi_process`, validateRequest(processSchema), async (req: 
 
 ffmpegRoutes.post(`/process/schedule`, validateRequest(processScheduleSchema), async (req: Request, res: Response) => {
   const {
-    input,
-    chainCmds,
-    filterCmds,
-    cmdString,
-    output,
     async,
     callbackId = cuid2.createId(),
     callbackUrl,
     callbackMeta = {},
+    ...process
   } = req.body as z.infer<typeof processScheduleSchema>;
   const start = Date.now();
 
@@ -136,7 +92,7 @@ ffmpegRoutes.post(`/process/schedule`, validateRequest(processScheduleSchema), a
     if (async) {
       res.status(200).json({ callbackId });
     }
-    const data = await runProcess({ input, chainCmds, filterCmds, cmdString, output });
+    const data = await runProcess(process);
 
     await sendWebhook(callbackUrl, {
       callbackId,
