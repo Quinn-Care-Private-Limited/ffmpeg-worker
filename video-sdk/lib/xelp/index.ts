@@ -1,9 +1,17 @@
+import { XelpRequest } from "../request";
 import { GroupVideo, SingleVideo, XelpVidoes } from "../types";
-import Video, { VideoClassType } from "../video";
-import fs from "fs";
+import { VideoClassType, Video } from "../video";
 type Input = { id: string };
-class Xelp {
-  private videos: XelpVidoes[] = [];
+export class Xelp {
+  private videos: XelpVidoes[];
+  private xelpRequest: XelpRequest;
+  constructor({ apiKey }: { apiKey: string }) {
+    if (!apiKey) {
+      throw new Error("API Key is required");
+    }
+    this.videos = [];
+    this.xelpRequest = new XelpRequest({ apiKey });
+  }
   input({ id }: { id: string }) {
     const video = new Video({ id, type: "source" });
     this.videos.push({ type: "video", video });
@@ -25,10 +33,11 @@ class Xelp {
     this.videos.push({ type: "group", videos, operationType: "splitscreen", id, referenceVideo: video });
     return video;
   }
-  process() {
+  async process(): Promise<any> {
     const inputs = this.getInputs();
     const operations = this.getOperations();
     const json = { inputs, operations };
+    await this.xelpRequest.post({ data: json });
     return json;
   }
   private getInputs(): Input[] {
@@ -84,5 +93,3 @@ class Xelp {
     return outputs;
   }
 }
-
-export default Xelp;

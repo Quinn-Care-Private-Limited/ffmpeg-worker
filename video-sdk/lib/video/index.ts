@@ -1,6 +1,5 @@
-import { writeFileSync } from "fs";
 import { IVideo, VideoOperation } from "../types";
-class Video {
+export class Video {
   private id: string;
   private outputId: string;
   constructor(payload: IVideo) {
@@ -42,22 +41,6 @@ class Video {
   getOperations() {
     return this.operations;
   }
-  process() {
-    const json = {
-      inputs: [{ id: this.id }],
-      operations: this.operations.map((operation) => {
-        return {
-          name: operation.type,
-          inputs: [this.id],
-          params: operation,
-          outputName: this.outputId,
-        };
-      }),
-    };
-    return json;
-  }
 }
-
-export default Video;
 
 export type VideoClassType = Video;

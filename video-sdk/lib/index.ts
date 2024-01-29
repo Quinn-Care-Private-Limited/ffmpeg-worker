@@ -1,2 +1,1 @@
-import Xelp from "./xelp";
-export { Xelp };
+export * from "./xelp";

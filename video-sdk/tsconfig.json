@@ -14,7 +14,7 @@
     "strict": true,
     "target": "ES6",
   },
-  "include": ["./lib", "examples"],
+  "include": ["./lib"],
   "exclude": [
     "node_modules",
   ]

@@ -48,6 +48,11 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@quinninc/video-sdk@0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@quinninc/video-sdk/-/video-sdk-0.0.4.tgz#755ee6e9a535c918e05095f58030b7e8dda83719"
+  integrity sha512-yOphG/M5sP45M5I8iylOiow55HhtPF/GUODgvKnfVdYn6ZSBZzmg0bsT2VmOYqJ6LfaLnl4jqvibUb09Fw2W5Q==
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.9.tgz#df4907fc07a886922637b15e02d4cebc4c0021b2"
