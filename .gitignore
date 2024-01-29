@@ -10,3 +10,4 @@ TRUNCATEDB.txt
 terraform/.terraform*
 *.tfstate*
 video-sdk/xelp.json
+xelp-test-js

@@ -3,18 +3,18 @@ import { GroupVideo, SingleVideo, XelpVidoes } from "../types";
 import { VideoClassType, Video } from "../video";
 type Input = { id: string };
 export class Xelp {
-  private videos: XelpVidoes[];
-  private xelpRequest: XelpRequest;
+  private _videos: XelpVidoes[];
+  private _xelpRequest: XelpRequest;
   constructor({ apiKey }: { apiKey: string }) {
     if (!apiKey) {
       throw new Error("API Key is required");
     }
-    this.videos = [];
-    this.xelpRequest = new XelpRequest({ apiKey });
+    this._videos = [];
+    this._xelpRequest = new XelpRequest({ apiKey });
   }
   input({ id }: { id: string }) {
     const video = new Video({ id, type: "source" });
-    this.videos.push({ type: "video", video });
+    this._videos.push({ type: "video", video });
     return video;
   }
   private generateRandomId() {
@@ -24,58 +24,58 @@ export class Xelp {
   concat(...videos: Video[]) {
     const id = this.generateRandomId();
     const video = new Video({ id, type: "intermediate" });
-    this.videos.push({ type: "group", videos, operationType: "concat", id, referenceVideo: video });
+    this._videos.push({ type: "group", videos, operationType: "concat", id, referenceVideo: video });
     return video;
   }
   splitscreen(...videos: Video[]) {
     const id = this.generateRandomId();
     const video = new Video({ id, type: "intermediate" });
-    this.videos.push({ type: "group", videos, operationType: "splitscreen", id, referenceVideo: video });
+    this._videos.push({ type: "group", videos, operationType: "splitscreen", id, referenceVideo: video });
     return video;
   }
   async process(): Promise<any> {
-    const inputs = this.getInputs();
-    const operations = this.getOperations();
+    const inputs = this._getInputs();
+    const operations = this._getOperations();
     const json = { inputs, operations };
-    await this.xelpRequest.post({ data: json });
+    await this._xelpRequest.post({ data: json });
     return json;
   }
-  private getInputs(): Input[] {
-    const singleVideos = this.videos.filter((video) => video.type == "video") as SingleVideo[];
+  private _getInputs(): Input[] {
+    const singleVideos = this._videos.filter((video) => video.type == "video") as SingleVideo[];
     return singleVideos.map((video) => {
-      return { id: video.video.getId() };
+      return { id: video.video._getId() };
     });
   }
-  private getOperations() {
-    const inputs = this.getInputs();
+  private _getOperations() {
+    const inputs = this._getInputs();
     const operations: any = [];
-    this.videos.forEach((video) => {
+    this._videos.forEach((video) => {
       if (video.type == "video") {
-        operations.push(this.getSingleVideoOperation(video.video, inputs));
+        operations.push(this._getSingleVideoOperation(video.video, inputs));
       } else {
-        const outputs = this.getMultieVideoOperation(video, inputs).flat();
+        const outputs = this._getMultieVideoOperation(video, inputs).flat();
         operations.push(...outputs);
       }
     });
     return operations;
   }
 
-  private getSingleVideoOperation(video: VideoClassType, inputs: Input[]) {
-    const operations = video.getOperations();
-    const id = video.getId();
+  private _getSingleVideoOperation(video: VideoClassType, inputs: Input[]) {
+    const operations = video._getOperations();
+    const id = video._getId();
     const index = inputs.findIndex((item) => item!.id == id);
     const operationName = operations.length ? operations.map((operation) => operation.type).join("_") : `$${index}`;
     return {
       name: operationName,
       inputs: [id],
       params: operations,
-      outputName: video.getOutputId(),
+      outputName: video._getOutputId(),
     };
   }
-  private getMultieVideoOperation(video: GroupVideo, inputs: Input[]) {
+  private _getMultieVideoOperation(video: GroupVideo, inputs: Input[]) {
     const { operationType, id, videos, referenceVideo } = video;
     const i = videos.map((video) => {
-      return video.getOutputId();
+      return video._getOutputId();
     });
 
     const outputs = [
@@ -86,8 +86,8 @@ export class Xelp {
         outputName: id,
       },
     ];
-    if (video.referenceVideo.getOperations().length) {
-      const referenceVideoOperations = this.getSingleVideoOperation(video.referenceVideo, inputs);
+    if (video.referenceVideo._getOperations().length) {
+      const referenceVideoOperations = this._getSingleVideoOperation(video.referenceVideo, inputs);
       return [...outputs, referenceVideoOperations];
     }
     return outputs;
