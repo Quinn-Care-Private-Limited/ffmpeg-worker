@@ -22,8 +22,8 @@ export class FFProcess {
     this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
-  init(process: Pick<IFfProcess, "chainCmds" | "output">) {
-    this.process = { ...this.process, ...process };
+  init(process: IFfProcess) {
+    this.process = process;
     return this;
   }
 
