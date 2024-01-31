@@ -3,7 +3,7 @@ import { CloudStorageConnector } from "./base";
 import fs from "fs";
 import { IGCPCredentials } from "types";
 import { ConfigMetadata } from "@google-cloud/storage/build/cjs/src/resumable-upload";
-import { parseAbrMasterFile, runcmd } from "utils/app";
+import { getChunks, parseAbrMasterFile, runcmd } from "utils/app";
 
 const fsPath = process.env.FS_PATH || ".";
 const ffmpegPath = process.env.FFMPEG_PATH || "";
@@ -36,6 +36,7 @@ export class GCStorageConnector implements CloudStorageConnector {
       });
 
       writeStream.on("error", (err) => {
+        console.log(err);
         reject("Error downloading video");
       });
     });
@@ -231,8 +232,8 @@ export class GCStorageConnector implements CloudStorageConnector {
     /**
      * Download ABR master file
      */
-
-    const masterAbrFileOutputname = payload.filePath.split(".").slice(0, -1).join(".") + ".m3u8";
+    const outputBaseFolder = payload.filePath.split("/").slice(0, -1).join("/");
+    const masterAbrFileOutputname = `${outputBaseFolder}/master.m3u8`;
     await this.downloadObject(
       {
         ...payload,
@@ -252,14 +253,39 @@ export class GCStorageConnector implements CloudStorageConnector {
     const baseKey = payload.objectKey.split("/").slice(0, -1).join("/");
     // Get the highest bandwidth stream key
     const highestBandwidthStreamKey = `${baseKey}/${highestBandwidthStream.url}`;
+    await this.downloadObject(
+      {
+        ...payload,
+        objectKey: highestBandwidthStreamKey,
+        filePath: `${outputBaseFolder}/highestBandwidthStream.m3u8`,
+      },
+      credentials,
+    );
+    const chunks = getChunks(fs.readFileSync(`${outputBaseFolder}/highestBandwidthStream.m3u8`, "utf-8"));
+    const chunksWithFullUrl = chunks.map((chunk) => {
+      const chunkName = chunk.url.split("/").slice(-1)[0];
+      return {
+        ...chunk,
+        key: `${baseKey}/main/chunks/${chunkName}`,
+        filePath: `${outputBaseFolder}/${chunkName}`,
+      };
+    });
+    const promises = chunksWithFullUrl.map((chunk) => {
+      return this.downloadObject(
+        {
+          ...payload,
+          objectKey: chunk.key,
+          filePath: chunk.filePath,
+        },
+        credentials,
+      );
+    });
+    await Promise.all(promises);
 
-    // create signed url for highest bandwidth stream (so that even private streams can be downloaded using ffmpeg)
-    const signedUrl = await this.generateV4ReadSignedUrl(storage, payload.bucketName, highestBandwidthStreamKey);
-
-    const mp4Outputname = payload.filePath.split(".").slice(0, -1).join(".") + ".mp4";
-
-    const ffmpegCommand = `${ffmpegPath}ffmpeg -i "${signedUrl}" -c copy ${mp4Outputname}`;
-    await runcmd(ffmpegCommand);
+    const ffmpegCmd = `${ffmpegPath}ffmpeg -i "concat:${chunksWithFullUrl
+      .map((chunk) => chunk.filePath)
+      .join("|")}" -c copy ${outputBaseFolder}/output.mp4`;
+    await runcmd(ffmpegCmd);
   }
   async generateV4ReadSignedUrl(storage: Storage, bucketName: string, fileName: string) {
     const [url] = await storage

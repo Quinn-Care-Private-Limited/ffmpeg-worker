@@ -73,3 +73,22 @@ export function parseAbrMasterFile(string: string): { bandwidth: string; url: st
   }
   return result.sort((a, b) => b.bandwidth - a.bandwidth);
 }
+
+export function getChunks(streamString: string) {
+  const lines = streamString.split("\n");
+  const chunks = [];
+  let chunk: any = {};
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.startsWith("#EXTINF:")) {
+      chunk = {
+        duration: Number(line.split(":")[1]),
+      };
+    } else if (line.startsWith("chunk")) {
+      chunk.url = line;
+      chunks.push(chunk);
+      chunk = null;
+    }
+  }
+  return chunks;
+}
