@@ -55,3 +55,21 @@ export function getWebhookResponsePayload(req: Request, status: number, response
     responseTime,
   };
 }
+
+export function parseAbrMasterFile(string: string): { bandwidth: string; url: string }[] {
+  const lines = string.split("\n");
+  const result = [];
+  let obj: any = {};
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.includes("#EXT-X-STREAM-INF")) {
+      obj = {};
+      const bandwidth = line.match(/BANDWIDTH=(\d+)/)![1]!;
+      obj.bandwidth = +bandwidth;
+    } else if (line.includes(".m3u8")) {
+      obj.url = line;
+      result.push(obj);
+    }
+  }
+  return result.sort((a, b) => b.bandwidth - a.bandwidth);
+}

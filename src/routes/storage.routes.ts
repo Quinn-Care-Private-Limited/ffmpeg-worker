@@ -12,7 +12,7 @@ export const storageRoutes = express.Router();
 
 const fsPath = process.env.FS_PATH || "";
 const cloudStorage = process.env.CLOUD_STORAGE as CloudStorageType;
-
+console.log(cloudStorage);
 const storage = getStorageConnector(cloudStorage);
 
 const credentialsSchema = z.object({
@@ -56,16 +56,18 @@ const uploadScheduleSchema = uploadSchema.extend({
 
 storageRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Request, res: Response) => {
   const { bucket, key, path, multipart, partSize, credentials } = req.body as z.infer<typeof downloadSchema>;
-
   try {
     const filePath = `${fsPath}/${path}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
-
-    if (multipart) {
-      await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
+    if (key.includes(".m3u8")) {
+      await storage.downloadAbrObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
     } else {
-      await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+      if (multipart) {
+        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
+      } else {
+        await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+      }
     }
 
     res.status(200).json({ bucket, key, path });
@@ -92,6 +94,7 @@ storageRoutes.post(
       callbackMeta = {},
     } = req.body as z.infer<typeof downloadScheduleSchema>;
     const start = Date.now();
+
     try {
       if (async) {
         res.status(200).json({ callbackId });
@@ -99,13 +102,18 @@ storageRoutes.post(
       const filePath = `${fsPath}/${path}`;
       const dirPath = filePath.split("/").slice(0, -1).join("/");
       await fs.promises.mkdir(dirPath, { recursive: true });
-
-      if (multipart) {
-        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
+      if (key.includes(".m3u8")) {
+        await storage.downloadAbrObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
       } else {
-        await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+        if (multipart) {
+          await storage.downloadMultipartObject(
+            { bucketName: bucket, objectKey: key, filePath, partSize },
+            credentials,
+          );
+        } else {
+          await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+        }
       }
-
       await sendWebhook(callbackUrl, {
         callbackId,
         callbackMeta,
