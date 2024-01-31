@@ -225,10 +225,6 @@ export class GCStorageConnector implements CloudStorageConnector {
     payload: { bucketName: string; objectKey: string; filePath: string },
     credentials?: IGCPCredentials,
   ): Promise<void> {
-    const storage = new Storage({
-      credentials,
-    });
-
     /**
      * Download ABR master file
      */
