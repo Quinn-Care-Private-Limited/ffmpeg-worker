@@ -22,8 +22,9 @@ export class FFProcess {
     this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
-  init(process: IFfProcess) {
-    this.process = process;
+  init(process: IFfProcess | FFProcess) {
+    if (process instanceof FFProcess) this.process = JSON.parse(JSON.stringify(process.process));
+    else this.process = JSON.parse(JSON.stringify(process));
     return this;
   }
 
