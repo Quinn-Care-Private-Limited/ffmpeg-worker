@@ -11,13 +11,8 @@ import { getWebhookResponsePayload } from "utils/app";
 export const storageRoutes = express.Router();
 
 const fsPath = process.env.FS_PATH || "";
-const cloudStorage = process.env.CLOUD_STORAGE as CloudStorageType;
-console.log(cloudStorage);
-const storage = getStorageConnector(cloudStorage);
 
-const credentialsSchema = z.object({
-  credentials: z.any(),
-});
+const credentialsSchema = z.any();
 
 const downloadSchema = z.object({
   bucket: z.string(),
@@ -25,7 +20,8 @@ const downloadSchema = z.object({
   path: z.string(),
   multipart: z.boolean().optional(),
   partSize: z.number().optional(),
-  credentials: credentialsSchema.optional(),
+  cloudStorageType: z.string(),
+  credentials: credentialsSchema,
 });
 
 const downloadScheduleSchema = downloadSchema.extend({
@@ -43,8 +39,9 @@ const uploadSchema = z.object({
   multipart: z.boolean().optional(),
   partSize: z.number().optional(),
   batchSize: z.number().optional(),
-  credentials: credentialsSchema.optional(),
   ttl: z.number().optional(),
+  cloudStorageType: z.string(),
+  credentials: credentialsSchema,
 });
 
 const uploadScheduleSchema = uploadSchema.extend({
@@ -60,8 +57,10 @@ storageRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Req
     const filePath = `${fsPath}/${path}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
-    if (key.includes(".m3u8")) {
-      await storage.downloadAbrObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+    const storage = getStorageConnector(credentials.cloudStorageType as CloudStorageType);
+
+    if (multipart) {
+      await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
     } else {
       if (multipart) {
         await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
@@ -102,8 +101,11 @@ storageRoutes.post(
       const filePath = `${fsPath}/${path}`;
       const dirPath = filePath.split("/").slice(0, -1).join("/");
       await fs.promises.mkdir(dirPath, { recursive: true });
-      if (key.includes(".m3u8")) {
-        await storage.downloadAbrObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+
+      const storage = getStorageConnector(credentials.cloudStorageType as CloudStorageType);
+
+      if (multipart) {
+        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
       } else {
         if (multipart) {
           await storage.downloadMultipartObject(
@@ -152,6 +154,7 @@ storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request
     typeof uploadSchema
   >;
   try {
+    const storage = getStorageConnector(credentials.cloudStorageType as CloudStorageType);
     const filePath = `${fsPath}/${path}`;
     if (multipart) {
       await storage.uploadMultipartObject(
@@ -207,6 +210,7 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
       res.status(200).json({ callbackId });
     }
 
+    const storage = getStorageConnector(credentials.cloudStorageType as CloudStorageType);
     const filePath = `${fsPath}/${path}`;
     if (multipart) {
       await storage.uploadMultipartObject(

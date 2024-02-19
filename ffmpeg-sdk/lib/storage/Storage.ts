@@ -4,13 +4,19 @@ import { IClientCredentials, ICloudStorageCredentials, ResponseCallback } from "
 
 export class Storage {
   private axios: AxiosInstance;
+  private cloudStorageType: "AWS" | "GCP";
 
   constructor(
     private credentials: IClientCredentials,
-    private cloudCredentials?: ICloudStorageCredentials | null,
+    private cloudCredentials: ICloudStorageCredentials,
     private responseCallback?: ResponseCallback,
   ) {
     this.axios = getAxiosInstance(credentials, responseCallback);
+    if ("accessKeyId" in cloudCredentials) {
+      this.cloudStorageType = "AWS";
+    } else {
+      this.cloudStorageType = "GCP";
+    }
   }
 
   async upload(config: {
@@ -23,6 +29,7 @@ export class Storage {
   }) {
     return request<{ bucket: string; key: string; path: string }>(this.axios, "/storage/upload", {
       ...config,
+      cloudStorageType: this.cloudStorageType,
       credentials: this.cloudCredentials,
     });
   }
@@ -49,6 +56,7 @@ export class Storage {
   }) {
     return requestWithResponseAbort(this.axios, "/storage/upload/schedule", {
       ...config,
+      cloudStorageType: this.cloudStorageType,
       credentials: this.cloudCredentials,
     });
   }
@@ -65,6 +73,7 @@ export class Storage {
   }) {
     return requestWithResponseAbort(this.axios, "/storage/download/schedule", {
       ...config,
+      cloudStorageType: this.cloudStorageType,
       credentials: this.cloudCredentials,
     });
   }
