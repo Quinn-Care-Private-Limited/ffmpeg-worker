@@ -37,6 +37,7 @@ export class Storage {
   async download(config: { bucket: string; key: string; path: string; multipart?: boolean }) {
     return request<{ bucket: string; key: string; path: string }>(this.axios, "/storage/download", {
       ...config,
+      cloudStorageType: this.cloudStorageType,
       credentials: this.cloudCredentials,
     });
   }
