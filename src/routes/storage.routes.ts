@@ -52,12 +52,14 @@ const uploadScheduleSchema = uploadSchema.extend({
 });
 
 storageRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Request, res: Response) => {
-  const { bucket, key, path, multipart, partSize, credentials } = req.body as z.infer<typeof downloadSchema>;
+  const { bucket, key, path, multipart, partSize, credentials, cloudStorageType } = req.body as z.infer<
+    typeof downloadSchema
+  >;
   try {
     const filePath = `${fsPath}/${path}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
-    const storage = getStorageConnector(credentials.cloudStorageType as CloudStorageType);
+    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
 
     if (multipart) {
       await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
@@ -87,6 +89,7 @@ storageRoutes.post(
       multipart,
       partSize,
       credentials,
+      cloudStorageType,
       async,
       callbackId = cuid2.createId(),
       callbackUrl = "",
@@ -102,7 +105,7 @@ storageRoutes.post(
       const dirPath = filePath.split("/").slice(0, -1).join("/");
       await fs.promises.mkdir(dirPath, { recursive: true });
 
-      const storage = getStorageConnector(credentials.cloudStorageType as CloudStorageType);
+      const storage = getStorageConnector(cloudStorageType as CloudStorageType);
 
       if (multipart) {
         await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
@@ -150,11 +153,10 @@ storageRoutes.post(
 );
 
 storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request, res: Response) => {
-  const { bucket, key, path, contentType, multipart, partSize, batchSize, credentials, ttl } = req.body as z.infer<
-    typeof uploadSchema
-  >;
+  const { bucket, key, path, contentType, multipart, partSize, batchSize, credentials, cloudStorageType, ttl } =
+    req.body as z.infer<typeof uploadSchema>;
   try {
-    const storage = getStorageConnector(credentials.cloudStorageType as CloudStorageType);
+    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
     const filePath = `${fsPath}/${path}`;
     if (multipart) {
       await storage.uploadMultipartObject(
@@ -199,6 +201,7 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
     partSize,
     batchSize,
     credentials,
+    cloudStorageType,
     async,
     callbackId = cuid2.createId(),
     callbackUrl = "",
@@ -210,7 +213,7 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
       res.status(200).json({ callbackId });
     }
 
-    const storage = getStorageConnector(credentials.cloudStorageType as CloudStorageType);
+    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
     const filePath = `${fsPath}/${path}`;
     if (multipart) {
       await storage.uploadMultipartObject(

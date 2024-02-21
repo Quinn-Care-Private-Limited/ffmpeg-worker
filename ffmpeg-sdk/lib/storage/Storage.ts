@@ -4,7 +4,7 @@ import { IClientCredentials, ICloudStorageCredentials, ResponseCallback } from "
 
 export class Storage {
   private axios: AxiosInstance;
-  private cloudStorageType: "AWS" | "GCP";
+  private cloudStorageType: "S3" | "GCS";
 
   constructor(
     private credentials: IClientCredentials,
@@ -13,9 +13,9 @@ export class Storage {
   ) {
     this.axios = getAxiosInstance(credentials, responseCallback);
     if ("accessKeyId" in cloudCredentials) {
-      this.cloudStorageType = "AWS";
+      this.cloudStorageType = "S3";
     } else {
-      this.cloudStorageType = "GCP";
+      this.cloudStorageType = "GCS";
     }
   }
 
