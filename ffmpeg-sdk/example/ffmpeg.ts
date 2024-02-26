@@ -1,4 +1,5 @@
-import { Ffmpeg, Files, IClientCredentials, Storage } from "../lib";
+import { Ffmpeg, Files, IClientCredentials, IFfProcess, Storage } from "../lib";
+import { FFProcess } from "../lib/ffmpeg/FFProcess";
 
 const client: IClientCredentials = {
   clientId: "QUINNCLIENTID",
@@ -7,13 +8,26 @@ const client: IClientCredentials = {
   clientServerUrl: "http://localhost:4000/api",
 };
 
+const ffmpeg = new Ffmpeg(client, (payload) => {
+  console.log(payload);
+});
+
 async function main() {
   const currentTimeStamp = Date.now();
-  const ffmpeg = new Ffmpeg(client, (payload) => {
-    console.log(payload);
-  });
+
   const files = new Files(client);
-  const storage = new Storage(client);
+  // const storage = new Storage(client);
+
+  // await ffmpeg
+  //   .process()
+  //   .input("wu4wfdyvco9hk5mdl03cfsdu/original.mp4")
+  //   .screenShot(1)
+  //   .quality(18)
+  //   .cropAspectRatio("1:1")
+  //   .resolution(360)
+  //   .filter()
+  //   .output("wu4wfdyvco9hk5mdl03cfsdu/test.jpg")
+  //   .run();
 
   // await storage.scheduleDownload({
   //   bucket: "xelp-source",
@@ -101,35 +115,32 @@ async function main() {
   //   .output("output/asset1/original_hstack.mp4")
   //   .run();
 
-  await ffmpeg
-    .process()
-    .filterGraph(
-      ffmpeg
-        .process()
-        .input(original)
-        .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
-        .trim(0, 5)
-        .atrim(0, 5)
-        .streamIn("0:v", "0:a")
-        .streamOut("v0", "a0"),
-    )
-    .filterGraph(
-      ffmpeg
-        .process()
-        .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
-        .trim(3, 8)
-        .atrim(3, 8)
-        .streamIn("0:v", "0:a")
-        .streamOut("v1", "a1"),
-    )
-    .filterGraph(ffmpeg.process().vstack(2).amerge(2).streamIn(["v0", "v1"], ["a0", "a1"]).streamOut("sv1", "sa1"))
-    .filterGraph(ffmpeg.process().concat(2).streamIn(["sv1", "sa1", "0:v", "0:a"]).streamOut(["vout", "aout"]))
-    .mux("vout", "aout")
-    .videoCodec("libx264")
-    .audioCodec("aac")
-    .crf(30)
-    .output("output/asset1/original_vstack_concat.mp4")
-    .run();
+  // const process = ffmpeg
+  //   .process()
+  //   .filterGraph(
+  //     ffmpeg
+  //       .process()
+  //       .input(original)
+  //       .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
+  //       .trim(0, 5)
+  //       .atrim(0, 5)
+  //       .streamIn("0:v", "0:a")
+  //       .streamOut("v0", "a0"),
+  //   )
+  //   .filterGraph(
+  //     ffmpeg
+  //       .process()
+  //       .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
+  //       .trim(3, 8)
+  //       .atrim(3, 8)
+  //       .streamIn("0:v", "0:a")
+  //       .streamOut("v1", "a1"),
+  //   )
+  //   .filterGraph(ffmpeg.process().vstack(2).amerge(2).streamIn(["v0", "v1"], ["a0", "a1"]).streamOut("sv1", "sa1"))
+  //   .filterGraph(ffmpeg.process().concat(2).streamIn(["sv1", "sa1", "0:v", "0:a"]).streamOut(["vout", "aout"]))
+  //   .mux("vout", "aout");
+
+  // await encode(process, "output/asset1/original_trim.mp4", "2000k");
 
   // await ffmpeg
   //   .process()
@@ -164,6 +175,47 @@ async function main() {
   // console.log("Score: ", score);
 
   // console.log("Time taken: ", (Date.now() - currentTimeStamp) / 1000);
+}
+
+async function encode(
+  process: FFProcess,
+  outputFile: string,
+  videoBitrate?: string,
+  resoluion?: number,
+  audioBitrate = "128k",
+) {
+  const logPath = outputFile.replace(".mp4", "");
+
+  if (videoBitrate) {
+    await ffmpeg
+      .process()
+      .runProcesses([
+        ffmpeg
+          .process()
+          .init(process)
+          .videoCodec("libx264")
+          .videoBitrate(videoBitrate)
+          .resolution(resoluion)
+          .preset("slow")
+          .pass(1, logPath)
+          .muted(true)
+          .format("mp4")
+          .output("/dev/null"),
+        ffmpeg
+          .process()
+          .init(process)
+          .audioCodec("aac")
+          .audioBitrate(audioBitrate)
+          .videoCodec("libx264")
+          .videoBitrate(videoBitrate)
+          .resolution(resoluion)
+          .preset("slow")
+          .pass(2, logPath)
+          .output(outputFile),
+      ]);
+  } else {
+    await process.resolution(resoluion).output(outputFile).run();
+  }
 }
 
 main();

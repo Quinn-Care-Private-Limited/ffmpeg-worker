@@ -40,4 +40,8 @@ export class Files {
   copy(input: string, output: string) {
     return request<{}>(this.axios, "/files/copy", { input, output });
   }
+
+  download(url: string, output: string) {
+    return request<{}>(this.axios, "/files/download", { url, output });
+  }
 }
