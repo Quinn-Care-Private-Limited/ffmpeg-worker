@@ -145,7 +145,7 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
           const [num, den] = value.split("/");
           data.framerate = Math.round(+num / +den);
         } else if (key === "size") {
-          data.size = Math.floor(+value / 1000);
+          data.size = Math.floor(+value / 1024);
         } else {
           data[key] = +value;
         }

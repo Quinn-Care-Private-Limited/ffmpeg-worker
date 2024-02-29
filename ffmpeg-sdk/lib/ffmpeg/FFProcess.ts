@@ -106,7 +106,7 @@ export class FFProcess {
 
   segment(segmentTime?: number) {
     if (!segmentTime) return this;
-    this.process.chainCmds.push(`-f segment -segment_time ${segmentTime} -reset_timestamps 1 -map 0`);
+    this.process.chainCmds.push(`-f segment -segment_time ${segmentTime} -reset_timestamps 1`);
     return this;
   }
 
