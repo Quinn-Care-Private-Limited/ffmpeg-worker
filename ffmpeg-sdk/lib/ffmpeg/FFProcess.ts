@@ -23,13 +23,25 @@ export class FFProcess {
   }
 
   init(process: IFfProcess | FFProcess) {
-    if (process instanceof FFProcess) this.process = JSON.parse(JSON.stringify(process.process));
-    else this.process = JSON.parse(JSON.stringify(process));
+    let processCopy: IFfProcess;
+    if (process instanceof FFProcess) processCopy = process.process;
+    else processCopy = process;
+
+    this.process.chainCmds.push(...processCopy.chainCmds);
+    this.process.videoFilterCmds.push(...processCopy.videoFilterCmds);
+    this.process.audioFilterCmds.push(...processCopy.audioFilterCmds);
+    this.process.filterGraphs.push(...processCopy.filterGraphs);
+    if (processCopy.output) this.process.output = processCopy.output;
+
     return this;
   }
 
-  input(path: string) {
-    this.process.chainCmds.push(`-i ${path}`);
+  input(path: string | string[]) {
+    if (Array.isArray(path)) {
+      path.forEach((p) => this.process.chainCmds.push(`-i ${p}`));
+    } else {
+      this.process.chainCmds.push(`-i ${path}`);
+    }
     return this;
   }
 
