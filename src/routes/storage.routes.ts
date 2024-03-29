@@ -11,13 +11,8 @@ import { getWebhookResponsePayload } from "utils/app";
 export const storageRoutes = express.Router();
 
 const fsPath = process.env.FS_PATH || "";
-const cloudStorage = process.env.CLOUD_STORAGE as CloudStorageType;
 
-const storage = getStorageConnector(cloudStorage);
-
-const credentialsSchema = z.object({
-  credentials: z.any(),
-});
+const credentialsSchema = z.any();
 
 const downloadSchema = z.object({
   bucket: z.string(),
@@ -25,7 +20,8 @@ const downloadSchema = z.object({
   path: z.string(),
   multipart: z.boolean().optional(),
   partSize: z.number().optional(),
-  credentials: credentialsSchema.optional(),
+  cloudStorageType: z.string(),
+  credentials: credentialsSchema,
 });
 
 const downloadScheduleSchema = downloadSchema.extend({
@@ -43,8 +39,9 @@ const uploadSchema = z.object({
   multipart: z.boolean().optional(),
   partSize: z.number().optional(),
   batchSize: z.number().optional(),
-  credentials: credentialsSchema.optional(),
   ttl: z.number().optional(),
+  cloudStorageType: z.string(),
+  credentials: credentialsSchema,
 });
 
 const uploadScheduleSchema = uploadSchema.extend({
@@ -55,17 +52,23 @@ const uploadScheduleSchema = uploadSchema.extend({
 });
 
 storageRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Request, res: Response) => {
-  const { bucket, key, path, multipart, partSize, credentials } = req.body as z.infer<typeof downloadSchema>;
-
+  const { bucket, key, path, multipart, partSize, credentials, cloudStorageType } = req.body as z.infer<
+    typeof downloadSchema
+  >;
   try {
     const filePath = `${fsPath}/${path}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
+    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
 
     if (multipart) {
       await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
     } else {
-      await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+      if (multipart) {
+        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
+      } else {
+        await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+      }
     }
 
     res.status(200).json({ bucket, key, path });
@@ -86,12 +89,14 @@ storageRoutes.post(
       multipart,
       partSize,
       credentials,
+      cloudStorageType,
       async,
       callbackId = cuid2.createId(),
       callbackUrl = "",
       callbackMeta = {},
     } = req.body as z.infer<typeof downloadScheduleSchema>;
     const start = Date.now();
+
     try {
       if (async) {
         res.status(200).json({ callbackId });
@@ -100,12 +105,20 @@ storageRoutes.post(
       const dirPath = filePath.split("/").slice(0, -1).join("/");
       await fs.promises.mkdir(dirPath, { recursive: true });
 
+      const storage = getStorageConnector(cloudStorageType as CloudStorageType);
+
       if (multipart) {
         await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
       } else {
-        await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+        if (multipart) {
+          await storage.downloadMultipartObject(
+            { bucketName: bucket, objectKey: key, filePath, partSize },
+            credentials,
+          );
+        } else {
+          await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+        }
       }
-
       await sendWebhook(callbackUrl, {
         callbackId,
         callbackMeta,
@@ -140,10 +153,10 @@ storageRoutes.post(
 );
 
 storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request, res: Response) => {
-  const { bucket, key, path, contentType, multipart, partSize, batchSize, credentials, ttl } = req.body as z.infer<
-    typeof uploadSchema
-  >;
+  const { bucket, key, path, contentType, multipart, partSize, batchSize, credentials, cloudStorageType, ttl } =
+    req.body as z.infer<typeof uploadSchema>;
   try {
+    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
     const filePath = `${fsPath}/${path}`;
     if (multipart) {
       await storage.uploadMultipartObject(
@@ -188,6 +201,7 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
     partSize,
     batchSize,
     credentials,
+    cloudStorageType,
     async,
     callbackId = cuid2.createId(),
     callbackUrl = "",
@@ -199,6 +213,7 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
       res.status(200).json({ callbackId });
     }
 
+    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
     const filePath = `${fsPath}/${path}`;
     if (multipart) {
       await storage.uploadMultipartObject(

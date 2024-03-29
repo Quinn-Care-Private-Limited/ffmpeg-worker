@@ -12,7 +12,10 @@ import {
 import fs from "fs";
 import { CloudStorageConnector } from "./base";
 import { IAWSCredentials } from "types";
-
+import { getChunks, parseAbrMasterFile, runcmd } from "utils/app";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+const fsPath = process.env.FS_PATH || ".";
+const ffmpegPath = process.env.FFMPEG_PATH || "";
 export class S3Connector implements CloudStorageConnector {
   async downloadObject(
     payload: { bucketName: string; objectKey: string; filePath: string },
@@ -264,5 +267,75 @@ export class S3Connector implements CloudStorageConnector {
       }
       throw new Error("Error in uploading object to S3");
     }
+  }
+  async downloadAbrObject(
+    payload: { bucketName: string; objectKey: string; filePath: string },
+    credentials?: IAWSCredentials,
+  ) {
+    /**
+     * Download ABR master file
+     */
+    const outputBaseFolder = payload.filePath.split("/").slice(0, -1).join("/");
+    const masterAbrFileOutputname = `${outputBaseFolder}/master.m3u8`;
+    await this.downloadObject(
+      {
+        ...payload,
+        filePath: masterAbrFileOutputname, // store the ABR master file as .m3u8
+      },
+      credentials,
+    );
+
+    // Extract all streams from ABR master file ordered by bandwidth (highest to lowest)
+    const streams = parseAbrMasterFile(fs.readFileSync(masterAbrFileOutputname, "utf-8"));
+    /**
+     * Download the highest bandwidth stream
+     */
+    const highestBandwidthStream = streams[0];
+
+    // Get the base key of the highest bandwidth stream
+    const baseKey = payload.objectKey.split("/").slice(0, -1).join("/");
+    // Get the highest bandwidth stream key
+    const highestBandwidthStreamKey = `${baseKey}/${highestBandwidthStream.url}`;
+    await this.downloadObject(
+      {
+        ...payload,
+        objectKey: highestBandwidthStreamKey,
+        filePath: `${outputBaseFolder}/highestBandwidthStream.m3u8`,
+      },
+      credentials,
+    );
+    const chunks = getChunks(fs.readFileSync(`${outputBaseFolder}/highestBandwidthStream.m3u8`, "utf-8"));
+    const chunksWithFullUrl = chunks.map((chunk) => {
+      const chunkName = chunk.url.split("/").slice(-1)[0];
+      return {
+        ...chunk,
+        key: `${baseKey}/main/chunks/${chunkName}`,
+        filePath: `${outputBaseFolder}/${chunkName}`,
+      };
+    });
+    const promises = chunksWithFullUrl.map((chunk) => {
+      return this.downloadObject(
+        {
+          ...payload,
+          objectKey: chunk.key,
+          filePath: chunk.filePath,
+        },
+        credentials,
+      );
+    });
+    await Promise.all(promises);
+    const ffmpegCmd = `${ffmpegPath}ffmpeg -i "concat:${chunksWithFullUrl
+      .map((chunk) => chunk.filePath)
+      .join("|")}" -c copy ${outputBaseFolder}/output.mp4`;
+    await runcmd(ffmpegCmd);
+  }
+  async generateV4ReadSignedUrl(bucketName: string, fileName: string, credentials?: IAWSCredentials) {
+    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: fileName,
+    });
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 30 * 60 }); // expires in seconds
+    return url;
   }
 }

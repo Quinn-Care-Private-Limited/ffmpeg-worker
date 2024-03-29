@@ -39,6 +39,11 @@ const copySchema = z.object({
   output: z.string(),
 });
 
+const downloadSchema = z.object({
+  url: z.string(),
+  output: z.string(),
+});
+
 filesRoutes.post(`/path`, async (req: Request, res: Response) => {
   try {
     res.status(200).json({ path: fsPath });
@@ -140,7 +145,7 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
           const [num, den] = value.split("/");
           data.framerate = Math.round(+num / +den);
         } else if (key === "size") {
-          data.size = Math.floor(+value / 1000);
+          data.size = Math.floor(+value / 1024);
         } else {
           data[key] = +value;
         }
@@ -163,6 +168,22 @@ filesRoutes.post(`/copy`, validateRequest(copySchema), async (req: Request, res:
       await fs.promises.mkdir(dirPath, { recursive: true });
     }
     await fs.promises.copyFile(`${fsPath}/${input}`, `${fsPath}/${output}`);
+    res.status(200).json({});
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
+filesRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Request, res: Response) => {
+  try {
+    const { url, output } = req.body as z.infer<typeof downloadSchema>;
+    const dirPath = `${fsPath}/${output.split("/").slice(0, -1).join("/")}`;
+
+    const isExists = await fs.promises.stat(dirPath).catch(() => false);
+    if (!isExists) {
+      await fs.promises.mkdir(dirPath, { recursive: true });
+    }
+    await runcmd(`wget -O ${fsPath}/${output} ${url}`);
     res.status(200).json({});
   } catch (error) {
     res.status(400).send(error.message);
