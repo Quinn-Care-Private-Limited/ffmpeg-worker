@@ -396,7 +396,7 @@ export class FFProcess {
     return this;
   }
 
-  mux(vstream_out: string | null = "vout", astream_out: string | null = "aout") {
+  mux(vstream_out?: string | null, astream_out?: string | null) {
     this.process.chainCmds.push(`-filter_complex "${this.process.filterGraphs.join(";")}"`);
     this.process.filterGraphs = [];
     if (vstream_out) this.process.chainCmds.push(`-map "[${vstream_out}]"`);

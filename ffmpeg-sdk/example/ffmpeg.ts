@@ -118,25 +118,13 @@ async function main() {
     .process()
     .input([original])
     .filterGraph(
-      ffmpeg
-        .process()
-        .streamIn("0:v", "0:a")
-        .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
-        .trim(0, 5)
-        .atrim(0, 5)
-        .streamOut("v0", "a0"),
+      ffmpeg.process().streamIn("0:v").crop({ x: 0, y: 0, width: "iw", height: "ih/2" }).trim(0, 5).streamOut("v0"),
     )
     .filterGraph(
-      ffmpeg
-        .process()
-        .streamIn("0:v", "0:a")
-        .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
-        .trim(3, 8)
-        .atrim(3, 8)
-        .streamOut("v1", "a1"),
+      ffmpeg.process().streamIn("0:v").crop({ x: 0, y: 0, width: "iw", height: "ih/2" }).trim(3, 8).streamOut("v1"),
     )
-    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"], ["a0", "a1"]).vstack(2).amerge(2).streamOut("sv1", "sa1"))
-    .filterGraph(ffmpeg.process().streamIn(["sv1", "sa1", "0:v", "0:a"]).concat(2).streamOut(["vout", "aout"]));
+    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"]).vstack(2).streamOut(["vout"]))
+    .filterGraph(ffmpeg.process().streamIn(["vout", "v1"]).concat(2).streamOut(["vout"]));
 
   await ffmpeg
     .process()
@@ -146,35 +134,35 @@ async function main() {
     .videoCodec("libx264")
     .crf(20)
     .filterGraph(ffmpeg.process().streamIn("vout").resolution(1080).streamOut("vout"))
-    .mux("vout", "aout")
+    .mux("vout")
     .output(outputFile)
     .run();
 
-  const logPath = outputFile.replace(".mp4", "");
-  await ffmpeg
-    .process()
-    .runProcesses([
-      ffmpeg
-        .process()
-        .init(process)
-        .videoCodec("libx264")
-        .audioBitrate("128k")
-        .videoBitrate("2000k")
-        .preset("slow")
-        .pass(1, logPath)
-        .format("mp4")
-        .output("/dev/null"),
-      ffmpeg
-        .process()
-        .init(process)
-        .audioCodec("aac")
-        .audioBitrate("128k")
-        .videoCodec("libx264")
-        .videoBitrate("2000k")
-        .preset("slow")
-        .pass(2, logPath)
-        .output(outputFile),
-    ]);
+  // const logPath = outputFile.replace(".mp4", "");
+  // await ffmpeg
+  //   .process()
+  //   .runProcesses([
+  //     ffmpeg
+  //       .process()
+  //       .init(process)
+  //       .videoCodec("libx264")
+  //       .audioBitrate("128k")
+  //       .videoBitrate("2000k")
+  //       .preset("slow")
+  //       .pass(1, logPath)
+  //       .format("mp4")
+  //       .output("/dev/null"),
+  //     ffmpeg
+  //       .process()
+  //       .init(process)
+  //       .audioCodec("aac")
+  //       .audioBitrate("128k")
+  //       .videoCodec("libx264")
+  //       .videoBitrate("2000k")
+  //       .preset("slow")
+  //       .pass(2, logPath)
+  //       .output(outputFile),
+  //   ]);
 
   // await ffmpeg
   //   .process()
