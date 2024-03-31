@@ -241,16 +241,29 @@ export class FFProcess {
     return this;
   }
 
-  scale(resolution?: { width?: number; height?: number }, noUpscale?: boolean) {
+  scale(resolution?: { width?: number | string; height?: number | string }, noUpscale?: boolean) {
     if (!resolution) return this;
     if (!resolution.width && !resolution.height) return this;
-    const width = resolution.width ? Math.floor(resolution.width / 2) * 2 : -2;
-    const height = resolution.height ? Math.floor(resolution.height / 2) * 2 : -2;
+    const width = resolution.width
+      ? typeof resolution.width === "number"
+        ? Math.floor(resolution.width / 2) * 2
+        : resolution.width
+      : -2;
+    const height = resolution.height
+      ? typeof resolution.height === "number"
+        ? Math.floor(resolution.height / 2) * 2
+        : resolution.height
+      : -2;
     if (noUpscale) {
       this.process.videoFilterCmds.push(`scale='min(${width},iw)':'min(${height},ih)'`);
     } else {
       this.process.videoFilterCmds.push(`scale=${width}:${height}`);
     }
+    return this;
+  }
+
+  vcopy() {
+    this.process.videoFilterCmds.push(`copy`);
     return this;
   }
 
