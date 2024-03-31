@@ -304,12 +304,8 @@ export class FFProcess {
     return this;
   }
 
-  concat(count: number, videoOnly?: boolean) {
-    if (videoOnly) {
-      this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=0`);
-    } else {
-      this.process.videoFilterCmds.push(`concat=${count}:v=1:a=1`);
-    }
+  concat(count: number) {
+    this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=0`);
     return this;
   }
 
@@ -327,6 +323,11 @@ export class FFProcess {
 
   amerge(count?: number) {
     this.process.audioFilterCmds.push(`amerge=inputs=${count}`);
+    return this;
+  }
+
+  aconcat(count: number) {
+    this.process.audioFilterCmds.push(`concat=n=${count}:v=0:a=1`);
     return this;
   }
 

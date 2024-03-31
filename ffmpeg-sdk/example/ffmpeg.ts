@@ -118,23 +118,49 @@ async function main() {
     .process()
     .input([original])
     .filterGraph(
-      ffmpeg.process().streamIn("0:v").crop({ x: 0, y: 0, width: "iw", height: "ih/2" }).trim(0, 5).streamOut("v0"),
+      ffmpeg
+        .process()
+        .streamIn("0:v", "0:a")
+        .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
+        .trim(0, 5)
+        .atrim(0, 5)
+        .streamOut("v0", "a0"),
     )
     .filterGraph(
-      ffmpeg.process().streamIn("0:v").crop({ x: 0, y: 0, width: "iw", height: "ih/2" }).trim(3, 8).streamOut("v1"),
+      ffmpeg
+        .process()
+        .streamIn("0:v", "0:a")
+        .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
+        .trim(3, 8)
+        .atrim(3, 8)
+        .streamOut("v1", "a1"),
     )
-    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"]).vstack(2).streamOut(["vout"]))
-    .filterGraph(ffmpeg.process().streamIn(["vout", "v1"]).concat(2).streamOut(["vout"]));
+    .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(3, 8).atrim(3, 8).streamOut("v2", "a2"))
+    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"], ["a0", "a1"]).vstack(2).amerge(2).streamOut("sv1", "sa1"))
+    .filterGraph(
+      ffmpeg.process().streamIn(["sv1", "v2"], ["sa1", "a2"]).concat(2).aconcat(2).streamOut("vout", "aout"),
+    );
+
+  // await ffmpeg
+  //   .process()
+  //   .init(process)
+  //   .audioCodec("aac")
+  //   .audioBitrate("128k")
+  //   .videoCodec("libx264")
+  //   .crf(20)
+  //   .filterGraph(ffmpeg.process().streamIn("vout").resolution(1080).streamOut("vout"))
+  //   .mux("vout", "aout")
+  //   .output(outputFile)
+  //   .run();
 
   await ffmpeg
     .process()
     .init(process)
+    .mux("vout", "aout")
     .audioCodec("aac")
     .audioBitrate("128k")
     .videoCodec("libx264")
-    .crf(20)
-    .filterGraph(ffmpeg.process().streamIn("vout").resolution(1080).streamOut("vout"))
-    .mux("vout")
+    .videoBitrate("2000k")
     .output(outputFile)
     .run();
 
@@ -145,21 +171,21 @@ async function main() {
   //     ffmpeg
   //       .process()
   //       .init(process)
+  //       .mux("vout", "aout")
   //       .videoCodec("libx264")
   //       .audioBitrate("128k")
   //       .videoBitrate("2000k")
-  //       .preset("slow")
   //       .pass(1, logPath)
   //       .format("mp4")
   //       .output("/dev/null"),
   //     ffmpeg
   //       .process()
   //       .init(process)
+  //       .mux("vout", "aout")
   //       .audioCodec("aac")
   //       .audioBitrate("128k")
   //       .videoCodec("libx264")
   //       .videoBitrate("2000k")
-  //       .preset("slow")
   //       .pass(2, logPath)
   //       .output(outputFile),
   //   ]);
