@@ -111,35 +111,15 @@ async function main() {
   //   .output("output/asset1/original_hstack.mp4")
   //   .run();
 
-  const original = "source/asset1/original.mp4";
-  const outputFile = "output/asset1/original_trim.mp4";
+  const original = "output/asset1/original.mp4";
+  const outputFile = "output/asset1/output.mp4";
 
   const process = ffmpeg
     .process()
     .input([original])
-    .filterGraph(
-      ffmpeg
-        .process()
-        .streamIn("0:v", "0:a")
-        .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
-        .trim(0, 5)
-        .atrim(0, 5)
-        .streamOut("v0", "a0"),
-    )
-    .filterGraph(
-      ffmpeg
-        .process()
-        .streamIn("0:v", "0:a")
-        .crop({ x: 0, y: 0, width: "iw", height: "ih/2" })
-        .trim(3, 8)
-        .atrim(3, 8)
-        .streamOut("v1", "a1"),
-    )
-    .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(3, 8).atrim(3, 8).streamOut("v2", "a2"))
-    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"], ["a0", "a1"]).vstack(2).amerge(2).streamOut("sv1", "sa1"))
-    .filterGraph(
-      ffmpeg.process().streamIn(["sv1", "v2"], ["sa1", "a2"]).concat(2).aconcat(2).streamOut("vout", "aout"),
-    );
+    .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(0, 5).atrim(0, 5).streamOut("v0", "a0"))
+    .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(3, 8).atrim(3, 8).streamOut("v1", "a1"))
+    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"], ["a0", "a1"]).hstack(2).amerge(2).streamOut("vout", "aout"));
 
   // await ffmpeg
   //   .process()
@@ -156,6 +136,9 @@ async function main() {
   await ffmpeg
     .process()
     .init(process)
+    .filterGraph(
+      ffmpeg.process().streamIn("vout").scale({ width: 1920, height: 1080, contain: true }).streamOut("vout"),
+    )
     .mux()
     .audioCodec("aac")
     .audioBitrate("128k")

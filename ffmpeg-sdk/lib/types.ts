@@ -64,6 +64,12 @@ export interface IFfProcess {
   audioFilterCmds: string[];
   filterGraphs: string[];
   output: string;
+  vstream_in?: string | string[];
+  vstream_out?: string | string[];
+  astream_in?: string | string[];
+  astream_out?: string | string[];
+  last_vstream_in?: string;
+  last_astream_in?: string;
 }
 
 export type ResponseCallback = (payload: IResponsePayload) => void;
