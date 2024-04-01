@@ -48,6 +48,13 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@quinninc/lamar@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@quinninc/lamar/-/lamar-0.0.2.tgz#22426e97bf71b9bcbe88670a4d515ad9c10933ca"
+  integrity sha512-LP0tJOzsf/tF5RmzjSTZ1qVOyuO23aFFAVz2OrDgTNu/I0xGkCs/XsPOkufoY89VqJhaU8tG72yeZlTNM60PCA==
+  dependencies:
+    axios "^1.6.7"
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.9.tgz#df4907fc07a886922637b15e02d4cebc4c0021b2"

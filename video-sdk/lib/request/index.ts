@@ -1,8 +1,8 @@
 import axios, { AxiosInstance } from "axios";
-interface XelpRequestPost {
+interface LamarRequestPost {
   data: Record<string, any>;
 }
-export class XelpRequest {
+export class LamarRequest {
   private axiosInstance: AxiosInstance;
   constructor({ apiKey }: { apiKey: string }) {
     if (!apiKey) {
@@ -17,8 +17,8 @@ export class XelpRequest {
     });
   }
 
-  post({ data }: XelpRequestPost) {
-    if (process.env.XELP_TESTING_MODE) {
+  post({ data }: LamarRequestPost) {
+    if (process.env.LAMAR_TESTING_MODE) {
       return Promise.resolve({ data });
     }
     // return this.axiosInstance.post("https://api.quinn.live/api/jobs", data, {});

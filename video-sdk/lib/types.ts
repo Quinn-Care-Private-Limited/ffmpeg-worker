@@ -3,19 +3,29 @@ import { VideoClassType } from "./video";
 export type IVideo = {
   id: string;
   type: "source" | "intermediate";
+  sequence?: number;
+};
+export type LamarInput = {
+  bucket: string;
+  key: string;
 };
 
-export type VideoOperationTypes = "trim" | "crop" | "concat" | "blur" | "sharp" | "scale" | "splitscreen";
+export interface LamarVideoInput {
+  id: string;
+  type: "source" | "intermediate";
+  sequence?: number;
+}
+export type VideoOperationTypes = "trim" | "crop" | "concat" | "blur" | "sharp" | "scale" | "splitscreen" | "copy";
 
-type Trim = { type: "trim"; start: number; end: number };
-type Crop = { x: number; y: number; width: number; height: number; type: "crop" };
-type Blur = { radius: number; type: "blur" };
-type Sharp = { sigma: number; type: "sharp" };
-type Scale = { width: number; height: number; type: "scale" };
 type SplitScreen = { type: "splitscreen" };
 type Concat = { type: "concat" };
 
-export type VideoOperation = {} & (Trim | Crop | Blur | Sharp | Scale);
+export type VideoOperation = {
+  out: string[];
+  in: string[];
+  params: Record<string, any>;
+  type: VideoOperationTypes;
+};
 
 export interface Operation {
   name: string;
