@@ -39,21 +39,25 @@ export class Lamar {
     this._videos.push({ type: "group", videos, operationType: "splitscreen", id, referenceVideo: video });
     return video;
   }
+
   async process(): Promise<any> {
     // Get all the inputs
     const inputs = this._getInputs();
     // Get all the operations in sequence of execution
     const filters = this._getOperations();
     const json = { inputs, filters };
+    this._videos = [];
     await this._xelpRequest.post({ data: json });
     return json;
   }
+
   private _getInputs(): Input[] {
     const singleVideos = this._videos.filter((video) => video.type == "video") as SingleVideo[];
     return singleVideos.map((video) => {
       return video.video._getSource();
     });
   }
+
   private _getOperations() {
     const inputs = this._getInputs();
     const filters: any = [];

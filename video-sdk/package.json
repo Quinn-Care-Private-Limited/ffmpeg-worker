@@ -1,6 +1,6 @@
 {
   "name": "@quinninc/lamar",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
@@ -16,7 +16,7 @@
     "tsconfig.json"
   ],
   "dependencies": {
-    "@quinninc/lamar": "^0.0.2",
+    "@quinninc/lamar": "0.0.3",
     "axios": "^1.6.7"
   },
   "devDependencies": {
