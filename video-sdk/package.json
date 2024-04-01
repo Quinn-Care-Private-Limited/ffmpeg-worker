@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "deploy": "npm run build && npm version patch && npm publish --access public",
-    "example": "ts-node examples/index.ts"
+    "test": "ts-node examples/index.ts"
   },
   "author": "Gulam Hussain",
   "license": "ISC",

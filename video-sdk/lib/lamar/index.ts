@@ -19,14 +19,14 @@ export class Lamar {
   }
   private generateRandomId() {
     // generate 9 character random alphanumeric id
-    return Math.random().toString(36).substr(2, 9);
+    return Math.random().toString(36).substr(2, 4);
   }
   concat(...videos: Video[]) {
     const id = this.generateRandomId();
     /**
      * Create a reference video for the group operation
      */
-    const video = new Video({ id, type: "intermediate", bucket: "", sequence: this._videos.length, key: "" });
+    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
     this._videos.push({ type: "group", videos, operationType: "concat", id, referenceVideo: video });
     return video;
   }
@@ -35,7 +35,7 @@ export class Lamar {
     /**
      * Create a reference video for the group operation
      */
-    const video = new Video({ id, type: "intermediate", bucket: "", sequence: this._videos.length, key: "" });
+    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
     this._videos.push({ type: "group", videos, operationType: "splitscreen", id, referenceVideo: video });
     return video;
   }
@@ -44,7 +44,7 @@ export class Lamar {
     // Get all the inputs
     const inputs = this._getInputs();
     // Get all the operations in sequence of execution
-    const filters = this._getOperations();
+    const filters = this._getOperations().flat();
     const json = { inputs, filters };
     this._videos = [];
     await this._xelpRequest.post({ data: json });
@@ -74,31 +74,40 @@ export class Lamar {
   }
 
   private _getSingleVideoOperation(video: VideoClassType, inputs: Input[]) {
-    const filters = video._getOperations();
+    const filters = video._getOperations().flat();
+    if (filters.length == 0) {
+      video.copy();
+      return video._getOperations().flat();
+    }
     return filters;
   }
   private _getMultiVideoOperation(video: GroupVideo, inputs: Input[]) {
     const { videos, referenceVideo, id, operationType } = video;
-    const operations = videos
+    const outputs = videos
       .map((video) => {
-        const operations = video._getOperations();
-        if (operations.length == 0) {
+        const outputs = video._getOutputIdentifier();
+        if (outputs.length == 0) {
           /**
            * If the video has no operations, then we need to copy the video
            */
-          video.copy();
-          return video._getOperations();
+          return video._getOutputIdentifier();
         }
-        return operations;
+        return outputs;
       })
       .flat();
+    const output = referenceVideo._getSource().id;
+    const singleVideoOperation = referenceVideo._getOperations().flat();
+    if (singleVideoOperation && singleVideoOperation.length) {
+      singleVideoOperation[0].in = [output];
+    }
     return [
       {
-        out: [referenceVideo._getSource().id],
+        out: [output],
         params: {},
-        in: operations.map((operation) => operation.out[0]),
+        in: outputs,
         type: operationType,
       },
+      ...singleVideoOperation,
     ];
   }
 }

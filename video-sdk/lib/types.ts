@@ -6,8 +6,7 @@ export type IVideo = {
   sequence?: number;
 };
 export type LamarInput = {
-  bucket: string;
-  key: string;
+  assetId: string;
 };
 
 export interface LamarVideoInput {
@@ -53,3 +52,8 @@ export type GroupVideo = {
 };
 export type SingleVideo = { type: "video"; video: VideoClassType };
 export type XelpVidoes = {} & (GroupVideo | SingleVideo);
+
+export type LamarProcess = {
+  output: "mp4" | "m3u8";
+  resolution: string;
+};
