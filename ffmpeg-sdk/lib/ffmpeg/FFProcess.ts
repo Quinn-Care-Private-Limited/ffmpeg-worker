@@ -403,12 +403,14 @@ export class FFProcess {
     }
 
     if (ffmpeg.process.videoFilterCmds.length && ffmpeg.vstream_in && ffmpeg.vstream_out) {
+      if (ffmpeg.vstream_in === "?" && this.last_vstream_in) ffmpeg.vstream_in = this.last_vstream_in;
       this.muxFilterGraph(`${ffmpeg.process.videoFilterCmds.join(",")}`, ffmpeg.vstream_in, ffmpeg.vstream_out);
-      if (ffmpeg.vstream_out) this.last_vstream_in = ffmpeg.vstream_out;
+      this.last_vstream_in = ffmpeg.vstream_out;
     }
     if (ffmpeg.process.audioFilterCmds.length && ffmpeg.astream_in && ffmpeg.astream_out) {
+      if (ffmpeg.astream_in === "?" && this.last_astream_in) ffmpeg.astream_in = this.last_astream_in;
       this.muxFilterGraph(`${ffmpeg.process.audioFilterCmds.join(",")}`, ffmpeg.astream_in, ffmpeg.astream_out);
-      if (ffmpeg.astream_out) this.last_astream_in = ffmpeg.astream_out;
+      this.last_astream_in = ffmpeg.astream_out;
     }
     return this;
   }
