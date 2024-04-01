@@ -156,7 +156,7 @@ async function main() {
   await ffmpeg
     .process()
     .init(process)
-    .mux("vout", "aout")
+    .mux()
     .audioCodec("aac")
     .audioBitrate("128k")
     .videoCodec("libx264")

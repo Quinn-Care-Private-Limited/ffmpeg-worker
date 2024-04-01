@@ -12,11 +12,14 @@ export class FFProcess {
     output: "",
   };
 
-  public vstream_in?: string | string[];
-  public vstream_out?: string | string[];
+  private vstream_in?: string | string[];
+  private vstream_out?: string | string[];
 
-  public astream_in?: string | string[];
-  public astream_out?: string | string[];
+  private astream_in?: string | string[];
+  private astream_out?: string | string[];
+
+  private last_vstream_in?: string | string[];
+  private last_astream_in?: string | string[];
 
   constructor(private credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
     this.axios = getAxiosInstance(credentials, responseCallback);
@@ -399,18 +402,22 @@ export class FFProcess {
       ffmpeg.process.chainCmds = ffmpeg.process.chainCmds.filter((cmd) => !cmd.startsWith("-i"));
     }
 
-    if (ffmpeg.process.videoFilterCmds.length && ffmpeg.vstream_in && ffmpeg.vstream_out)
+    if (ffmpeg.process.videoFilterCmds.length && ffmpeg.vstream_in && ffmpeg.vstream_out) {
       this.muxFilterGraph(`${ffmpeg.process.videoFilterCmds.join(",")}`, ffmpeg.vstream_in, ffmpeg.vstream_out);
-    if (ffmpeg.process.audioFilterCmds.length && ffmpeg.astream_in && ffmpeg.astream_out)
+      if (ffmpeg.vstream_out) this.last_vstream_in = ffmpeg.vstream_out;
+    }
+    if (ffmpeg.process.audioFilterCmds.length && ffmpeg.astream_in && ffmpeg.astream_out) {
       this.muxFilterGraph(`${ffmpeg.process.audioFilterCmds.join(",")}`, ffmpeg.astream_in, ffmpeg.astream_out);
+      if (ffmpeg.astream_out) this.last_astream_in = ffmpeg.astream_out;
+    }
     return this;
   }
 
-  mux(vstream_out?: string | null, astream_out?: string | null) {
+  mux() {
     this.process.chainCmds.push(`-filter_complex "${this.process.filterGraphs.join(";")}"`);
     this.process.filterGraphs = [];
-    if (vstream_out) this.process.chainCmds.push(`-map "[${vstream_out}]"`);
-    if (astream_out) this.process.chainCmds.push(`-map "[${astream_out}]"`);
+    if (this.last_vstream_in) this.process.chainCmds.push(`-map "[${this.last_vstream_in}]"`);
+    if (this.last_astream_in) this.process.chainCmds.push(`-map "[${this.last_astream_in}]"`);
     return this;
   }
 
