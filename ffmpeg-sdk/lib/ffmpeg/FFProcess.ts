@@ -4,7 +4,7 @@ import { getAxiosInstance, request, requestWithResponseAbort } from "../request"
 
 export class FFProcess {
   private axios: AxiosInstance;
-  public process: IFfProcess = {
+  private process: IFfProcess = {
     chainCmds: [],
     videoFilterCmds: [],
     audioFilterCmds: [],
@@ -33,6 +33,15 @@ export class FFProcess {
     this.process.filterGraphs.push(...processCopy.filterGraphs);
     if (processCopy.output) this.process.output = processCopy.output;
 
+    return this;
+  }
+
+  get() {
+    return this.process;
+  }
+
+  log() {
+    console.log(this.process);
     return this;
   }
 
