@@ -1,5 +1,5 @@
 import { LamarRequest } from "../request";
-import { GroupVideo, LamarInput, SingleVideo, XelpVidoes } from "../types";
+import { Filter, GroupVideo, LamarInput, LamarProcess, SingleVideo, XelpVidoes } from "../types";
 import { VideoClassType, Video } from "../video";
 type Input = { id: string };
 export class Lamar {
@@ -40,11 +40,11 @@ export class Lamar {
     return video;
   }
 
-  async process(): Promise<any> {
+  async process(payload: LamarProcess): Promise<any> {
     // Get all the inputs
     const inputs = this._getInputs();
     // Get all the operations in sequence of execution
-    const filters = this._getOperations().flat();
+    const filters: Filter[] = this._getOperations().flat();
     const json = { inputs, filters };
     this._videos = [];
     await this._xelpRequest.post({ data: json });

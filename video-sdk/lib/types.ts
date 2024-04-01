@@ -55,5 +55,13 @@ export type XelpVidoes = {} & (GroupVideo | SingleVideo);
 
 export type LamarProcess = {
   output: "mp4" | "m3u8";
-  resolution: string;
+  height?: number;
+  width?: number;
+};
+
+export type Filter = {
+  type: VideoOperationTypes;
+  params: Record<string, any>;
+  out: string[];
+  in: string[];
 };
