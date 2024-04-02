@@ -1,7 +1,6 @@
-import axios, { AxiosInstance } from "axios";
-interface LamarRequestPost {
-  data: Record<string, any>;
-}
+import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+import { LamarUtils } from "../util";
+
 export class LamarRequest {
   private axiosInstance: AxiosInstance;
   constructor({ apiKey }: { apiKey: string }) {
@@ -9,7 +8,7 @@ export class LamarRequest {
       throw new Error("API Key is required");
     }
     this.axiosInstance = axios.create({
-      baseURL: "https://api.quinn.live/api/jobs",
+      baseURL: "https://api.quinn.live/api",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
@@ -17,10 +16,11 @@ export class LamarRequest {
     });
   }
 
-  post({ data }: LamarRequestPost) {
+  request(payload: AxiosRequestConfig) {
     if (process.env.LAMAR_TESTING_MODE) {
-      return Promise.resolve({ data });
+      return Promise.resolve(payload);
     }
-    // return this.axiosInstance.post("https://api.quinn.live/api/jobs", data, {});
+    return Promise.resolve(payload);
+    // return LamarUtils.retry(this.axiosInstance.request, [1000, 2000, 3000])(payload);
   }
 }

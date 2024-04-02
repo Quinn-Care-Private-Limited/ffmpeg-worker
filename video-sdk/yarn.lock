@@ -56,6 +56,14 @@
     "@quinninc/lamar" "^0.0.2"
     axios "^1.6.7"
 
+"@quinninc/lamar@0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@quinninc/lamar/-/lamar-0.0.5.tgz#e6436a5dc3c5d97338674254de56a5d8623e8136"
+  integrity sha512-CjLj9AUwq+wmEOGBNwyMSXfV43QUXNvHY2f8MigMuw7HsZnEUOy5p9K6mLAaxnjY9V0q22F1t8Gfr8OjwIbFAA==
+  dependencies:
+    "@quinninc/lamar" "0.0.3"
+    axios "^1.6.7"
+
 "@quinninc/lamar@^0.0.2":
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/@quinninc/lamar/-/lamar-0.0.2.tgz#22426e97bf71b9bcbe88670a4d515ad9c10933ca"

@@ -14,7 +14,16 @@ export interface LamarVideoInput {
   type: "source" | "intermediate";
   sequence?: number;
 }
-export type VideoOperationTypes = "trim" | "crop" | "concat" | "blur" | "sharp" | "scale" | "splitscreen" | "copy";
+export type VideoOperationTypes =
+  | "trim"
+  | "crop"
+  | "concat"
+  | "blur"
+  | "sharp"
+  | "scale"
+  | "vstack"
+  | "hstack"
+  | "copy";
 
 type SplitScreen = { type: "splitscreen" };
 type Concat = { type: "concat" };
@@ -46,7 +55,7 @@ export type CombinedOperation = {
 export type GroupVideo = {
   type: "group";
   videos: VideoClassType[];
-  operationType: "concat" | "splitscreen";
+  operationType: "concat" | "vstack" | "hstack";
   id: string;
   referenceVideo: VideoClassType;
 };

@@ -1,4 +1,5 @@
 import { IVideo, LamarInput, VideoOperation } from "../types";
+import { LamarUtils } from "../util";
 export class Video {
   private _operations: VideoOperation[] = [];
 
@@ -15,7 +16,7 @@ export class Video {
   //   this._operations.push({
   //     type: "blur",
   //     params: params,
-  //     out: [this.generateRandomId()],
+  //     out: [LamarUtils.generateRandomId(4)],
   //     in: [this.getInputIdentifier()],
   //   });
   //   return this;
@@ -24,7 +25,7 @@ export class Video {
   //   this._operations.push({
   //     type: "sharp",
   //     params,
-  //     out: [this.generateRandomId()],
+  //     out: [LamarUtils.generateRandomId(4)],
   //     in: [this.getInputIdentifier()],
   //   });
   //   return this;
@@ -47,7 +48,7 @@ export class Video {
     this._operations.push({
       type: "trim",
       params,
-      out: [this.generateRandomId()],
+      out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
     });
     return this;
@@ -57,7 +58,7 @@ export class Video {
     this._operations.push({
       type: "scale",
       params,
-      out: [this.generateRandomId()],
+      out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
     });
     return this;
@@ -65,7 +66,7 @@ export class Video {
   copy() {
     this._operations.push({
       type: "copy",
-      out: [this.generateRandomId()],
+      out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
       params: {},
     });
@@ -76,7 +77,7 @@ export class Video {
     this._operations.push({
       type: "crop",
       params,
-      out: [this.generateRandomId()],
+      out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
     });
     return this;

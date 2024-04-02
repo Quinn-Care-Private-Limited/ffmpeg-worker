@@ -1,28 +1,33 @@
 import { LamarRequest } from "../request";
+import { JobStatusCheck } from "../status-check";
 import { Filter, GroupVideo, LamarInput, LamarProcess, SingleVideo, XelpVidoes } from "../types";
+import { LamarUtils } from "../util";
 import { VideoClassType, Video } from "../video";
-type Input = { id: string };
-export class Lamar {
+type Input = { assetId: string };
+export class Lamar extends LamarRequest {
   private _videos: XelpVidoes[];
-  private _xelpRequest: LamarRequest;
+  private statusChecker: JobStatusCheck;
   constructor({ apiKey }: { apiKey: string }) {
+    super({ apiKey });
     if (!apiKey) {
       throw new Error("API Key is required");
     }
+    this.statusChecker = new JobStatusCheck({ apiKey });
     this._videos = [];
-    this._xelpRequest = new LamarRequest({ apiKey });
   }
   input(payload: LamarInput) {
-    const video = new Video({ ...payload, type: "source", sequence: this._videos.length, id: this.generateRandomId() });
+    const video = new Video({
+      ...payload,
+      type: "source",
+      sequence: this._videos.length,
+      id: LamarUtils.generateRandomId(4),
+    });
     this._videos.push({ type: "video", video });
     return video;
   }
-  private generateRandomId() {
-    // generate 9 character random alphanumeric id
-    return Math.random().toString(36).substr(2, 4);
-  }
+
   concat(...videos: Video[]) {
-    const id = this.generateRandomId();
+    const id = LamarUtils.generateRandomId(4);
     /**
      * Create a reference video for the group operation
      */
@@ -30,13 +35,23 @@ export class Lamar {
     this._videos.push({ type: "group", videos, operationType: "concat", id, referenceVideo: video });
     return video;
   }
-  splitscreen(...videos: Video[]) {
-    const id = this.generateRandomId();
+  vstack(...videos: Video[]) {
+    const id = LamarUtils.generateRandomId(4);
     /**
      * Create a reference video for the group operation
      */
     const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
-    this._videos.push({ type: "group", videos, operationType: "splitscreen", id, referenceVideo: video });
+    this._videos.push({ type: "group", videos, operationType: "vstack", id, referenceVideo: video });
+    return video;
+  }
+
+  hstack(...videos: Video[]) {
+    const id = LamarUtils.generateRandomId(4);
+    /**
+     * Create a reference video for the group operation
+     */
+    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
+    this._videos.push({ type: "group", videos, operationType: "hstack", id, referenceVideo: video });
     return video;
   }
 
@@ -45,16 +60,18 @@ export class Lamar {
     const inputs = this._getInputs();
     // Get all the operations in sequence of execution
     const filters: Filter[] = this._getOperations().flat();
-    const json = { inputs, filters };
+    const json = { inputs, filters, options: payload };
     this._videos = [];
-    await this._xelpRequest.post({ data: json });
-    return json;
+    return this.request({
+      data: json,
+      url: "/jobs",
+    });
   }
 
   private _getInputs(): Input[] {
     const singleVideos = this._videos.filter((video) => video.type == "video") as SingleVideo[];
     return singleVideos.map((video) => {
-      return video.video._getSource();
+      return { assetId: video.video._getSource().assetId };
     });
   }
 
@@ -109,5 +126,13 @@ export class Lamar {
       },
       ...singleVideoOperation,
     ];
+  }
+
+  subscribe(jobId: string, callback: (data: any) => void) {
+    return this.statusChecker.subscribe(jobId, callback);
+  }
+
+  unsubscribe(jobId: string) {
+    return this.statusChecker.unsubscribe(jobId);
   }
 }
