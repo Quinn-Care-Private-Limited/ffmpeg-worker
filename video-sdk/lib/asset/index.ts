@@ -57,12 +57,14 @@ export class Asset extends LamarRequest {
       },
     });
   }
-  async addTags({ id, tags }: { id: string; tags: string[] }) {
+  async addTags({ id, tagIds }: { id: string; tagIds: string[] }) {
     return this.request({
       method: "PUT",
       url: `/api/asset/update/${id}`,
       data: {
-        assetTags: tags.map((tag) => ({ tagId: tag })),
+        assetData: {
+          assetTags: tagIds.map((tagId) => ({ tagId })),
+        },
       },
     });
   }

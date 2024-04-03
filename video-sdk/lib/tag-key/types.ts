@@ -14,7 +14,7 @@ export type ListTagKey = {
   search?: string;
 };
 
-export type TagKey = {
+export type TagKeyType = {
   id: string;
   name: string;
   dataType: "STRING" | "NUMBER" | "BOOLEAN" | "DATE";
@@ -22,7 +22,7 @@ export type TagKey = {
 };
 
 export type TagKeyListResponse = {
-  data: TagKey[];
+  data: TagKeyType[];
   currentPage: number;
   pageSize: number;
   totalPages: number;

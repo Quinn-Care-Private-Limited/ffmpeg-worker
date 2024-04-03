@@ -1,6 +1,7 @@
 import { Asset } from "../asset";
 import { LamarRequest } from "../request";
 import { JobStatusCheck } from "../status-check";
+import Tag from "../tag";
 import TagKey from "../tag-key";
 import { Filter, GroupVideo, LamarInput, LamarProcess, SingleVideo, XelpVidoes } from "../types";
 import { LamarUtils } from "../util";
@@ -11,6 +12,7 @@ export class Lamar extends LamarRequest {
   private statusChecker: JobStatusCheck;
   public asset: Asset;
   public tagKey: TagKey;
+  public tag: Tag;
   constructor({ apiKey }: { apiKey: string }) {
     super({ apiKey });
     if (!apiKey) {
@@ -20,6 +22,7 @@ export class Lamar extends LamarRequest {
     this._videos = [];
     this.asset = new Asset({ apiKey });
     this.tagKey = new TagKey({ apiKey });
+    this.tag = new Tag({ apiKey });
   }
   input(payload: LamarInput) {
     const video = new Video({

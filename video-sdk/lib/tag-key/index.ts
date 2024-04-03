@@ -1,12 +1,12 @@
 import { LamarRequest } from "../request";
-import { CreateTagKey, ListTagKey, TagKeyListResponse, UpdateTagKey } from "./types";
+import { CreateTagKey, ListTagKey, TagKeyListResponse, TagKeyType, UpdateTagKey } from "./types";
 
 export default class TagKey extends LamarRequest {
   constructor({ apiKey }: { apiKey: string }) {
     super({ apiKey });
   }
 
-  async create(payload: CreateTagKey): Promise<TagKey> {
+  async create(payload: CreateTagKey): Promise<TagKeyType> {
     return this.request({
       method: "POST",
       url: "/api/tagKey/create",
