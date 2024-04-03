@@ -7,10 +7,6 @@ export class Video {
   constructor(payload: IVideo & LamarInput) {
     this._source = payload;
   }
-  private generateRandomId() {
-    // generate 9 character random alphanumeric id
-    return Math.random().toString(36).substr(2, 4);
-  }
 
   // blur(params: { radius: number }) {
   //   this._operations.push({
@@ -39,7 +35,7 @@ export class Video {
       return this._operations[this._operations.length - 1].out[0];
     }
     if (this._source.sequence !== undefined) {
-      return `v${this._source.sequence}`;
+      return `$${this._source.sequence}`;
     }
     // else return video id
     return this._source.id;
@@ -54,7 +50,7 @@ export class Video {
     return this;
   }
 
-  scale(params: { width: number | string; height: number | string }) {
+  scale(params: { width: number | string; height: number | string; contain?: boolean }) {
     this._operations.push({
       type: "scale",
       params,
@@ -76,6 +72,15 @@ export class Video {
   crop(params: { width: number; height: number; x: number; y: number }) {
     this._operations.push({
       type: "crop",
+      params,
+      out: [LamarUtils.generateRandomId(4)],
+      in: [this.getInputIdentifier()],
+    });
+    return this;
+  }
+  padding(params: { width: number; height: number; x: number; y: number }) {
+    this._operations.push({
+      type: "pad",
       params,
       out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
