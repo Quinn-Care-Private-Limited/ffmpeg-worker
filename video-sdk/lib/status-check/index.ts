@@ -1,17 +1,21 @@
+import { Asset } from "../asset";
 import { LamarRequest } from "../request";
 const INTERVAL = 15000;
-const MAX_TRACK_COUNT = 10;
+const MAX_TRACK_COUNT = 30;
+
 export class JobStatusCheck extends LamarRequest {
   private activeSubscriptions: Array<{
     jobId: string;
     startedAt: number;
     intervalId: NodeJS.Timeout;
   }> = [];
+  private asset: Asset;
   constructor({ apiKey }: { apiKey: string }) {
     super({ apiKey });
     if (!apiKey) {
       throw new Error("API Key is required");
     }
+    this.asset = new Asset({ apiKey });
   }
   subscribe(
     jobId: string,
@@ -28,23 +32,30 @@ export class JobStatusCheck extends LamarRequest {
     // check the status of the job every 10 seconds for next 15 minutes
     const intervalId = setInterval(async () => {
       const job = await this.getJobStatus(jobId);
+      if (!job) {
+        this.unsubscribe(jobId);
+        callback({ message: "JOB_NOT_FOUND", ok: false });
+        return;
+      }
       const subscription = this.activeSubscriptions.find((sub) => sub.jobId == jobId);
-      console.log(`track count`, trackCount);
       if (!subscription || trackCount > MAX_TRACK_COUNT) {
         this.unsubscribe(jobId);
-        callback({ message: "TIMEOUT", ok: false });
+        callback({ message: "TIMEOUT", ok: false, data: null });
         return;
       }
-      if (job.status === "completed") {
+      if (job.status == "PENDING") {
+        trackCount++;
+        return;
+      }
+      if (job.status == "READY") {
         this.unsubscribe(jobId);
-        callback(job);
-        return;
+        callback({ message: "JOB_READY", ok: true, data: job });
       }
-      if (job.status === "failed") {
+      if (job.status == "FAILED") {
         this.unsubscribe(jobId);
-        callback(job);
-        return;
+        callback({ message: "JOB_FAILED", ok: false, data: null });
       }
+
       trackCount++;
     }, INTERVAL);
     this.activeSubscriptions.push({ jobId, startedAt: Date.now(), intervalId });
@@ -53,8 +64,8 @@ export class JobStatusCheck extends LamarRequest {
   }
 
   async getJobStatus(jobId: string) {
-    const response = await this.request({ url: `/jobs/${jobId}`, data: { status: "PROCESSING" } });
-    return response.data;
+    const response = await this.asset.assetById({ id: jobId });
+    return response;
   }
   unsubscribe(jobId: string) {
     const subscription = this.activeSubscriptions.find((sub) => sub.jobId == jobId);

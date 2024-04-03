@@ -65,8 +65,17 @@ export type XelpVidoes = {} & (GroupVideo | SingleVideo);
 
 export type LamarProcess = {
   output: "mp4" | "m3u8";
-  height?: number;
-  width?: number;
+  name: string;
+  handle: string;
+  encoding?: {
+    crf?: number;
+    bitrate?: number;
+    vcodec?: string;
+    acodec?: string;
+    quality?: number;
+    muted?: boolean;
+    optimize?: boolean;
+  };
 };
 
 export type Filter = {

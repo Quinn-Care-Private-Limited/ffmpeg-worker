@@ -9,7 +9,7 @@ export default class TagKey extends LamarRequest {
   async create(payload: CreateTagKey): Promise<TagKeyType> {
     return this.request({
       method: "POST",
-      url: "/api/tagKey/create",
+      url: "/tagKey/create",
       data: {
         datatype: payload.dataType,
         name: payload.name,
@@ -19,21 +19,21 @@ export default class TagKey extends LamarRequest {
   async update(payload: UpdateTagKey): Promise<TagKey> {
     return this.request({
       method: "POST",
-      url: "/api/tagKey/update",
+      url: "/tagKey/update",
       data: payload,
     });
   }
   async list(filters?: ListTagKey): Promise<TagKeyListResponse> {
     return this.request({
       method: "GET",
-      url: "/api/tagKey/list",
+      url: "/tagKey/list",
       params: filters,
     });
   }
   async delete({ id }: { id: string }): Promise<null> {
     return this.request({
       method: "DELETE",
-      url: "/api/tagKey/delete",
+      url: "/tagKey/delete",
       data: {
         tagKeyId: id,
       },

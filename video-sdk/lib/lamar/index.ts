@@ -69,46 +69,55 @@ export class Lamar extends LamarRequest {
     const inputs = this._getInputs();
     // Get all the operations in sequence of execution
     const filters: Filter[] = this._getOperations().flat();
-
     const json = this.getFilters(filters, video, inputs);
-    console.log(
-      JSON.stringify(
-        {
-          ...json,
-          options: payload,
-        },
-        null,
-        2,
-      ),
-    );
 
-    // return this.request({
-    //   data: {
-    //     ...json,
-    //     options: payload,
-    //   },
-    //   url: "/jobs",
-    // });
+    return this.request({
+      data: {
+        ...json,
+        options: payload,
+      },
+      url: "/asset/process-asset",
+      method: "POST",
+    });
   }
 
-  private getFilters(filters: Filter[], video: Video, inputs: Input[]) {
+  private getFilters(filters: Filter[], video: Video, sourceInputs: Input[]) {
     const { id } = video._getSource();
     const videoFilters = filters.find((filter) => filter.out.includes(id));
     const finalFilters: Filter[] = [];
     if (!videoFilters) {
       const filters = video._getOperations();
-      return { inputs, filters };
+      const inputs = filters.map((item) => item.in);
+      const originalInputsIndexes = this._getSourceInputs(inputs);
+      if (!originalInputsIndexes.length) return;
+      return {
+        inputs: sourceInputs.filter((input, index) => originalInputsIndexes.includes(index)).flat(),
+        filters,
+      };
     }
     finalFilters.push(videoFilters);
+    const finalInputs: Input[] = [];
     for (let i = 0; i < videoFilters.in.length; i++) {
       const original = filters.find((filter) => filter.out.includes(videoFilters.in[i]));
       if (original) {
+        const inputs = this._getSourceInputs([original.in]);
+        if (inputs.length) {
+          const input = sourceInputs.filter((input, index) => inputs.includes(index));
+          finalInputs.push(...input);
+        }
         finalFilters.push(original);
       }
     }
-    return { inputs, filters: finalFilters };
+    return { inputs: finalInputs, filters: finalFilters };
   }
 
+  private _getSourceInputs(inputs: string[][]) {
+    const withDollar = inputs.filter((inputs) => {
+      // check if any input name starts with $
+      return inputs.some((input) => input.startsWith("$"));
+    });
+    return withDollar.flat().map((item) => +item.replace("$", ""));
+  }
   private _getInputs(): Input[] {
     const singleVideos = this._videos.filter((video) => video.type == "video") as SingleVideo[];
     return singleVideos.map((video) => {
@@ -143,7 +152,12 @@ export class Lamar extends LamarRequest {
     const { videos, referenceVideo, id, operationType } = video;
     const outputs = videos
       .map((video) => {
+        const source = video._getSource();
+        if (source.type == "intermediate") {
+          return [source.id];
+        }
         const outputs = video._getOutputIdentifier();
+
         if (outputs.length == 0) {
           /**
            * If the video has no operations, then we need to copy the video
