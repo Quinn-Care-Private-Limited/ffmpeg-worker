@@ -64,19 +64,49 @@ export class Lamar extends LamarRequest {
     return video;
   }
 
-  async process(payload: LamarProcess): Promise<any> {
+  async process(video: Video, payload: LamarProcess): Promise<any> {
     // Get all the inputs
     const inputs = this._getInputs();
     // Get all the operations in sequence of execution
     const filters: Filter[] = this._getOperations().flat();
-    const json = { inputs, filters, options: payload };
-    this._videos = [];
-    return json;
 
-    return this.request({
-      data: json,
-      url: "/jobs",
-    });
+    const json = this.getFilters(filters, video, inputs);
+    console.log(
+      JSON.stringify(
+        {
+          ...json,
+          options: payload,
+        },
+        null,
+        2,
+      ),
+    );
+
+    // return this.request({
+    //   data: {
+    //     ...json,
+    //     options: payload,
+    //   },
+    //   url: "/jobs",
+    // });
+  }
+
+  private getFilters(filters: Filter[], video: Video, inputs: Input[]) {
+    const { id } = video._getSource();
+    const videoFilters = filters.find((filter) => filter.out.includes(id));
+    const finalFilters: Filter[] = [];
+    if (!videoFilters) {
+      const filters = video._getOperations();
+      return { inputs, filters };
+    }
+    finalFilters.push(videoFilters);
+    for (let i = 0; i < videoFilters.in.length; i++) {
+      const original = filters.find((filter) => filter.out.includes(videoFilters.in[i]));
+      if (original) {
+        finalFilters.push(original);
+      }
+    }
+    return { inputs, filters: finalFilters };
   }
 
   private _getInputs(): Input[] {
