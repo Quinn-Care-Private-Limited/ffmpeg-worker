@@ -71,6 +71,8 @@ export class Lamar extends LamarRequest {
     const filters: Filter[] = this._getOperations().flat();
     const json = { inputs, filters, options: payload };
     this._videos = [];
+    return json;
+
     return this.request({
       data: json,
       url: "/jobs",

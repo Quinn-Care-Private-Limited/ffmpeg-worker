@@ -5,14 +5,11 @@ const lamar = new Lamar({ apiKey: "b8ff590052b699843e0f24fa1eabf8" });
 (async () => {
   // Example 2 - Scale and then trim a video
   try {
-    // const tags = await lamar.tag.list();
-    const tags = await lamar.tag.list();
-    await lamar.asset.addTags({
-      id: "cs4sfz28r5rplefthzd54j1de",
-      tagIds: ["cs4sfz28r5rplefthzd54j1de", "cs4sfz28r5rplefthzd54j1de"],
-    });
-    const assets = await lamar.asset.list();
-    console.log(assets);
+    const video1 = lamar.input({ assetId: "1" });
+    const video2 = lamar.input({ assetId: "2" });
+    const video3 = lamar.concat(video1, video2);
+    const data = await lamar.process({ output: "mp4" });
+    console.log(JSON.stringify(data, null, 2));
   } catch (err) {
     console.log(`err`, err);
   }
