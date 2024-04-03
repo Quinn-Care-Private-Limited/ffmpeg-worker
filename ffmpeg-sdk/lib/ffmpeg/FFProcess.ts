@@ -229,7 +229,7 @@ export class FFProcess {
     return this;
   }
 
-  setAspectRatio(aspectRatio?: string) {
+  cropAr(aspectRatio?: string) {
     if (!aspectRatio) return this;
     const ar = aspectRatio.replace(":", "/");
     this.process.videoFilterCmds.push(`pad='ceil(iw/2)*2:ceil(ih/2)*2'`);
@@ -251,17 +251,30 @@ export class FFProcess {
     return this;
   }
 
+  pad(padding?: { width: number | string; height: number | string; x: number | string; y: number | string }) {
+    if (!padding) return this;
+    this.process.videoFilterCmds.push(`pad=${padding.width}:${padding.height}:${padding.x}:${padding.y}`);
+    return this;
+  }
+
   scale(resolution?: { width?: number | string; height?: number | string; noUpscale?: boolean; contain?: boolean }) {
     if (!resolution) return this;
     if (!resolution.width && !resolution.height) return this;
 
     if (resolution.contain) {
-      if (typeof resolution.width === "number" && typeof resolution.height === "number") {
-        const scale = `'if(gt(iw,ih),min(${resolution.width},iw),-2)':'if(gt(iw,ih),-2,min(${resolution.height},ih))'`;
-        this.process.videoFilterCmds.push(`scale=${scale}`);
-      }
+      const w = resolution.width
+        ? typeof resolution.width === "number"
+          ? Math.floor(resolution.width / 2) * 2
+          : resolution.width
+        : "iw";
+      const h = resolution.height
+        ? typeof resolution.height === "number"
+          ? Math.floor(resolution.height / 2) * 2
+          : resolution.height
+        : "ih";
 
-      this.process.videoFilterCmds.push(`pad=${resolution.width}:${resolution.height}:(ow-iw)/2:(oh-ih)/2`);
+      this.process.videoFilterCmds.push(`scale='iw*min(${w}/iw,${h}/ih)':'ih*min(${w}/iw,${h}/ih)'`);
+      this.process.videoFilterCmds.push(`pad=${w}:${h}:(${w}-iw)/2:(${h}-ih)/2`);
     } else {
       const width = resolution.width
         ? typeof resolution.width === "number"
@@ -324,14 +337,24 @@ export class FFProcess {
   }
 
   concat(count: number) {
+    this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=1`);
+    return this;
+  }
+
+  vconcat(count: number) {
     this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=0`);
     return this;
   }
 
   //audio filter cmds
+  acopy() {
+    this.process.audioFilterCmds.push(`acopy`);
+    return this;
+  }
+
   atrim(start?: number, end?: number) {
     if (!start && !end) return this;
-    this.process.audioFilterCmds.push(`atrim=${start}:${end}`);
+    this.process.audioFilterCmds.push(`atrim=${start}:${end},asetpts=PTS-STARTPTS`);
     return this;
   }
 
@@ -435,14 +458,17 @@ export class FFProcess {
         this.process.last_astream_in = ffmpeg.process.astream_out[ffmpeg.process.astream_out.length - 1];
       else this.process.last_astream_in = ffmpeg.process.astream_out;
     }
+
     return this;
   }
 
-  mux() {
+  mux(vstream?: string | null, astream?: string | null) {
     this.process.chainCmds.push(`-filter_complex "${this.process.filterGraphs.join(";")}"`);
     this.process.filterGraphs = [];
-    if (this.process.last_vstream_in) this.process.chainCmds.push(`-map "[${this.process.last_vstream_in}]"`);
-    if (this.process.last_astream_in) this.process.chainCmds.push(`-map "[${this.process.last_astream_in}]"`);
+    if (vstream || this.process.last_vstream_in)
+      this.process.chainCmds.push(`-map "[${vstream || this.process.last_vstream_in}]"`);
+    if (astream || this.process.last_astream_in)
+      this.process.chainCmds.push(`-map "[${astream || this.process.last_astream_in}]"`);
     return this;
   }
 
