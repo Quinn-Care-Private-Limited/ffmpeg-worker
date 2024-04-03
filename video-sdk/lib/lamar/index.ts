@@ -1,3 +1,4 @@
+import { Asset } from "../asset";
 import { LamarRequest } from "../request";
 import { JobStatusCheck } from "../status-check";
 import { Filter, GroupVideo, LamarInput, LamarProcess, SingleVideo, XelpVidoes } from "../types";
@@ -7,6 +8,7 @@ type Input = { assetId: string };
 export class Lamar extends LamarRequest {
   private _videos: XelpVidoes[];
   private statusChecker: JobStatusCheck;
+  public asset: Asset;
   constructor({ apiKey }: { apiKey: string }) {
     super({ apiKey });
     if (!apiKey) {
@@ -14,6 +16,7 @@ export class Lamar extends LamarRequest {
     }
     this.statusChecker = new JobStatusCheck({ apiKey });
     this._videos = [];
+    this.asset = new Asset({ apiKey });
   }
   input(payload: LamarInput) {
     const video = new Video({
