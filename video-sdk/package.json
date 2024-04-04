@@ -4,7 +4,7 @@
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
-    "deploy": "npm run build && npm version patch && npm publish --access public",
+    "deploy": "npm run build && npm version prerelease && npm publish --access public",
     "test": "ts-node examples/index.ts"
   },
   "author": "Gulam Hussain",
@@ -16,7 +16,6 @@
     "tsconfig.json"
   ],
   "dependencies": {
-    "@quinninc/lamar": "0.0.5",
     "axios": "^1.6.7"
   },
   "devDependencies": {

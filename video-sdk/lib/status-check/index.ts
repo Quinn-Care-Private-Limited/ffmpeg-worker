@@ -17,15 +17,9 @@ export class JobStatusCheck extends LamarRequest {
     }
     this.asset = new Asset({ apiKey });
   }
-  subscribe(
-    jobId: string,
-    callback: (data: any) => void,
-  ): {
-    message: "ALREADY_SUBSCRIBED" | "SUBSCRIPTION_SUCCESS" | "SUBSCRIPTION_TIMEOUT";
-    ok: boolean;
-  } {
+  subscribe(jobId: string, callback: (data: any) => void): boolean {
     if (this.activeSubscriptions.find((sub) => sub.jobId === jobId)) {
-      return { message: "ALREADY_SUBSCRIBED", ok: false };
+      return true;
     }
     let trackCount = 0;
 
@@ -34,7 +28,7 @@ export class JobStatusCheck extends LamarRequest {
       const job = await this.getJobStatus(jobId);
       if (!job) {
         this.unsubscribe(jobId);
-        callback({ message: "JOB_NOT_FOUND", ok: false });
+        callback({ message: "NOT_FOUND", ok: false, data: null });
         return;
       }
       const subscription = this.activeSubscriptions.find((sub) => sub.jobId == jobId);
@@ -49,18 +43,18 @@ export class JobStatusCheck extends LamarRequest {
       }
       if (job.status == "READY") {
         this.unsubscribe(jobId);
-        callback({ message: "JOB_READY", ok: true, data: job });
+        callback({ message: "COMPLETED", ok: true, data: job });
       }
       if (job.status == "FAILED") {
         this.unsubscribe(jobId);
-        callback({ message: "JOB_FAILED", ok: false, data: null });
+        callback({ message: "FAILED", ok: false, data: null });
       }
 
       trackCount++;
     }, INTERVAL);
     this.activeSubscriptions.push({ jobId, startedAt: Date.now(), intervalId });
 
-    return { message: "SUBSCRIPTION_SUCCESS", ok: true };
+    return true;
   }
 
   async getJobStatus(jobId: string) {
