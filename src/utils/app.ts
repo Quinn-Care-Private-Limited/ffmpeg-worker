@@ -31,7 +31,11 @@ export async function runProcess(payload: { chainCmds?: string[]; output?: strin
     chainCmds.forEach((chainCmd) => {
       const [key, value] = chainCmd.split(" ");
       if (key === "-i" || key === "-passlogfile") {
-        cmd += ` ${key} ${fsPath}/${value}`;
+        if (value.startsWith("anullsrc") || value.startsWith("nullsrc")) {
+          cmd += ` ${key} ${value}`;
+        } else {
+          cmd += ` ${key} ${fsPath}/${value}`;
+        }
       } else {
         cmd += ` ${chainCmd}`;
       }
@@ -39,8 +43,12 @@ export async function runProcess(payload: { chainCmds?: string[]; output?: strin
   }
 
   if (output) {
-    await fs.promises.mkdir(`${fsPath}/${output.split("/").slice(0, -1).join("/")}`, { recursive: true });
-    cmd += ` ${fsPath}/${output}`;
+    if (output === "/dev/null") {
+      cmd += ` ${output}`;
+    } else {
+      await fs.promises.mkdir(`${fsPath}/${output.split("/").slice(0, -1).join("/")}`, { recursive: true });
+      cmd += ` ${fsPath}/${output}`;
+    }
   }
 
   return runcmd(cmd);
