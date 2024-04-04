@@ -6,7 +6,7 @@ import TagKey from "../tag-key";
 import { Filter, GroupVideo, LamarInput, LamarProcess, SingleVideo, XelpVidoes } from "../types";
 import { LamarUtils } from "../util";
 import { VideoClassType, Video } from "../video";
-type Input = { assetId: string };
+type Input = { id: string };
 export class Lamar extends LamarRequest {
   private _videos: XelpVidoes[];
   private statusChecker: JobStatusCheck;
@@ -40,7 +40,7 @@ export class Lamar extends LamarRequest {
     /**
      * Create a reference video for the group operation
      */
-    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
+    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, id: "" });
     this._videos.push({ type: "group", videos, operationType: "concat", id, referenceVideo: video });
     return video;
   }
@@ -49,7 +49,7 @@ export class Lamar extends LamarRequest {
     /**
      * Create a reference video for the group operation
      */
-    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
+    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, id: "" });
     this._videos.push({ type: "group", videos, operationType: "vstack", id, referenceVideo: video });
     return video;
   }
@@ -59,7 +59,7 @@ export class Lamar extends LamarRequest {
     /**
      * Create a reference video for the group operation
      */
-    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
+    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, id: "" });
     this._videos.push({ type: "group", videos, operationType: "hstack", id, referenceVideo: video });
     return video;
   }
@@ -70,7 +70,7 @@ export class Lamar extends LamarRequest {
     // Get all the operations in sequence of execution
     const filters: Filter[] = this._getOperations().flat();
     const json = this.getFilters(filters, video, inputs);
-
+    // console.log(JSON.stringify(json, null, 2));
     return this.request({
       data: {
         ...json,
@@ -121,7 +121,7 @@ export class Lamar extends LamarRequest {
   private _getInputs(): Input[] {
     const singleVideos = this._videos.filter((video) => video.type == "video") as SingleVideo[];
     return singleVideos.map((video) => {
-      return { assetId: video.video._getSource().assetId };
+      return { id: video.video._getSource().id };
     });
   }
 
