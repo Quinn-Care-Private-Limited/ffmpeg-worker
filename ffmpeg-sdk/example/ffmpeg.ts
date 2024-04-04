@@ -111,12 +111,28 @@ async function main() {
   //   .output("output/asset1/original_hstack.mp4")
   //   .run();
 
-  const original = "test/original.mp4";
+  const original_noaudio = "test/original1.mp4";
+  const original = "test/original_audio.mp4";
   const outputFile = "test/output.mp4";
+
+  // await ffmpeg
+  //   .process()
+  //   .format("lavfi")
+  //   .input("anullsrc=channel_layout=stereo:sample_rate=44100")
+  //   .input(original_noaudio)
+  //   .flag("shortest")
+  //   .videoCodec("copy")
+  //   .audioCodec("aac")
+  //   .output(original)
+  //   .run();
+
+  const data = await ffmpeg.probe().input(original).showstreams("a").verbose("error").run();
+  console.log(data);
+  return;
 
   const process = ffmpeg
     .process()
-    .input([original])
+    .input([original, original])
     // .filterGraph(
     //   ffmpeg
     //     .process()
@@ -135,7 +151,7 @@ async function main() {
     // )
     // .filterGraph(ffmpeg.process().streamIn(["v0", "v1"], ["a0", "a1"]).concat(2).streamOut("vout", "aout"));
     .filterGraph(
-      ffmpeg.process().streamIn(["0:v", "0:v"], ["0:a", "0:a"]).hstack(2).amerge(2).streamOut("vout", "aout"),
+      ffmpeg.process().streamIn(["0:v", "0:v"], ["1:a", "1:a"]).vstack(2).amerge(2).streamOut("vout", "aout"),
     )
     .filterGraph(
       ffmpeg.process().streamIn("vout").scale({ width: 1920, height: 1080, contain: true }).streamOut("vout"),
