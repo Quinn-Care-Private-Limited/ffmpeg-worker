@@ -6,14 +6,9 @@ export type IVideo = {
   sequence?: number;
 };
 export type LamarInput = {
-  assetId: string;
+  id: string;
 };
 
-export interface LamarVideoInput {
-  id: string;
-  type: "source" | "intermediate";
-  sequence?: number;
-}
 export type VideoOperationTypes =
   | "trim"
   | "crop"
