@@ -1,10 +1,10 @@
 {
   "name": "@quinninc/lamar",
-  "version": "0.0.5",
+  "version": "0.0.1-beta.1",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
-    "deploy": "npm run build && npm version prerelease && npm publish --access public",
+    "deploy": "npm run build && npm version prerelease && npm publish --tag beta --access public",
     "test": "ts-node examples/index.ts"
   },
   "author": "Gulam Hussain",
