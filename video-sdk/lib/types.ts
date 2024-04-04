@@ -6,7 +6,7 @@ export type IVideo = {
   sequence?: number;
 };
 export type LamarInput = {
-  id: string;
+  assetId: string;
 };
 
 export interface LamarVideoInput {
