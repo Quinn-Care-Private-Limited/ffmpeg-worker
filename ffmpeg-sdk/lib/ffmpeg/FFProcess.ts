@@ -90,6 +90,12 @@ export class FFProcess {
     return this;
   }
 
+  vsync(vsync?: boolean) {
+    if (!vsync) return this;
+    this.process.chainCmds.push(`-vsync vfr`);
+    return this;
+  }
+
   crf(crf?: number) {
     if (!crf && crf != 0) return this;
     this.process.chainCmds.push(`-crf ${crf}`);
@@ -225,7 +231,9 @@ export class FFProcess {
   crop(crop?: { x: number | string; y: number | string; width: number | string; height: number | string }) {
     if (!crop) return this;
     this.process.videoFilterCmds.push(`pad=ceil(iw/2)*2:ceil(ih/2)*2`);
-    this.process.videoFilterCmds.push(`crop=${crop.width}:${crop.height}:${crop.x}:${crop.y}`);
+    this.process.videoFilterCmds.push(
+      `crop=min(${crop.width},iw):min(${crop.height},ih):min(${crop.x},iw):min(${crop.y},ih)`,
+    );
     return this;
   }
 
