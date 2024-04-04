@@ -29,38 +29,38 @@ export class Lamar extends LamarRequest {
       ...payload,
       type: "source",
       sequence: this._videos.length,
-      id: LamarUtils.generateRandomId(4),
+      uid: LamarUtils.generateRandomId(4),
     });
     this._videos.push({ type: "video", video });
     return video;
   }
 
   concat(...videos: Video[]) {
-    const id = LamarUtils.generateRandomId(4);
+    const uid = LamarUtils.generateRandomId(4);
     /**
      * Create a reference video for the group operation
      */
-    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
-    this._videos.push({ type: "group", videos, operationType: "concat", id, referenceVideo: video });
+    const video = new Video({ uid, type: "intermediate", sequence: this._videos.length, assetId: "" });
+    this._videos.push({ type: "group", videos, operationType: "concat", uid, referenceVideo: video });
     return video;
   }
   vstack(...videos: Video[]) {
-    const id = LamarUtils.generateRandomId(4);
+    const uid = LamarUtils.generateRandomId(4);
     /**
      * Create a reference video for the group operation
      */
-    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
-    this._videos.push({ type: "group", videos, operationType: "vstack", id, referenceVideo: video });
+    const video = new Video({ uid, type: "intermediate", sequence: this._videos.length, assetId: "" });
+    this._videos.push({ type: "group", videos, operationType: "vstack", uid, referenceVideo: video });
     return video;
   }
 
   hstack(...videos: Video[]) {
-    const id = LamarUtils.generateRandomId(4);
+    const uid = LamarUtils.generateRandomId(4);
     /**
      * Create a reference video for the group operation
      */
-    const video = new Video({ id, type: "intermediate", sequence: this._videos.length, assetId: "" });
-    this._videos.push({ type: "group", videos, operationType: "hstack", id, referenceVideo: video });
+    const video = new Video({ uid, type: "intermediate", sequence: this._videos.length, assetId: "" });
+    this._videos.push({ type: "group", videos, operationType: "hstack", uid, referenceVideo: video });
     return video;
   }
 
@@ -82,8 +82,8 @@ export class Lamar extends LamarRequest {
   }
 
   private getFilters(filters: Filter[], video: Video, sourceInputs: Input[]) {
-    const { id } = video._getSource();
-    const videoFilters = filters.find((filter) => filter.out.includes(id));
+    const { uid } = video._getSource();
+    const videoFilters = filters.find((filter) => filter.out.includes(uid));
     const finalFilters: Filter[] = [];
     if (!videoFilters) {
       const filters = video._getOperations();
@@ -149,12 +149,12 @@ export class Lamar extends LamarRequest {
     return filters;
   }
   private _getMultiVideoOperation(video: GroupVideo, inputs: Input[]) {
-    const { videos, referenceVideo, id, operationType } = video;
+    const { videos, referenceVideo, uid, operationType } = video;
     const outputs = videos
       .map((video) => {
         const source = video._getSource();
         if (source.type == "intermediate") {
-          return [source.id];
+          return [source.uid];
         }
         const outputs = video._getOutputIdentifier();
 
@@ -167,7 +167,7 @@ export class Lamar extends LamarRequest {
         return outputs;
       })
       .flat();
-    const output = referenceVideo._getSource().id;
+    const output = referenceVideo._getSource().uid;
     const singleVideoOperation = referenceVideo._getOperations().flat();
     if (singleVideoOperation && singleVideoOperation.length) {
       singleVideoOperation[0].in = [output];

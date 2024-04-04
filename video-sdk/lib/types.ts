@@ -1,7 +1,7 @@
 import { VideoClassType } from "./video";
 
 export type IVideo = {
-  id: string;
+  uid: string;
   type: "source" | "intermediate";
   sequence?: number;
 };
@@ -57,7 +57,7 @@ export type GroupVideo = {
   type: "group";
   videos: VideoClassType[];
   operationType: "concat" | "vstack" | "hstack";
-  id: string;
+  uid: string;
   referenceVideo: VideoClassType;
 };
 export type SingleVideo = { type: "video"; video: VideoClassType };

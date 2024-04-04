@@ -38,7 +38,7 @@ export class Video {
       return `$${this._source.sequence}`;
     }
     // else return video id
-    return this._source.id;
+    return this._source.uid;
   }
   trim(params: { start: number; end: number }) {
     this._operations.push({
