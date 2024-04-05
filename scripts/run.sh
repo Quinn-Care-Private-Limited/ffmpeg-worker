@@ -7,7 +7,7 @@ mkdir -p $FS_PATH
 # mount file store if fs ip is set
 if [ -n "$FS_IP" ]; then
   echo "Mounting Cloud Filestore."
-  mount --verbose -o nolock $FS_IP:/$FS_SHARE_NAME $FS_PATH
+  mount -t nfs -o 'vers=3' -v $FS_IP:/$FS_SHARE_NAME $FS_PATH
   echo "Mounting completed."
 fi
 
