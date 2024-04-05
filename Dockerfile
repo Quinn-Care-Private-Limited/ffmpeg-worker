@@ -1,5 +1,5 @@
 FROM us-west1-docker.pkg.dev/quinn-video-platform/xelp/ffmpeg:latest
-RUN apt-get update -y && apt-get install -y tini nfs-common nfs-kernel-server netbase libtool
+RUN apt-get update -y && apt-get install -y tini nfs-common libtool
 WORKDIR /app
 COPY . .
 RUN npm install && npm run build
