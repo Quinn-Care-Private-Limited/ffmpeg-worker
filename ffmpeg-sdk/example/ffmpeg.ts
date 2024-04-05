@@ -112,51 +112,65 @@ async function main() {
   //   .run();
 
   const original_noaudio = "test/original1.mp4";
-  const original = "test/original_audio.mp4";
+  const original = "test/original.mp4";
   const outputFile = "test/output.mp4";
 
   // await ffmpeg
   //   .process()
   //   .format("lavfi")
   //   .input("anullsrc=channel_layout=stereo:sample_rate=44100")
-  //   .input(original_noaudio)
+  //   .input(original)
   //   .flag("shortest")
   //   .videoCodec("copy")
   //   .audioCodec("aac")
   //   .output(original)
   //   .run();
 
-  const data = await ffmpeg.probe().input(original).showstreams("a").verbose("error").run();
+  const data = await ffmpeg
+    .probe()
+    .input("output/rb4wp92fpgt9b9tmrg4xighu/chunks/bq7j27b4pbydabow1qojrxcx.mp4")
+    .showstreams("a")
+    .verbose("error")
+    .run();
   console.log(data);
+  return;
+
+  await ffmpeg
+    .process()
+    .format("concat")
+    .flag("safe", "0")
+    .input("output/rb4wp92fpgt9b9tmrg4xighu/test.txt")
+    .videoCodec("copy")
+    .output(outputFile)
+    .run();
+
   return;
 
   const process = ffmpeg
     .process()
-    .input([original, original])
+    // .input([original])
+    // .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(0, 3.25).atrim(0, 3.25).streamOut("v0", "a0"))
+    // .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(3.25, 6.5).atrim(3.25, 6.5).streamOut("v1", "a1"))
     // .filterGraph(
-    //   ffmpeg
-    //     .process()
-    //     .streamIn("0:v", "0:a")
-    //     .scale({ width: 500, height: 500, contain: true })
-    //     .acopy()
-    //     .streamOut("v0", "a0"),
+    //   ffmpeg.process().streamIn(["v0", "v1"], ["a0", "a1"]).hstack(2).amerge(2).streamOut("vhstack", "ahstack"),
+    // )
+
+    // .filterGraph(
+    //   ffmpeg.process().streamIn(["0:v", "0:v"], ["1:a", "1:a"]).vstack(2).amerge(2).streamOut("vout", "aout"),
     // )
     // .filterGraph(
-    //   ffmpeg
-    //     .process()
-    //     .streamIn("0:v", "0:a")
-    //     .scale({ width: 500, height: 500, contain: true })
-    //     .acopy()
-    //     .streamOut("v1", "a1"),
+    //   ffmpeg.process().streamIn("vout").scale({ width: 1920, height: 1080, contain: true }).streamOut("vout"),
     // )
-    // .filterGraph(ffmpeg.process().streamIn(["v0", "v1"], ["a0", "a1"]).concat(2).streamOut("vout", "aout"));
-    .filterGraph(
-      ffmpeg.process().streamIn(["0:v", "0:v"], ["1:a", "1:a"]).vstack(2).amerge(2).streamOut("vout", "aout"),
-    )
-    .filterGraph(
-      ffmpeg.process().streamIn("vout").scale({ width: 1920, height: 1080, contain: true }).streamOut("vout"),
-    )
-    .mux();
+    .input(["output/rb4wp92fpgt9b9tmrg4xighu/tmp/chunks/clulkd5n600426zvn4f2hcbiw/chunk_0.mp4"])
+    .init({
+      filterGraphs: [
+        "[0:v]trim=6:10,setpts=PTS-STARTPTS[vmzb9]",
+        "[0:a]atrim=6:10,asetpts=PTS-STARTPTS[amzb9]",
+        "[vmzb9]scale='iw*min(iw*2/iw,ih/ih)':'ih*min(iw*2/iw,ih/ih)',pad=iw*2:ih:(iw*2-iw)/2:(ih-ih)/2[v9TbQ]",
+        "[amzb9]acopy[a9TbQ]",
+      ],
+    })
+    .mux("v9TbQ", "a9TbQ");
 
   // await ffmpeg
   //   .process()

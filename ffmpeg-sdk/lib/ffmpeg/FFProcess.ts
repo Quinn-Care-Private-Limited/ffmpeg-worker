@@ -16,16 +16,16 @@ export class FFProcess {
     this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
-  init(process: IFfProcess | FFProcess) {
-    let processCopy: IFfProcess;
+  init(process: Partial<IFfProcess> | FFProcess) {
+    let processCopy: Partial<IFfProcess>;
+
     if (process instanceof FFProcess) processCopy = process.process;
     else processCopy = process;
 
-    this.process.chainCmds.push(...processCopy.chainCmds);
-    this.process.videoFilterCmds.push(...processCopy.videoFilterCmds);
-    this.process.audioFilterCmds.push(...processCopy.audioFilterCmds);
-    this.process.filterGraphs.push(...processCopy.filterGraphs);
-
+    if (processCopy.chainCmds) this.process.chainCmds.push(...processCopy.chainCmds);
+    if (processCopy.videoFilterCmds) this.process.videoFilterCmds.push(...processCopy.videoFilterCmds);
+    if (processCopy.audioFilterCmds) this.process.audioFilterCmds.push(...processCopy.audioFilterCmds);
+    if (processCopy.filterGraphs) this.process.filterGraphs.push(...processCopy.filterGraphs);
     if (processCopy.output) this.process.output = processCopy.output;
     if (processCopy.vstream_in) this.process.vstream_in = processCopy.vstream_in;
     if (processCopy.vstream_out) this.process.vstream_out = processCopy.vstream_out;
@@ -366,7 +366,12 @@ export class FFProcess {
     return this;
   }
 
-  amerge(count?: number) {
+  amix(count: number) {
+    this.process.audioFilterCmds.push(`amix=inputs=${count}`);
+    return this;
+  }
+
+  amerge(count: number) {
     this.process.audioFilterCmds.push(`amerge=inputs=${count}`);
     return this;
   }
