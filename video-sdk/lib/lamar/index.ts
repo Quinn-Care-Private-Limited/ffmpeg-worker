@@ -1,4 +1,5 @@
 import { Asset } from "../asset";
+import ClientKey from "../client-key";
 import Pipeline from "../pipeline";
 import { LamarRequest } from "../request";
 import { JobStatusCheck } from "../status-check";
@@ -15,6 +16,7 @@ export class Lamar extends LamarRequest {
   public tagKey: TagKey;
   public tag: Tag;
   public pipeline: Pipeline;
+  public clientKey: ClientKey;
   constructor({ apiKey }: { apiKey: string }) {
     super({ apiKey });
     if (!apiKey) {
@@ -26,6 +28,7 @@ export class Lamar extends LamarRequest {
     this.tagKey = new TagKey({ apiKey });
     this.tag = new Tag({ apiKey });
     this.pipeline = new Pipeline({ apiKey });
+    this.clientKey = new ClientKey({ apiKey });
   }
   input(payload: LamarInput) {
     const video = new Video({
