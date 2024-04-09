@@ -19,13 +19,12 @@ export default class ClientKeyClass extends LamarRequest {
       url: "/client-key/list",
     });
   }
-  async delete({ id, environmentId }: { id: string; environmentId: string }): Promise<null> {
+  async delete({ id }: { id: string }): Promise<null> {
     return this.request({
       method: "DELETE",
       url: "/client-key/delete",
       data: {
         id,
-        environmentId,
       },
     });
   }

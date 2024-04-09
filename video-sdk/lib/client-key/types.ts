@@ -3,9 +3,6 @@ export type CreateClientKey = {
   envId: string;
 };
 
-export type DeleteClientKey = {
-  id: string;
-};
 export type ClientKey = {
   id: string;
   environmentId: string;
