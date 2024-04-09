@@ -1,11 +1,12 @@
 import { Lamar } from "../lib";
 // Example 2
-const lamar = new Lamar({ apiKey: "b8ff590052b699843e0f24fa1eabf8" });
+const lamar = new Lamar({ apiKey: "7b61d080d7139f17e23663cfa57e6f" });
 
 (async () => {
   // Example 2 - Scale and then trim a video
   try {
-    const assets = await lamar.asset.list({ tagId: "60f4b1b1c4b4f4001f1b1b1b" });
+    const data = await lamar.pipeline.list();
+    console.log(data);
   } catch (err) {
     console.log(`err`, err);
   }
