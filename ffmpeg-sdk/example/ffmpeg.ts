@@ -114,6 +114,11 @@ async function main() {
   const original_noaudio = "test/original1.mp4";
   const original = "test/original.mp4";
   const outputFile = "test/output.mp4";
+  const imagePath = "test/image.png";
+
+  const { data } = await files.info("test/sources/source4.mp3");
+  console.log(data);
+  return;
 
   // await ffmpeg
   //   .process()
@@ -126,63 +131,54 @@ async function main() {
   //   .output(original)
   //   .run();
 
-  const data = await ffmpeg
-    .probe()
-    .input("output/rb4wp92fpgt9b9tmrg4xighu/chunks/bq7j27b4pbydabow1qojrxcx.mp4")
-    .showstreams("a")
-    .verbose("error")
-    .run();
-  console.log(data);
-  return;
-
-  await ffmpeg
-    .process()
-    .format("concat")
-    .flag("safe", "0")
-    .input("output/rb4wp92fpgt9b9tmrg4xighu/test.txt")
-    .videoCodec("copy")
-    .output(outputFile)
-    .run();
-
-  return;
-
-  const process = ffmpeg
-    .process()
-    // .input([original])
-    // .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(0, 3.25).atrim(0, 3.25).streamOut("v0", "a0"))
-    // .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(3.25, 6.5).atrim(3.25, 6.5).streamOut("v1", "a1"))
-    // .filterGraph(
-    //   ffmpeg.process().streamIn(["v0", "v1"], ["a0", "a1"]).hstack(2).amerge(2).streamOut("vhstack", "ahstack"),
-    // )
-
-    // .filterGraph(
-    //   ffmpeg.process().streamIn(["0:v", "0:v"], ["1:a", "1:a"]).vstack(2).amerge(2).streamOut("vout", "aout"),
-    // )
-    // .filterGraph(
-    //   ffmpeg.process().streamIn("vout").scale({ width: 1920, height: 1080, contain: true }).streamOut("vout"),
-    // )
-    .input(["output/rb4wp92fpgt9b9tmrg4xighu/tmp/chunks/clulkd5n600426zvn4f2hcbiw/chunk_0.mp4"])
-    .init({
-      filterGraphs: [
-        "[0:v]trim=6:10,setpts=PTS-STARTPTS[vmzb9]",
-        "[0:a]atrim=6:10,asetpts=PTS-STARTPTS[amzb9]",
-        "[vmzb9]scale='iw*min(iw*2/iw,ih/ih)':'ih*min(iw*2/iw,ih/ih)',pad=iw*2:ih:(iw*2-iw)/2:(ih-ih)/2[v9TbQ]",
-        "[amzb9]acopy[a9TbQ]",
-      ],
-    })
-    .mux("v9TbQ", "a9TbQ");
+  // const data = await ffmpeg
+  //   .probe()
+  //   .input("output/rb4wp92fpgt9b9tmrg4xighu/chunks/bq7j27b4pbydabow1qojrxcx.mp4")
+  //   .showstreams("a")
+  //   .verbose("error")
+  //   .run();
+  // console.log(data);
+  // return;
 
   // await ffmpeg
   //   .process()
-  //   .init(process)
-  //   .audioCodec("aac")
-  //   .audioBitrate("128k")
-  //   .videoCodec("libx264")
-  //   .crf(20)
-  //   .filterGraph(ffmpeg.process().streamIn("vout").resolution(1080).streamOut("vout"))
-  //   .mux("vout", "aout")
+  //   .format("concat")
+  //   .flag("safe", "0")
+  //   .input("output/rb4wp92fpgt9b9tmrg4xighu/test.txt")
+  //   .videoCodec("copy")
   //   .output(outputFile)
   //   .run();
+
+  // return;
+
+  // await ffmpeg
+  //   .process()
+  //   .format("lavfi")
+  //   .input("anullsrc=channel_layout=stereo:sample_rate=44100")
+  //   .loop(1)
+  //   .input(imagePath)
+  //   .time(5)
+  //   .flag("shortest")
+  //   .audioCodec("aac")
+  //   .output(outputFile)
+  //   .run();
+
+  // return;
+
+  const process = ffmpeg
+    .process()
+    .input([original, imagePath])
+    .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").vcopy().acopy().streamOut("v0", "a0"))
+    .filterGraph(
+      ffmpeg
+        .process()
+        .streamIn(["v0", "1:v"], ["a0"])
+        .overlay({ x: 0, y: 0, start: 0, end: 3.25 })
+        .acopy()
+        .streamOut("vhstack", "ahstack"),
+    )
+    .filterGraph(ffmpeg.process().streamIn(["vhstack"], ["ahstack"]).vcopy().avolume(0).streamOut("vhstack", "ahstack"))
+    .mux();
 
   await ffmpeg
     .process()
@@ -190,9 +186,19 @@ async function main() {
     .audioCodec("aac")
     .audioBitrate("128k")
     .videoCodec("libx264")
-    .videoBitrate("2000k")
+    .crf(20)
     .output(outputFile)
     .run();
+
+  // await ffmpeg
+  //   .process()
+  //   .init(process)
+  //   .audioCodec("aac")
+  //   .audioBitrate("128k")
+  //   .videoCodec("libx264")
+  //   .videoBitrate("2000k")
+  //   .output(outputFile)
+  //   .run();
 
   // const logPath = outputFile.replace(".mp4", "");
   // await ffmpeg
@@ -200,22 +206,24 @@ async function main() {
   //   .runProcesses([
   //     ffmpeg
   //       .process()
-  //       .init(process)
-  //       .mux("vout", "aout")
+  //       .input("output/c4fbmviitjok2kabobot84ntj/tmp/chunks/clumy3yc8003lwhd8882shfr7/chunk_0.mp4")
   //       .videoCodec("libx264")
   //       .audioBitrate("128k")
-  //       .videoBitrate("2000k")
+  //       .videoBitrate("1250k")
+  //       .scale({ width: 480, height: 852 })
+  //       .filter()
   //       .pass(1, logPath)
   //       .format("mp4")
-  //       .output("/dev/null"),
+  //       .output(outputFile),
   //     ffmpeg
   //       .process()
-  //       .init(process)
-  //       .mux("vout", "aout")
+  //       .input("output/c4fbmviitjok2kabobot84ntj/tmp/chunks/clumy3yc8003lwhd8882shfr7/chunk_0.mp4")
   //       .audioCodec("aac")
   //       .audioBitrate("128k")
   //       .videoCodec("libx264")
-  //       .videoBitrate("2000k")
+  //       .videoBitrate("1250k")
+  //       .scale({ width: 480, height: 852 })
+  //       .filter()
   //       .pass(2, logPath)
   //       .output(outputFile),
   //   ]);
@@ -249,3 +257,6 @@ async function main() {
 }
 
 main();
+
+// ffmpeg -y -i /Users/razbotics/projects/mediaprocessing/efs/test/original.mp4 -c:a aac -b:a 128k -c:v libx264 -b:v 1250k -vf \"scale=480:852,\" -preset slow -pass 1 -passlogfile test -f mp4 /dev/null
+// console.log("Score: ", score);
