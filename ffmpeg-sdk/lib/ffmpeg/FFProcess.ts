@@ -126,6 +126,18 @@ export class FFProcess {
     return this;
   }
 
+  loop(loop?: number) {
+    if (!loop) return this;
+    this.process.chainCmds.push(`-loop ${loop}`);
+    return this;
+  }
+
+  time(time?: number) {
+    if (!time) return this;
+    this.process.chainCmds.push(`-t ${time}`);
+    return this;
+  }
+
   quality(quality?: number) {
     if (!quality) return this;
     this.process.chainCmds.push(`-qscale:v ${quality}`);
@@ -223,7 +235,7 @@ export class FFProcess {
   }
 
   //video filter cmds
-  copy() {
+  vcopy() {
     this.process.videoFilterCmds.push(`copy`);
     return this;
   }
@@ -307,7 +319,7 @@ export class FFProcess {
     return this;
   }
 
-  resolution(resolution?: number) {
+  resolution(resolution?: number | string) {
     if (!resolution) return this;
     const width = `'if(gt(iw,ih),-2,${resolution})'`;
     const height = `'if(gt(iw,ih),${resolution},-2)'`;
@@ -315,15 +327,15 @@ export class FFProcess {
     return this;
   }
 
-  boxblur(radius?: number) {
+  blur(radius?: number) {
     if (!radius) return this;
     this.process.videoFilterCmds.push(`boxblur=${radius}`);
     return this;
   }
 
-  unsharp(effect?: string) {
-    if (!effect) return this;
-    this.process.videoFilterCmds.push(`unsharp=${effect}`);
+  sharp(size?: number, amount: number = 1) {
+    if (!size) return this;
+    this.process.videoFilterCmds.push(`unsharp=${size}:${size}:${amount}`);
     return this;
   }
 
@@ -334,13 +346,25 @@ export class FFProcess {
     return this;
   }
 
-  vstack(count: number) {
-    this.process.videoFilterCmds.push(`vstack=${count}`);
+  vstack(count: number, shortest?: boolean) {
+    this.process.videoFilterCmds.push(`vstack=${count}:shortest=${shortest ? 1 : 0}`);
     return this;
   }
 
-  hstack(count: number) {
-    this.process.videoFilterCmds.push(`hstack=${count}`);
+  hstack(count: number, shortest?: boolean) {
+    this.process.videoFilterCmds.push(`hstack=${count}:shortest=${shortest ? 1 : 0}`);
+    return this;
+  }
+
+  overlay(params?: { x: number | string; y: number | string; start?: number; end?: number; shortest?: boolean }) {
+    if (!params) return this;
+    let cmd = `overlay=`;
+    if (params.start !== undefined && params.end !== undefined) {
+      cmd += `enable='between(t,${params.start},${params.end})':`;
+    }
+    cmd += `x=${params.x}:y=${params.y}`;
+    if (params.shortest) cmd += `:shortest=1`;
+    this.process.videoFilterCmds.push(cmd);
     return this;
   }
 
@@ -366,13 +390,49 @@ export class FFProcess {
     return this;
   }
 
-  amix(count: number) {
+  amix(
+    count: number,
+    mixer?: { weights?: number[]; normalize?: boolean; shortest?: boolean; dropout_transition?: number },
+  ) {
+    let cmd = `amix=inputs=${count}`;
+    if (mixer?.weights) {
+      cmd += `:weights=${mixer.weights.join(":")}`;
+    }
+    if (mixer?.normalize !== undefined) {
+      cmd += `:normalize=${mixer.normalize ? 1 : 0}`;
+    }
+    if (mixer?.shortest !== undefined) {
+      cmd += `:duration=${mixer.shortest ? "shortest" : "longest"}}`;
+    }
+    if (mixer?.dropout_transition) {
+      cmd += `:dropout_transition=${mixer.dropout_transition}`;
+    }
     this.process.audioFilterCmds.push(`amix=inputs=${count}`);
     return this;
   }
 
+  aloop(loop: number) {
+    this.process.audioFilterCmds.push(`aloop=${loop}`);
+    return this;
+  }
+
+  areplace() {
+    this.aloop(-1);
+    this.amix(2, { weights: [0, 1], shortest: true });
+  }
+
   amerge(count: number) {
     this.process.audioFilterCmds.push(`amerge=inputs=${count}`);
+    return this;
+  }
+
+  avolume(volume: number | string) {
+    this.process.audioFilterCmds.push(`volume=${volume}`);
+    return this;
+  }
+
+  amute() {
+    this.process.audioFilterCmds.push(`volume=0`);
     return this;
   }
 

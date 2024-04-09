@@ -128,8 +128,12 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
     const { input } = req.body as z.infer<typeof infoSchema>;
     let cmd = `${ffmpegPath}ffprobe`;
 
-    const infoCmd = `${cmd} -v error -select_streams v:0 -show_entries stream=duration,width,height,bit_rate,r_frame_rate -of default=noprint_wrappers=1 ${fsPath}/${input}`;
-    const sizeCmd = `${cmd} -v error -select_streams v:0 -show_entries format=size -of default=noprint_wrappers=1 ${fsPath}/${input}`;
+    const path = `${fsPath}/${input}`;
+    const extension = path.split(".").pop();
+    const stream = ["mp3", "wav", "flac", "m4a", "aac", "opus"].includes(extension!) ? "a:0" : "v:0";
+
+    const infoCmd = `${cmd} -v error -select_streams ${stream} -show_entries stream=duration,width,height,bit_rate,r_frame_rate -of default=noprint_wrappers=1 ${path}`;
+    const sizeCmd = `${cmd} -v error -select_streams ${stream} -show_entries format=size -of default=noprint_wrappers=1 ${path}`;
 
     const [fileInfo, sizeData] = await Promise.all([runcmd(infoCmd), runcmd(sizeCmd)]);
     const data: any = {};
