@@ -1,12 +1,13 @@
 import { Asset } from "../asset";
+import PipelineClass from "../pipeline";
 import { LamarRequest } from "../request";
 import Tag from "../tag";
 import TagKey from "../tag-key";
-type Input = { id: string };
 export class Lamar extends LamarRequest {
   public asset: Asset;
   public tagKey: TagKey;
   public tag: Tag;
+  public pipeline: PipelineClass;
   constructor({ apiKey }: { apiKey: string }) {
     super({ apiKey });
     if (!apiKey) {
@@ -15,5 +16,6 @@ export class Lamar extends LamarRequest {
     this.asset = new Asset({ apiKey });
     this.tagKey = new TagKey({ apiKey });
     this.tag = new Tag({ apiKey });
+    this.pipeline = new PipelineClass({ apiKey });
   }
 }
