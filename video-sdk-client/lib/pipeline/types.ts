@@ -15,3 +15,8 @@ export type Pipeline = {
   updatedAt: string;
   parentPipelineId: string;
 };
+
+type PipelineConfig = {
+  filters: Record<string, unknown>[];
+  encoding: Record<string, unknown>;
+};

@@ -18,7 +18,7 @@ export class LamarRequest {
     });
   }
 
-  async request(payload: AxiosRequestConfig) {
+  protected async request(payload: AxiosRequestConfig) {
     try {
       const data = await LamarUtils.retry(this.axiosInstance, [1000])(payload);
       return data?.data?.data;

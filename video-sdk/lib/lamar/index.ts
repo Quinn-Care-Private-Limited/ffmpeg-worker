@@ -76,45 +76,54 @@ export class Lamar extends LamarRequest {
     // Get all the operations in sequence of execution
     const filters: Filter[] = this._getOperations().flat();
     const json = this.getFilters(filters, video, inputs);
-
-    return this.request({
-      data: {
-        ...json,
-        options: payload,
-      },
-      url: "/asset/process-asset",
-      method: "POST",
-    });
+    // console.log(JSON.stringify({ filters, inputs }, null, 2));
+    // return this.request({
+    //   data: {
+    //     ...json,
+    //     options: payload,
+    //   },
+    //   url: "/asset/process-asset",
+    //   method: "POST",
+    // });
   }
 
-  private getFilters(filters: Filter[], video: Video, sourceInputs: Input[]) {
-    const { uid } = video._getSource();
-    const videoFilters = filters.find((filter) => filter.out.includes(uid));
-    const finalFilters: Filter[] = [];
-    if (!videoFilters) {
-      const filters = video._getOperations();
-      const inputs = filters.map((item) => item.in);
-      const originalInputsIndexes = this._getSourceInputs(inputs);
-      if (!originalInputsIndexes.length) return;
+  private getFilters(filters: Filter[], targetVideo: Video, sourceInputs: Input[]) {
+    const source = targetVideo._getSource();
+    if (source.type == "source") {
+      const { id, sequence, uid, type } = source;
+      const input = sourceInputs[sequence!];
+      const filters = targetVideo
+        ._getOperations()
+        .flat()
+        .map((filter) => {
+          // check if the filterInputs contains string with $
+          const originalInputIndex = filter.in.findIndex((input) => input.startsWith("$"));
+          if (originalInputIndex > -1) {
+            filter.in[originalInputIndex] = `$0`;
+          }
+          return {
+            ...filter,
+          };
+        });
       return {
-        inputs: sourceInputs.filter((input, index) => originalInputsIndexes.includes(index)).flat(),
-        filters,
+        inputs: [input],
+        filters: filters,
       };
-    }
-    finalFilters.push(videoFilters);
-    const finalInputs: Input[] = [];
-    for (let i = 0; i < videoFilters.in.length; i++) {
-      const original = filters.find((filter) => filter.out.includes(videoFilters.in[i]));
-      if (original) {
-        const inputs = this._getSourceInputs([original.in]);
-        if (inputs.length) {
-          const input = sourceInputs.filter((input, index) => inputs.includes(index));
-          finalInputs.push(...input);
-        }
-        finalFilters.push(original);
+    } else {
+      // find filter that outputs the targetVideo that is
+      const targetVideoFilter = filters.find((filter) => filter.out[0] == source.uid);
+      if (!targetVideoFilter) {
+        throw new Error("Target video filter not found");
       }
+      // now we need to find the inputs of the targetVideo
+      const targetVideoInputs = targetVideoFilter.in;
+      const data: Filter[] = [];
+      console.log(this._videos, targetVideoInputs);
+      // this._videos.forEach((video) => {
+      //   console.log(video);
+      // });
+      for (let i = 0; i < targetVideoInputs.length; i++) {}
     }
-    return { inputs: finalInputs, filters: finalFilters };
   }
 
   private _getSourceInputs(inputs: string[][]) {
@@ -149,7 +158,6 @@ export class Lamar extends LamarRequest {
   private _getSingleVideoOperation(video: VideoClassType, inputs: Input[]) {
     const filters = video._getOperations().flat();
     if (filters.length == 0) {
-      video.copy();
       return video._getOperations().flat();
     }
     return filters;
@@ -159,6 +167,9 @@ export class Lamar extends LamarRequest {
     const outputs = videos
       .map((video) => {
         const source = video._getSource();
+        if (video._getOperations().length == 0) {
+          return [`$${source.sequence}`];
+        }
         if (source.type == "intermediate") {
           return [source.uid];
         }
