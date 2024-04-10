@@ -7,7 +7,7 @@ import Tag from "../tag";
 import TagKey from "../tag-key";
 import { Filter, GroupVideo, LamarInput, LamarProcess, SingleVideo, XelpVidoes } from "../types";
 import { LamarUtils } from "../util";
-import { VideoClassType, Video } from "../video";
+import { Video } from "../video";
 type Input = { id: string };
 export class Lamar extends LamarRequest {
   private _videos: XelpVidoes[];
@@ -35,9 +35,9 @@ export class Lamar extends LamarRequest {
       ...payload,
       type: "source",
       sequence: this._videos.length,
-      uid: LamarUtils.generateRandomId(4),
+      uid: payload.id,
     });
-    this._videos.push({ type: "video", video });
+    this._videos.push({ type: "video", video, uid: payload.id });
     return video;
   }
 
@@ -70,134 +70,74 @@ export class Lamar extends LamarRequest {
     return video;
   }
 
-  async process(video: Video, payload: LamarProcess): Promise<any> {
-    // Get all the inputs
-    const inputs = this._getInputs();
-    // Get all the operations in sequence of execution
-    const filters: Filter[] = this._getOperations().flat();
-    const json = this.getFilters(filters, video, inputs);
-    // console.log(JSON.stringify({ filters, inputs }, null, 2));
-    // return this.request({
-    //   data: {
-    //     ...json,
-    //     options: payload,
-    //   },
-    //   url: "/asset/process-asset",
-    //   method: "POST",
-    // });
+  async process(targetVideo: Video, payload: LamarProcess): Promise<any> {
+    const filters = this.getFilters(targetVideo);
+    const uniqueFilters = filters
+      .filter((filter, index, self) => self.findIndex((t) => t.filterId === filter.filterId) === index)
+      .map((filter) => {
+        const { filterId, ...rest } = filter;
+        return rest;
+      });
+    const inputs = this._getInputs().filter((input) => {
+      return filters.some((filter) => filter.in.includes(input.id));
+    }, []);
+    console.log(JSON.stringify({ options: payload, inputs, filters: uniqueFilters }, null, 2));
+    return this.request({
+      data: {
+        options: payload,
+        inputs,
+        filters: uniqueFilters,
+      },
+      url: "/asset/process-asset",
+      method: "POST",
+    });
   }
 
-  private getFilters(filters: Filter[], targetVideo: Video, sourceInputs: Input[]) {
+  private getFilters(targetVideo: Video) {
     const source = targetVideo._getSource();
     if (source.type == "source") {
-      const { id, sequence, uid, type } = source;
-      const input = sourceInputs[sequence!];
-      const filters = targetVideo
-        ._getOperations()
-        .flat()
-        .map((filter) => {
-          // check if the filterInputs contains string with $
-          const originalInputIndex = filter.in.findIndex((input) => input.startsWith("$"));
-          if (originalInputIndex > -1) {
-            filter.in[originalInputIndex] = `$0`;
-          }
-          return {
-            ...filter,
-          };
-        });
-      return {
-        inputs: [input],
-        filters: filters,
-      };
+      const filters = this._getSingleVideoOperation(targetVideo);
+      return filters;
     } else {
-      // find filter that outputs the targetVideo that is
-      const targetVideoFilter = filters.find((filter) => filter.out[0] == source.uid);
-      if (!targetVideoFilter) {
-        throw new Error("Target video filter not found");
+      const { uid } = source;
+      const data: Filter[] = targetVideo._getOperations().flat();
+      const video = this._videos.find((video) => video.uid == uid) as GroupVideo;
+      if (!video) {
+        throw new Error("Video not found");
       }
-      // now we need to find the inputs of the targetVideo
-      const targetVideoInputs = targetVideoFilter.in;
-      const data: Filter[] = [];
-      console.log(this._videos, targetVideoInputs);
-      // this._videos.forEach((video) => {
-      //   console.log(video);
-      // });
-      for (let i = 0; i < targetVideoInputs.length; i++) {}
+      const { videos, referenceVideo } = video;
+      data.push({
+        type: video.operationType,
+        params: {},
+        in: videos.map((video) => video._getOutputIdentifier()),
+        out: [referenceVideo._getSource().uid],
+        filterId: LamarUtils.generateRandomId(4),
+      });
+      for (let i = 0; i < videos.length; i++) {
+        const source = videos[i]._getSource();
+        if (source.type == "source") {
+          data.push(...this._getSingleVideoOperation(videos[i]));
+        } else {
+          const operations = this._getMultiVideoOperation(videos[i]);
+          data.push(...operations.flat());
+        }
+      }
+      return data;
+      // console.log(data);
     }
   }
 
-  private _getSourceInputs(inputs: string[][]) {
-    const withDollar = inputs.filter((inputs) => {
-      // check if any input name starts with $
-      return inputs.some((input) => input.startsWith("$"));
-    });
-    return withDollar.flat().map((item) => +item.replace("$", ""));
+  private _getSingleVideoOperation(video: Video) {
+    return video._getOperations();
+  }
+  private _getMultiVideoOperation(video: Video) {
+    return this.getFilters(video);
   }
   private _getInputs(): Input[] {
     const singleVideos = this._videos.filter((video) => video.type == "video") as SingleVideo[];
     return singleVideos.map((video) => {
       return { id: video.video._getSource().id };
     });
-  }
-
-  private _getOperations() {
-    const inputs = this._getInputs();
-    const filters: any = [];
-    this._videos.forEach((video) => {
-      if (video.type == "video") {
-        filters.push(this._getSingleVideoOperation(video.video, inputs));
-      } else {
-        // in case of multi video operation like concat or splitscreen, we need to get the operations of all the videos
-        const outputs = this._getMultiVideoOperation(video, inputs).flat();
-        filters.push(...outputs);
-      }
-    });
-    return filters;
-  }
-
-  private _getSingleVideoOperation(video: VideoClassType, inputs: Input[]) {
-    const filters = video._getOperations().flat();
-    if (filters.length == 0) {
-      return video._getOperations().flat();
-    }
-    return filters;
-  }
-  private _getMultiVideoOperation(video: GroupVideo, inputs: Input[]) {
-    const { videos, referenceVideo, uid, operationType } = video;
-    const outputs = videos
-      .map((video) => {
-        const source = video._getSource();
-        if (video._getOperations().length == 0) {
-          return [`$${source.sequence}`];
-        }
-        if (source.type == "intermediate") {
-          return [source.uid];
-        }
-        const outputs = video._getOutputIdentifier();
-
-        if (outputs.length == 0) {
-          /**
-           * If the video has no operations, then we need to copy the video
-           */
-          return video._getOutputIdentifier();
-        }
-        return outputs;
-      })
-      .flat();
-    const output = referenceVideo._getSource().uid;
-    const singleVideoOperation = referenceVideo._getOperations().flat();
-    if (singleVideoOperation && singleVideoOperation.length) {
-      singleVideoOperation[0].in = [output];
-    }
-    return [
-      {
-        out: [output],
-        params: {},
-        in: outputs,
-        type: operationType,
-      },
-      ...singleVideoOperation,
-    ];
   }
 
   subscribe(jobId: string, callback: (data: any) => void) {

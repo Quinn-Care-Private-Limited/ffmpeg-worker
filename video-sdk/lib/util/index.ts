@@ -2,7 +2,7 @@ import { AxiosError } from "axios";
 
 export class LamarUtils {
   static generateRandomId(length: number = 9) {
-    return Math.random().toString(36).substr(2, length);
+    return `dyn-${Math.random().toString(36).substr(2, length)}`;
   }
 
   static sleep(ms: number) {

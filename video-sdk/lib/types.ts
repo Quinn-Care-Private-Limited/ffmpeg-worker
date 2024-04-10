@@ -29,6 +29,7 @@ export type VideoOperation = {
   in: string[];
   params: Record<string, any>;
   type: VideoOperationTypes;
+  filterId: string;
 };
 
 export interface Operation {
@@ -52,10 +53,11 @@ export type GroupVideo = {
   type: "group";
   videos: VideoClassType[];
   operationType: "concat" | "vstack" | "hstack";
-  uid: string;
   referenceVideo: VideoClassType;
+  uid: string;
 };
-export type SingleVideo = { type: "video"; video: VideoClassType };
+export type SingleVideo = { type: "video"; video: VideoClassType; uid: string };
+
 export type XelpVidoes = {} & (GroupVideo | SingleVideo);
 
 export type LamarProcess = {
@@ -78,4 +80,5 @@ export type Filter = {
   params: Record<string, any>;
   out: string[];
   in: string[];
+  filterId: string;
 };

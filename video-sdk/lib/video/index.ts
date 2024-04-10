@@ -35,7 +35,7 @@ export class Video {
       return this._operations[this._operations.length - 1].out[0];
     }
     if (this._source.sequence !== undefined) {
-      return `$${this._source.sequence}`;
+      return this._source.uid;
     }
     // else return video id
     return this._source.uid;
@@ -46,6 +46,7 @@ export class Video {
       params,
       out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
+      filterId: LamarUtils.generateRandomId(4),
     });
     return this;
   }
@@ -56,6 +57,7 @@ export class Video {
       params,
       out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
+      filterId: LamarUtils.generateRandomId(4),
     });
     return this;
   }
@@ -64,6 +66,7 @@ export class Video {
       type: "copy",
       out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
+      filterId: LamarUtils.generateRandomId(4),
       params: {},
     });
     return this;
@@ -75,6 +78,7 @@ export class Video {
       params,
       out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
+      filterId: LamarUtils.generateRandomId(4),
     });
     return this;
   }
@@ -84,6 +88,7 @@ export class Video {
       params,
       out: [LamarUtils.generateRandomId(4)],
       in: [this.getInputIdentifier()],
+      filterId: LamarUtils.generateRandomId(4),
     });
     return this;
   }
@@ -95,8 +100,8 @@ export class Video {
   _getOperations() {
     return this._operations;
   }
-  _getOutputIdentifier() {
-    if (!this._operations.length) return [];
+  _getOutputIdentifier(): string {
+    if (!this._operations.length) return this._source.uid;
     return this._operations[this._operations.length - 1].out[0];
   }
 }
