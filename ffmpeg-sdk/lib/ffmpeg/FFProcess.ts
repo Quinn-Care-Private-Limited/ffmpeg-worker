@@ -126,6 +126,12 @@ export class FFProcess {
     return this;
   }
 
+  frames(frames?: number) {
+    if (!frames) return this;
+    this.process.chainCmds.push(`-frames:v ${frames}`);
+    return this;
+  }
+
   loop(loop?: number) {
     if (!loop) return this;
     this.process.chainCmds.push(`-loop ${loop}`);
@@ -327,9 +333,21 @@ export class FFProcess {
     return this;
   }
 
+  capture(frame?: number) {
+    if (!frame) return this;
+    this.process.videoFilterCmds.push(`select='gte(n\\,${frame})'`);
+    return this;
+  }
+
   blur(radius?: number) {
     if (!radius) return this;
     this.process.videoFilterCmds.push(`boxblur=${radius}`);
+    return this;
+  }
+
+  opacity(opacity?: number) {
+    if (!opacity) return this;
+    this.process.videoFilterCmds.push(`format=argb,geq=r='r(X,Y)':a='${opacity}*alpha(X,Y)'`);
     return this;
   }
 
@@ -339,8 +357,7 @@ export class FFProcess {
     return this;
   }
 
-  trim(start?: number, end?: number) {
-    if (!start && !end) return this;
+  trim(start: number, end: number) {
     this.process.videoFilterCmds.push(`trim=${start}:${end}`);
     this.process.videoFilterCmds.push(`setpts=PTS-STARTPTS`);
     return this;
@@ -384,9 +401,12 @@ export class FFProcess {
     return this;
   }
 
-  atrim(start?: number, end?: number) {
+  atrim(start: number, end: number, loop?: { count: number; rate?: number }) {
     if (!start && !end) return this;
     this.process.audioFilterCmds.push(`atrim=${start}:${end},asetpts=PTS-STARTPTS`);
+    if (loop) {
+      this.aloop({ count: loop.count, duration: end - start, rate: loop.rate });
+    }
     return this;
   }
 
@@ -396,29 +416,32 @@ export class FFProcess {
   ) {
     let cmd = `amix=inputs=${count}`;
     if (mixer?.weights) {
-      cmd += `:weights=${mixer.weights.join(":")}`;
+      cmd += `:weights='${mixer.weights.join(" ")}'`;
     }
     if (mixer?.normalize !== undefined) {
       cmd += `:normalize=${mixer.normalize ? 1 : 0}`;
     }
     if (mixer?.shortest !== undefined) {
-      cmd += `:duration=${mixer.shortest ? "shortest" : "longest"}}`;
+      cmd += `:duration=${mixer.shortest ? "shortest" : "longest"}`;
     }
     if (mixer?.dropout_transition) {
       cmd += `:dropout_transition=${mixer.dropout_transition}`;
     }
-    this.process.audioFilterCmds.push(`amix=inputs=${count}`);
+    this.process.audioFilterCmds.push(cmd);
     return this;
   }
 
-  aloop(loop: number) {
-    this.process.audioFilterCmds.push(`aloop=${loop}`);
+  aloop(data?: { count: number; duration: number; rate?: number }) {
+    if (!data) return this;
+    if (!data.count) return this;
+    const rate = data.rate || 48000;
+    this.process.audioFilterCmds.push(`asetrate=${rate},aloop=loop=${data.count}:size=${data.duration}*${rate}`);
     return this;
   }
 
   areplace() {
-    this.aloop(-1);
     this.amix(2, { weights: [0, 1], shortest: true });
+    return this;
   }
 
   amerge(count: number) {
@@ -443,9 +466,8 @@ export class FFProcess {
 
   filter() {
     if (this.process.videoFilterCmds.length || this.process.audioFilterCmds.length) {
-      this.process.chainCmds.push(
-        `-vf "${this.process.videoFilterCmds.join(",")},${this.process.audioFilterCmds.join(",")}"`,
-      );
+      const filters = [...this.process.videoFilterCmds, ...this.process.audioFilterCmds];
+      this.process.chainCmds.push(`-vf "${filters.join(",")}"`);
     }
     this.process.videoFilterCmds = [];
     this.process.audioFilterCmds = [];
