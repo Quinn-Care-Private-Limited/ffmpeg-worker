@@ -111,15 +111,6 @@ async function main() {
   //   .output("output/asset1/original_hstack.mp4")
   //   .run();
 
-  const original_noaudio = "test/original1.mp4";
-  const original = "test/original.mp4";
-  const outputFile = "test/output.mp4";
-  const imagePath = "test/image.png";
-
-  const { data } = await files.info("test/sources/source4.mp3");
-  console.log(data);
-  return;
-
   // await ffmpeg
   //   .process()
   //   .format("lavfi")
@@ -151,44 +142,38 @@ async function main() {
 
   // return;
 
-  // await ffmpeg
+  // const process = ffmpeg
   //   .process()
-  //   .format("lavfi")
-  //   .input("anullsrc=channel_layout=stereo:sample_rate=44100")
-  //   .loop(1)
-  //   .input(imagePath)
-  //   .time(5)
-  //   .flag("shortest")
-  //   .audioCodec("aac")
-  //   .output(outputFile)
-  //   .run();
-
-  // return;
+  //   .input(["test/sources/source0.mp4", "test/sources/source3.png", "output/test/tmp/chunks/source4/chunk_0.mp3"])
+  //   .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").vcopy().acopy().streamOut("v0", "a0"))
+  //   .filterGraph(ffmpeg.process().streamIn("1:v").opacity(0.3).streamOut("v1"))
+  //   .filterGraph(
+  //     ffmpeg
+  //       .process()
+  //       .streamIn(["v0", "v1"], ["a0"])
+  //       .overlay({ x: 0, y: 0, start: 0, end: 3.25 })
+  //       .acopy()
+  //       .streamOut("vhstack", "ahstack"),
+  //   )
+  //   .filterGraph(ffmpeg.process().streamIn(null, "2:a").aloop({ count: -1, duration: 3 }).streamOut(null, "a2"))
+  //   .filterGraph(ffmpeg.process().streamIn(null, ["ahstack", "a2"]).areplace().streamOut(null, "ahstack"))
+  //   .mux();
 
   const process = ffmpeg
     .process()
-    .input([original, imagePath])
-    .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").vcopy().acopy().streamOut("v0", "a0"))
+    .input(["test/sources/source0.mp4", "test/sources/source3.png"])
     .filterGraph(
       ffmpeg
         .process()
-        .streamIn(["v0", "1:v"], ["a0"])
-        .overlay({ x: 0, y: 0, start: 0, end: 3.25 })
-        .acopy()
-        .streamOut("vhstack", "ahstack"),
+        .streamIn("0:v")
+        .capture(6 * 30)
+        .streamOut("v0"),
     )
-    .filterGraph(ffmpeg.process().streamIn(["vhstack"], ["ahstack"]).vcopy().avolume(0).streamOut("vhstack", "ahstack"))
+    .filterGraph(ffmpeg.process().streamIn("1:v").opacity(0.3).streamOut("v1"))
+    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"]).overlay({ x: 0, y: 0 }).streamOut("vhstack"))
     .mux();
 
-  await ffmpeg
-    .process()
-    .init(process)
-    .audioCodec("aac")
-    .audioBitrate("128k")
-    .videoCodec("libx264")
-    .crf(20)
-    .output(outputFile)
-    .run();
+  await ffmpeg.process().init(process).quality(18).frames(1).output("test/output.jpg").run();
 
   // await ffmpeg
   //   .process()

@@ -33,7 +33,7 @@ RUN cd vmaf-3.0.0/libvmaf && meson build --buildtype release && ninja -vC build 
 RUN wget -O ffmpeg.tar.xz https://ffmpeg.org/releases/ffmpeg-6.0.tar.xz
 RUN tar -xf ffmpeg.tar.xz
 RUN cd ffmpeg-6.0 && \
-    ./configure --enable-gpl --enable-libx264 --enable-libx265 --enable-libvmaf --enable-nonfree --enable-openssl && \
+    ./configure --enable-gpl --enable-libx264 --enable-libx265 --enable-libvmaf --enable-nonfree --enable-openssl --enable-libass && \
     make -j4 && \
     make install
 
