@@ -84,6 +84,12 @@ export class FFProcess {
     return this;
   }
 
+  subCodec(encoder?: string) {
+    if (!encoder) return this;
+    this.process.chainCmds.push(`-c:s ${encoder}`);
+    return this;
+  }
+
   fpsMode(mode?: string) {
     if (!mode) return this;
     this.process.chainCmds.push(`-fps_mode ${mode}`);
@@ -252,6 +258,12 @@ export class FFProcess {
     this.process.videoFilterCmds.push(
       `crop=min(${crop.width},iw):min(${crop.height},ih):min(${crop.x},iw):min(${crop.y},ih)`,
     );
+    return this;
+  }
+
+  ass(file?: string) {
+    if (!file) return this;
+    this.process.videoFilterCmds.push(`ass=${file}`);
     return this;
   }
 
