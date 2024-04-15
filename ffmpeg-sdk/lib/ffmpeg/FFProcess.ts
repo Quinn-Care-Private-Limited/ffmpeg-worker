@@ -4,7 +4,7 @@ import { getAxiosInstance, request, requestWithResponseAbort } from "../request"
 
 export class FFProcess {
   private axios: AxiosInstance;
-  public process: IFfProcess = {
+  private process: IFfProcess = {
     chainCmds: [],
     videoFilterCmds: [],
     audioFilterCmds: [],
@@ -12,24 +12,46 @@ export class FFProcess {
     output: "",
   };
 
-  public vstream_in?: string | string[];
-  public vstream_out?: string | string[];
-
-  public astream_in?: string | string[];
-  public astream_out?: string | string[];
-
   constructor(private credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
     this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
-  init(process: IFfProcess | FFProcess) {
-    if (process instanceof FFProcess) this.process = JSON.parse(JSON.stringify(process.process));
-    else this.process = JSON.parse(JSON.stringify(process));
+  init(process: Partial<IFfProcess> | FFProcess) {
+    let processCopy: Partial<IFfProcess>;
+
+    if (process instanceof FFProcess) processCopy = process.process;
+    else processCopy = process;
+
+    if (processCopy.chainCmds) this.process.chainCmds.push(...processCopy.chainCmds);
+    if (processCopy.videoFilterCmds) this.process.videoFilterCmds.push(...processCopy.videoFilterCmds);
+    if (processCopy.audioFilterCmds) this.process.audioFilterCmds.push(...processCopy.audioFilterCmds);
+    if (processCopy.filterGraphs) this.process.filterGraphs.push(...processCopy.filterGraphs);
+    if (processCopy.output) this.process.output = processCopy.output;
+    if (processCopy.vstream_in) this.process.vstream_in = processCopy.vstream_in;
+    if (processCopy.vstream_out) this.process.vstream_out = processCopy.vstream_out;
+    if (processCopy.astream_in) this.process.astream_in = processCopy.astream_in;
+    if (processCopy.astream_out) this.process.astream_out = processCopy.astream_out;
+    if (processCopy.last_vstream_in) this.process.last_vstream_in = processCopy.last_vstream_in;
+    if (processCopy.last_astream_in) this.process.last_astream_in = processCopy.last_astream_in;
+
     return this;
   }
 
-  input(path: string) {
-    this.process.chainCmds.push(`-i ${path}`);
+  get() {
+    return this.process;
+  }
+
+  log() {
+    console.log(this.process);
+    return this;
+  }
+
+  input(path: string | string[]) {
+    if (Array.isArray(path)) {
+      path.forEach((p) => this.process.chainCmds.push(`-i ${p}`));
+    } else {
+      this.process.chainCmds.push(`-i ${path}`);
+    }
     return this;
   }
 
@@ -62,9 +84,21 @@ export class FFProcess {
     return this;
   }
 
+  subCodec(encoder?: string) {
+    if (!encoder) return this;
+    this.process.chainCmds.push(`-c:s ${encoder}`);
+    return this;
+  }
+
   fpsMode(mode?: string) {
     if (!mode) return this;
     this.process.chainCmds.push(`-fps_mode ${mode}`);
+    return this;
+  }
+
+  vsync(vsync?: boolean) {
+    if (!vsync) return this;
+    this.process.chainCmds.push(`-vsync vfr`);
     return this;
   }
 
@@ -95,6 +129,24 @@ export class FFProcess {
   screenShot(timestamp?: number | string) {
     if (!timestamp) return this;
     this.process.chainCmds.push(`-ss ${timestamp} -frames:v 1`);
+    return this;
+  }
+
+  frames(frames?: number) {
+    if (!frames) return this;
+    this.process.chainCmds.push(`-frames:v ${frames}`);
+    return this;
+  }
+
+  loop(loop?: number) {
+    if (!loop) return this;
+    this.process.chainCmds.push(`-loop ${loop}`);
+    return this;
+  }
+
+  time(time?: number) {
+    if (!time) return this;
+    this.process.chainCmds.push(`-t ${time}`);
     return this;
   }
 
@@ -195,19 +247,39 @@ export class FFProcess {
   }
 
   //video filter cmds
-  copy() {
+  vcopy() {
     this.process.videoFilterCmds.push(`copy`);
+    return this;
+  }
+
+  draw(graphic?: string) {
+    if (!graphic) return this;
+    this.process.videoFilterCmds.push(graphic);
     return this;
   }
 
   crop(crop?: { x: number | string; y: number | string; width: number | string; height: number | string }) {
     if (!crop) return this;
     this.process.videoFilterCmds.push(`pad=ceil(iw/2)*2:ceil(ih/2)*2`);
-    this.process.videoFilterCmds.push(`crop=${crop.width}:${crop.height}:${crop.x}:${crop.y}`);
+    this.process.videoFilterCmds.push(
+      `crop=min(${crop.width},iw):min(${crop.height},ih):min(${crop.x},iw):min(${crop.y},ih)`,
+    );
     return this;
   }
 
-  cropAspectRatio(aspectRatio?: string) {
+  subtitle(subtitle?: string) {
+    if (!subtitle) return this;
+    this.process.videoFilterCmds.push(`subtitles=${subtitle}`);
+    return this;
+  }
+
+  ass(file?: string) {
+    if (!file) return this;
+    this.process.videoFilterCmds.push(`ass=${file}`);
+    return this;
+  }
+
+  cropAr(aspectRatio?: string) {
     if (!aspectRatio) return this;
     const ar = aspectRatio.replace(":", "/");
     this.process.videoFilterCmds.push(`pad='ceil(iw/2)*2:ceil(ih/2)*2'`);
@@ -229,20 +301,55 @@ export class FFProcess {
     return this;
   }
 
-  scale(resolution?: { width?: number; height?: number }, noUpscale?: boolean) {
-    if (!resolution) return this;
-    if (!resolution.width && !resolution.height) return this;
-    const width = resolution.width ? Math.floor(resolution.width / 2) * 2 : -2;
-    const height = resolution.height ? Math.floor(resolution.height / 2) * 2 : -2;
-    if (noUpscale) {
-      this.process.videoFilterCmds.push(`scale='min(${width},iw)':'min(${height},ih)'`);
-    } else {
-      this.process.videoFilterCmds.push(`scale=${width}:${height}`);
-    }
+  pad(padding?: { width: number | string; height: number | string; x: number | string; y: number | string }) {
+    if (!padding) return this;
+    this.process.videoFilterCmds.push(`pad=${padding.width}:${padding.height}:${padding.x}:${padding.y}`);
     return this;
   }
 
-  resolution(resolution?: number) {
+  scale(resolution?: { width?: number | string; height?: number | string; noUpscale?: boolean; contain?: boolean }) {
+    if (!resolution) return this;
+    if (!resolution.width && !resolution.height) return this;
+
+    if (resolution.contain) {
+      const w = resolution.width
+        ? typeof resolution.width === "number"
+          ? Math.floor(resolution.width / 2) * 2
+          : resolution.width
+        : "iw";
+      const h = resolution.height
+        ? typeof resolution.height === "number"
+          ? Math.floor(resolution.height / 2) * 2
+          : resolution.height
+        : "ih";
+
+      this.process.videoFilterCmds.push(`scale='iw*min(${w}/iw,${h}/ih)':'ih*min(${w}/iw,${h}/ih)'`);
+      this.process.videoFilterCmds.push(`pad=${w}:${h}:(${w}-iw)/2:(${h}-ih)/2`);
+    } else {
+      const width = resolution.width
+        ? typeof resolution.width === "number"
+          ? Math.floor(resolution.width / 2) * 2
+          : resolution.width
+        : -2;
+      const height = resolution.height
+        ? typeof resolution.height === "number"
+          ? Math.floor(resolution.height / 2) * 2
+          : resolution.height
+        : -2;
+
+      if (resolution.noUpscale) {
+        this.process.videoFilterCmds.push(`scale='min(${width},iw)':'min(${height},ih)'`);
+      } else {
+        this.process.videoFilterCmds.push(`scale=${width}:${height}`);
+      }
+    }
+
+    //give padding if type is contain
+
+    return this;
+  }
+
+  resolution(resolution?: number | string) {
     if (!resolution) return this;
     const width = `'if(gt(iw,ih),-2,${resolution})'`;
     const height = `'if(gt(iw,ih),${resolution},-2)'`;
@@ -250,65 +357,142 @@ export class FFProcess {
     return this;
   }
 
-  boxblur(radius?: number) {
+  capture(frame?: number) {
+    if (!frame) return this;
+    this.process.videoFilterCmds.push(`select='gte(n\\,${frame})'`);
+    return this;
+  }
+
+  blur(radius?: number) {
     if (!radius) return this;
     this.process.videoFilterCmds.push(`boxblur=${radius}`);
     return this;
   }
 
-  unsharp(effect?: string) {
-    if (!effect) return this;
-    this.process.videoFilterCmds.push(`unsharp=${effect}`);
+  opacity(opacity?: number) {
+    if (!opacity) return this;
+    this.process.videoFilterCmds.push(`format=argb,geq=r='r(X,Y)':a='${opacity}*alpha(X,Y)'`);
     return this;
   }
 
-  trim(start?: number, end?: number) {
-    if (!start && !end) return this;
+  sharp(size?: number, amount: number = 1) {
+    if (!size) return this;
+    this.process.videoFilterCmds.push(`unsharp=${size}:${size}:${amount}`);
+    return this;
+  }
+
+  trim(start: number, end: number) {
     this.process.videoFilterCmds.push(`trim=${start}:${end}`);
     this.process.videoFilterCmds.push(`setpts=PTS-STARTPTS`);
     return this;
   }
 
-  vstack(count: number) {
-    this.process.videoFilterCmds.push(`vstack=${count}`);
+  vstack(count: number, shortest?: boolean) {
+    this.process.videoFilterCmds.push(`vstack=${count}:shortest=${shortest ? 1 : 0}`);
     return this;
   }
 
-  hstack(count: number) {
-    this.process.videoFilterCmds.push(`hstack=${count}`);
+  hstack(count: number, shortest?: boolean) {
+    this.process.videoFilterCmds.push(`hstack=${count}:shortest=${shortest ? 1 : 0}`);
     return this;
   }
 
-  concat(count: number, videoOnly?: boolean) {
-    if (videoOnly) {
-      this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=0`);
-    } else {
-      this.process.videoFilterCmds.push(`concat=${count}:v=1:a=1`);
+  overlay(params?: { x: number | string; y: number | string; start?: number; end?: number; shortest?: boolean }) {
+    if (!params) return this;
+    let cmd = `overlay=`;
+    if (params.start !== undefined && params.end !== undefined) {
+      cmd += `enable='between(t,${params.start},${params.end})':`;
     }
+    cmd += `x=${params.x}:y=${params.y}`;
+    if (params.shortest) cmd += `:shortest=1`;
+    this.process.videoFilterCmds.push(cmd);
+    return this;
+  }
+
+  concat(count: number) {
+    this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=1`);
+    return this;
+  }
+
+  vconcat(count: number) {
+    this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=0`);
     return this;
   }
 
   //audio filter cmds
   acopy() {
-    this.process.audioFilterCmds.push(`copy`);
+    this.process.audioFilterCmds.push(`acopy`);
     return this;
   }
 
-  atrim(start?: number, end?: number) {
+  atrim(start: number, end: number, loop?: { count: number; rate?: number }) {
     if (!start && !end) return this;
-    this.process.audioFilterCmds.push(`atrim=${start}:${end}`);
+    this.process.audioFilterCmds.push(`atrim=${start}:${end},asetpts=PTS-STARTPTS`);
+    if (loop) {
+      this.aloop({ count: loop.count, duration: end - start, rate: loop.rate });
+    }
     return this;
   }
 
-  amerge(count?: number) {
+  amix(
+    count: number,
+    mixer?: { weights?: number[]; normalize?: boolean; shortest?: boolean; dropout_transition?: number },
+  ) {
+    let cmd = `amix=inputs=${count}`;
+    if (mixer?.weights) {
+      cmd += `:weights='${mixer.weights.join(" ")}'`;
+    }
+    if (mixer?.normalize !== undefined) {
+      cmd += `:normalize=${mixer.normalize ? 1 : 0}`;
+    }
+    if (mixer?.shortest !== undefined) {
+      cmd += `:duration=${mixer.shortest ? "shortest" : "longest"}`;
+    }
+    if (mixer?.dropout_transition) {
+      cmd += `:dropout_transition=${mixer.dropout_transition}`;
+    }
+    this.process.audioFilterCmds.push(cmd);
+    return this;
+  }
+
+  aloop(data?: { count: number; duration: number; rate?: number }) {
+    if (!data) return this;
+    if (!data.count) return this;
+    const rate = data.rate || 48000;
+    this.process.audioFilterCmds.push(`asetrate=${rate},aloop=loop=${data.count}:size=${data.duration}*${rate}`);
+    return this;
+  }
+
+  areplace() {
+    this.amix(2, { weights: [0, 1], shortest: true });
+    return this;
+  }
+
+  amerge(count: number) {
     this.process.audioFilterCmds.push(`amerge=inputs=${count}`);
     return this;
   }
 
+  avolume(volume: number | string) {
+    this.process.audioFilterCmds.push(`volume=${volume}`);
+    return this;
+  }
+
+  amute() {
+    this.process.audioFilterCmds.push(`volume=0`);
+    return this;
+  }
+
+  aconcat(count: number) {
+    this.process.audioFilterCmds.push(`concat=n=${count}:v=0:a=1`);
+    return this;
+  }
+
   filter() {
-    this.process.chainCmds.push(
-      `-vf "${this.process.videoFilterCmds.join(",")},${this.process.audioFilterCmds.join(",")}"`,
-    );
+    if (this.process.videoFilterCmds.length || this.process.audioFilterCmds.length) {
+      const filters = [...this.process.videoFilterCmds, ...this.process.audioFilterCmds];
+      this.process.chainCmds.push(`-vf "${filters.join(",")}"`);
+    }
     this.process.videoFilterCmds = [];
     this.process.audioFilterCmds = [];
     return this;
@@ -334,24 +518,28 @@ export class FFProcess {
   }
 
   streamIn(vstream: string | string[] | null, astream?: string | string[] | null) {
-    if (vstream) this.vstream_in = vstream;
-    if (astream) this.astream_in = astream;
+    if (vstream) this.process.vstream_in = vstream;
+    if (astream) this.process.astream_in = astream;
     return this;
   }
 
   streamOut(vstream: string | string[] | null, astream?: string | string[] | null) {
-    if (vstream) this.vstream_out = vstream;
-    if (astream) this.astream_out = astream;
+    if (vstream) this.process.vstream_out = vstream;
+    if (astream) this.process.astream_out = astream;
     return this;
   }
 
-  muxFilterGraph(filter: string, stream_in: string | string[], stream_out: string | string[]) {
-    const inputStreams = Array.isArray(stream_in)
-      ? stream_in.map((stream) => `[${stream}]`).join("")
-      : `[${stream_in}]`;
-    const outputStreams = Array.isArray(stream_out)
-      ? stream_out.map((stream) => `[${stream}]`).join("")
-      : `[${stream_out}]`;
+  muxFilterGraph(filter: string, stream_in?: string | string[], stream_out?: string | string[]) {
+    const inputStreams = stream_in
+      ? Array.isArray(stream_in)
+        ? stream_in.map((stream) => `[${stream}]`).join("")
+        : `[${stream_in}]`
+      : "";
+    const outputStreams = stream_out
+      ? Array.isArray(stream_out)
+        ? stream_out.map((stream) => `[${stream}]`).join("")
+        : `[${stream_out}]`
+      : "";
 
     this.process.filterGraphs.push(`${inputStreams}${filter}${outputStreams}`);
     return this;
@@ -364,18 +552,46 @@ export class FFProcess {
       ffmpeg.process.chainCmds = ffmpeg.process.chainCmds.filter((cmd) => !cmd.startsWith("-i"));
     }
 
-    if (ffmpeg.process.videoFilterCmds.length && ffmpeg.vstream_in && ffmpeg.vstream_out)
-      this.muxFilterGraph(`${ffmpeg.process.videoFilterCmds.join(",")}`, ffmpeg.vstream_in, ffmpeg.vstream_out);
-    if (ffmpeg.process.audioFilterCmds.length && ffmpeg.astream_in && ffmpeg.astream_out)
-      this.muxFilterGraph(`${ffmpeg.process.audioFilterCmds.join(",")}`, ffmpeg.astream_in, ffmpeg.astream_out);
+    if (ffmpeg.process.videoFilterCmds.length && ffmpeg.process.vstream_out) {
+      if (ffmpeg.process.vstream_in === "?" && this.process.last_vstream_in) {
+        ffmpeg.process.vstream_in = this.process.last_vstream_in;
+      }
+
+      this.muxFilterGraph(
+        `${ffmpeg.process.videoFilterCmds.join(",")}`,
+        ffmpeg.process.vstream_in,
+        ffmpeg.process.vstream_out,
+      );
+
+      if (ffmpeg.process.vstream_out instanceof Array)
+        this.process.last_vstream_in = ffmpeg.process.vstream_out[ffmpeg.process.vstream_out.length - 1];
+      else this.process.last_vstream_in = ffmpeg.process.vstream_out;
+    }
+    if (ffmpeg.process.audioFilterCmds.length && ffmpeg.process.astream_out) {
+      if (ffmpeg.process.astream_in === "?" && this.process.last_astream_in) {
+        ffmpeg.process.astream_in = this.process.last_astream_in;
+      }
+
+      this.muxFilterGraph(
+        `${ffmpeg.process.audioFilterCmds.join(",")}`,
+        ffmpeg.process.astream_in,
+        ffmpeg.process.astream_out,
+      );
+      if (ffmpeg.process.astream_out instanceof Array)
+        this.process.last_astream_in = ffmpeg.process.astream_out[ffmpeg.process.astream_out.length - 1];
+      else this.process.last_astream_in = ffmpeg.process.astream_out;
+    }
+
     return this;
   }
 
-  mux(vstream_out: string | null = "vout", astream_out: string | null = "aout") {
+  mux(vstream?: string | null, astream?: string | null) {
     this.process.chainCmds.push(`-filter_complex "${this.process.filterGraphs.join(";")}"`);
     this.process.filterGraphs = [];
-    if (vstream_out) this.process.chainCmds.push(`-map "[${vstream_out}]"`);
-    if (astream_out) this.process.chainCmds.push(`-map "[${astream_out}]"`);
+    if (vstream || this.process.last_vstream_in)
+      this.process.chainCmds.push(`-map "[${vstream || this.process.last_vstream_in}]"`);
+    if (astream || this.process.last_astream_in)
+      this.process.chainCmds.push(`-map "[${astream || this.process.last_astream_in}]"`);
     return this;
   }
 
@@ -409,4 +625,51 @@ export class FFProcess {
       ...config,
     });
   }
+}
+
+async function getData() {
+  // Default options are marked with *
+  const response = await fetch(
+    "https://admin.shopify.com/api/shopify/quinn-store-dev?operation=SettingsActivityFeed&type=query",
+    {
+      method: "POST", // *GET, POST, PUT, DELETE, etc.
+      headers: {
+        "Caller-Pathname": "/store/quinn-store-dev/settings/activity",
+        "X-Csrf-Token": "L8tYom5r-gp2JSQ9SRPyGq1wgjEdo7eZIeX4",
+        "X-Shopify-Web-Force-Proxy": "1",
+      },
+      body: JSON.stringify({
+        operationName: "SettingsActivityFeed",
+        variables: {
+          first: 10,
+        },
+        query: `query SettingsActivityFeed($first: Int!) {
+            staffMember {   
+              id
+              privateData {
+                  activityFeed(first: $first) {
+                      pageInfo {
+                        hasNextPage
+                      }
+                      edges {
+                          ...SettingsActivity                        
+                        }
+                      }     
+                    } 
+                  }
+                }
+                fragment SettingsActivity on ActivityEdge {
+                  cursor  
+                  node {
+                        author
+                        createdAt
+                        messages
+                        attributed
+                      }
+              }`,
+      }),
+    },
+  );
+  const data = await response.json(); // parses JSON response into native JavaScript objects
+  console.log(data);
 }

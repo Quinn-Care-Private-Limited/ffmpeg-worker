@@ -22,6 +22,11 @@ export class FFProbe {
     return this;
   }
 
+  showstreams(stream: string) {
+    this.chainCmds.push(`-show_streams -select_streams ${stream}`);
+    return this;
+  }
+
   info() {
     this.chainCmds.push(
       `-show_entries stream=duration,width,height,bit_rate,r_frame_rate -of default=noprint_wrappers=1`,
