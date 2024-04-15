@@ -84,6 +84,12 @@ export class FFProcess {
     return this;
   }
 
+  subCodec(encoder?: string) {
+    if (!encoder) return this;
+    this.process.chainCmds.push(`-c:s ${encoder}`);
+    return this;
+  }
+
   fpsMode(mode?: string) {
     if (!mode) return this;
     this.process.chainCmds.push(`-fps_mode ${mode}`);
@@ -246,12 +252,30 @@ export class FFProcess {
     return this;
   }
 
+  draw(graphic?: string) {
+    if (!graphic) return this;
+    this.process.videoFilterCmds.push(graphic);
+    return this;
+  }
+
   crop(crop?: { x: number | string; y: number | string; width: number | string; height: number | string }) {
     if (!crop) return this;
     this.process.videoFilterCmds.push(`pad=ceil(iw/2)*2:ceil(ih/2)*2`);
     this.process.videoFilterCmds.push(
       `crop=min(${crop.width},iw):min(${crop.height},ih):min(${crop.x},iw):min(${crop.y},ih)`,
     );
+    return this;
+  }
+
+  subtitle(subtitle?: string) {
+    if (!subtitle) return this;
+    this.process.videoFilterCmds.push(`subtitles=${subtitle}`);
+    return this;
+  }
+
+  ass(file?: string) {
+    if (!file) return this;
+    this.process.videoFilterCmds.push(`ass=${file}`);
     return this;
   }
 
@@ -505,13 +529,17 @@ export class FFProcess {
     return this;
   }
 
-  muxFilterGraph(filter: string, stream_in: string | string[], stream_out: string | string[]) {
-    const inputStreams = Array.isArray(stream_in)
-      ? stream_in.map((stream) => `[${stream}]`).join("")
-      : `[${stream_in}]`;
-    const outputStreams = Array.isArray(stream_out)
-      ? stream_out.map((stream) => `[${stream}]`).join("")
-      : `[${stream_out}]`;
+  muxFilterGraph(filter: string, stream_in?: string | string[], stream_out?: string | string[]) {
+    const inputStreams = stream_in
+      ? Array.isArray(stream_in)
+        ? stream_in.map((stream) => `[${stream}]`).join("")
+        : `[${stream_in}]`
+      : "";
+    const outputStreams = stream_out
+      ? Array.isArray(stream_out)
+        ? stream_out.map((stream) => `[${stream}]`).join("")
+        : `[${stream_out}]`
+      : "";
 
     this.process.filterGraphs.push(`${inputStreams}${filter}${outputStreams}`);
     return this;
@@ -524,7 +552,7 @@ export class FFProcess {
       ffmpeg.process.chainCmds = ffmpeg.process.chainCmds.filter((cmd) => !cmd.startsWith("-i"));
     }
 
-    if (ffmpeg.process.videoFilterCmds.length && ffmpeg.process.vstream_in && ffmpeg.process.vstream_out) {
+    if (ffmpeg.process.videoFilterCmds.length && ffmpeg.process.vstream_out) {
       if (ffmpeg.process.vstream_in === "?" && this.process.last_vstream_in) {
         ffmpeg.process.vstream_in = this.process.last_vstream_in;
       }
@@ -539,7 +567,7 @@ export class FFProcess {
         this.process.last_vstream_in = ffmpeg.process.vstream_out[ffmpeg.process.vstream_out.length - 1];
       else this.process.last_vstream_in = ffmpeg.process.vstream_out;
     }
-    if (ffmpeg.process.audioFilterCmds.length && ffmpeg.process.astream_in && ffmpeg.process.astream_out) {
+    if (ffmpeg.process.audioFilterCmds.length && ffmpeg.process.astream_out) {
       if (ffmpeg.process.astream_in === "?" && this.process.last_astream_in) {
         ffmpeg.process.astream_in = this.process.last_astream_in;
       }
@@ -597,4 +625,51 @@ export class FFProcess {
       ...config,
     });
   }
+}
+
+async function getData() {
+  // Default options are marked with *
+  const response = await fetch(
+    "https://admin.shopify.com/api/shopify/quinn-store-dev?operation=SettingsActivityFeed&type=query",
+    {
+      method: "POST", // *GET, POST, PUT, DELETE, etc.
+      headers: {
+        "Caller-Pathname": "/store/quinn-store-dev/settings/activity",
+        "X-Csrf-Token": "L8tYom5r-gp2JSQ9SRPyGq1wgjEdo7eZIeX4",
+        "X-Shopify-Web-Force-Proxy": "1",
+      },
+      body: JSON.stringify({
+        operationName: "SettingsActivityFeed",
+        variables: {
+          first: 10,
+        },
+        query: `query SettingsActivityFeed($first: Int!) {
+            staffMember {   
+              id
+              privateData {
+                  activityFeed(first: $first) {
+                      pageInfo {
+                        hasNextPage
+                      }
+                      edges {
+                          ...SettingsActivity                        
+                        }
+                      }     
+                    } 
+                  }
+                }
+                fragment SettingsActivity on ActivityEdge {
+                  cursor  
+                  node {
+                        author
+                        createdAt
+                        messages
+                        attributed
+                      }
+              }`,
+      }),
+    },
+  );
+  const data = await response.json(); // parses JSON response into native JavaScript objects
+  console.log(data);
 }

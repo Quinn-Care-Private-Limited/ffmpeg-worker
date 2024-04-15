@@ -159,21 +159,18 @@ async function main() {
   //   .filterGraph(ffmpeg.process().streamIn(null, ["ahstack", "a2"]).areplace().streamOut(null, "ahstack"))
   //   .mux();
 
+  // const { path } = await files.path();
+
   const process = ffmpeg
     .process()
     .input(["test/sources/source0.mp4", "test/sources/source3.png"])
-    .filterGraph(
-      ffmpeg
-        .process()
-        .streamIn("0:v")
-        .capture(6 * 30)
-        .streamOut("v0"),
-    )
+    .filterGraph(ffmpeg.process().vcopy().streamOut("v0"))
     .filterGraph(ffmpeg.process().streamIn("1:v").opacity(0.3).streamOut("v1"))
     .filterGraph(ffmpeg.process().streamIn(["v0", "v1"]).overlay({ x: 0, y: 0 }).streamOut("vhstack"))
     .mux();
 
-  await ffmpeg.process().init(process).quality(18).frames(1).output("test/output.jpg").run();
+  const cmd = ffmpeg.process().init(process).output("test/output.mp4").get();
+  console.log(cmd);
 
   // await ffmpeg
   //   .process()
