@@ -5,6 +5,7 @@ export type LamarCreateAsset = {
   contentType: string;
   extension: string;
   type: "IMAGE" | "VIDEO";
+  origin: string;
 };
 
 export type LamarCreateAssetResponse = {

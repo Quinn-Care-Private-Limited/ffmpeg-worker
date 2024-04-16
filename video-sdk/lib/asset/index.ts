@@ -6,17 +6,13 @@ export class Asset extends LamarRequest {
     super({ apiKey });
   }
   async getSignedUrl(payload: LamarCreateAsset): Promise<LamarCreateAssetResponse> {
-    const { handle, name, contentType, pipelineIds, extension, type } = payload;
+    const { pipelineIds, ...rest } = payload;
     return this.request({
       method: "POST",
-      url: "/asset/upload",
+      url: "/file/upload",
       data: {
-        handle,
-        name,
-        contentType,
-        extension,
-        pipelineIds: pipelineIds || [],
-        type,
+        pipelineDetails: pipelineIds || [],
+        ...rest,
       },
     });
   }
