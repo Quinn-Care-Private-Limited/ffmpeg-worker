@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { LamarUtils } from "../util";
 const BASE_URL = "https://client.lamar.live/v1";
-// const BASE_URL = "http://localhost:9000/api";
+// const BASE_URL = "http://localhost:8080/v1";
 
 export class LamarRequest {
   private axiosInstance: AxiosInstance;
