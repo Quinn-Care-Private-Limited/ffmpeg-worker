@@ -349,10 +349,10 @@ export class FFProcess {
     return this;
   }
 
-  resolution(resolution?: number | string) {
-    if (!resolution) return this;
-    const width = `'if(gt(iw,ih),-2,${resolution})'`;
-    const height = `'if(gt(iw,ih),${resolution},-2)'`;
+  resolution(value?: number | string, noUpscale?: boolean) {
+    if (!value) return this;
+    const width = !noUpscale ? `'if(gt(iw,ih),-2,${value})'` : `'if(gt(iw,ih),-2,min(${value},iw))'`;
+    const height = !noUpscale ? `'if(gt(iw,ih),${value},-2)'` : `'if(gt(iw,ih),min(${value},ih),-2)'`;
     this.process.videoFilterCmds.push(`scale=${width}:${height}`);
     return this;
   }
