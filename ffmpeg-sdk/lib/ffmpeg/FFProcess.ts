@@ -192,6 +192,12 @@ export class FFProcess {
     return this;
   }
 
+  fps(frameRate?: string) {
+    if (!frameRate) return this;
+    this.process.chainCmds.push(`fps=${frameRate}`);
+    return this;
+  }
+
   minVideoBitrate(bitrate?: string) {
     if (!bitrate) return this;
     this.process.chainCmds.push(`-minrate:v ${bitrate}`);
