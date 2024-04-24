@@ -397,6 +397,11 @@ export class FFProcess {
     return this;
   }
 
+  transition({ type, duration, offset }: { type: string; duration: number; offset: number }) {
+    this.process.videoFilterCmds.push(`xfade=transition=${type}:duration=${duration}:offset=${offset}`);
+    return this;
+  }
+
   overlay(params?: { x: number | string; y: number | string; start?: number; end?: number; shortest?: boolean }) {
     if (!params) return this;
     let cmd = `overlay=`;
