@@ -2,30 +2,10 @@ import { IVideo, LamarInput, VideoOperation } from "../types";
 import { LamarUtils } from "../util";
 export class Video {
   private _operations: VideoOperation[] = [];
-
   private _source: IVideo & LamarInput;
   constructor(payload: IVideo & LamarInput) {
     this._source = payload;
   }
-
-  // blur(params: { radius: number }) {
-  //   this._operations.push({
-  //     type: "blur",
-  //     params: params,
-  //     out: [LamarUtils.generateRandomId(4)],
-  //     in: [this.getInputIdentifier()],
-  //   });
-  //   return this;
-  // }
-  // sharp(params: { sharpness: number }) {
-  //   this._operations.push({
-  //     type: "sharp",
-  //     params,
-  //     out: [LamarUtils.generateRandomId(4)],
-  //     in: [this.getInputIdentifier()],
-  //   });
-  //   return this;
-  // }
 
   private getInputIdentifier() {
     // check if sequence is defined

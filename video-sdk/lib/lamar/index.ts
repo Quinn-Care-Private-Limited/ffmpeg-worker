@@ -60,6 +60,16 @@ export class Lamar extends LamarRequest {
     return video;
   }
 
+  transition(...videos: Video[]) {
+    const uid = LamarUtils.generateRandomId(4);
+    /**
+     * Create a reference video for the group operation
+     */
+    const video = new Video({ uid, type: "intermediate", sequence: this._videos.length, id: "" });
+    this._videos.push({ type: "group", videos, operationType: "transition", uid, referenceVideo: video });
+    return video;
+  }
+
   hstack(...videos: Video[]) {
     const uid = LamarUtils.generateRandomId(4);
     /**
@@ -82,15 +92,15 @@ export class Lamar extends LamarRequest {
       return filters.some((filter) => filter.in.includes(input.id));
     }, []);
     console.log(JSON.stringify({ options: payload, inputs, filters: uniqueFilters }, null, 2));
-    return this.request({
-      data: {
-        options: payload,
-        inputs,
-        filters: uniqueFilters,
-      },
-      url: "/asset/process-asset",
-      method: "POST",
-    });
+    // return this.request({
+    //   data: {
+    //     options: payload,
+    //     inputs,
+    //     filters: uniqueFilters,
+    //   },
+    //   url: "/asset/process-asset",
+    //   method: "POST",
+    // });
   }
 
   private getFilters(targetVideo: Video) {

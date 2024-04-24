@@ -19,7 +19,8 @@ export type VideoOperationTypes =
   | "vstack"
   | "hstack"
   | "copy"
-  | "pad";
+  | "pad"
+  | "transition";
 
 type SplitScreen = { type: "splitscreen" };
 type Concat = { type: "concat" };
@@ -52,7 +53,7 @@ export type CombinedOperation = {
 export type GroupVideo = {
   type: "group";
   videos: VideoClassType[];
-  operationType: "concat" | "vstack" | "hstack";
+  operationType: "concat" | "vstack" | "hstack" | "transition";
   referenceVideo: VideoClassType;
   uid: string;
 };
