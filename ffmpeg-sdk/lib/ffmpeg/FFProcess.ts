@@ -192,12 +192,6 @@ export class FFProcess {
     return this;
   }
 
-  fps(frameRate?: string) {
-    if (!frameRate) return this;
-    this.process.chainCmds.push(`fps=${frameRate}`);
-    return this;
-  }
-
   minVideoBitrate(bitrate?: string) {
     if (!bitrate) return this;
     this.process.chainCmds.push(`-minrate:v ${bitrate}`);
@@ -375,6 +369,18 @@ export class FFProcess {
     return this;
   }
 
+  fps(frameRate?: string) {
+    if (!frameRate) return this;
+    this.process.videoFilterCmds.push(`fps=${frameRate}`);
+    return this;
+  }
+
+  scaleToRef(ref?: { width: number; height: number }) {
+    if (!ref) return this;
+    this.process.videoFilterCmds.push(`scale2ref=${ref.width}:${ref.height}`);
+    return this;
+  }
+
   opacity(opacity?: number) {
     if (!opacity) return this;
     this.process.videoFilterCmds.push(`format=argb,geq=r='r(X,Y)':a='${opacity}*alpha(X,Y)'`);
@@ -436,6 +442,11 @@ export class FFProcess {
     return this;
   }
 
+  acrossFade(duration?: number) {
+    if (!duration) return this;
+    this.process.videoFilterCmds.push(`acrossfade=d=${duration}`);
+    return this;
+  }
   atrim(start: number, end: number, loop?: { count: number; rate?: number }) {
     if (!start && !end) return this;
     this.process.audioFilterCmds.push(`atrim=${start}:${end},asetpts=PTS-STARTPTS`);
