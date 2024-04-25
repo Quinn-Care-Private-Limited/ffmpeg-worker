@@ -375,7 +375,7 @@ export class FFProcess {
     return this;
   }
 
-  scaleToRef(ref?: { width: number; height: number }) {
+  scaleToRef(ref?: { width: string; height: string }) {
     if (!ref) return this;
     this.process.videoFilterCmds.push(`scale2ref=${ref.width}:${ref.height}`);
     return this;
@@ -447,6 +447,7 @@ export class FFProcess {
     this.process.videoFilterCmds.push(`acrossfade=d=${duration}`);
     return this;
   }
+
   atrim(start: number, end: number, loop?: { count: number; rate?: number }) {
     if (!start && !end) return this;
     this.process.audioFilterCmds.push(`atrim=${start}:${end},asetpts=PTS-STARTPTS`);
