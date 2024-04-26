@@ -444,7 +444,7 @@ export class FFProcess {
 
   acrossFade(duration?: number) {
     if (!duration) return this;
-    this.process.videoFilterCmds.push(`acrossfade=d=${duration}`);
+    this.process.audioFilterCmds.push(`acrossfade=d=${duration}`);
     return this;
   }
 
