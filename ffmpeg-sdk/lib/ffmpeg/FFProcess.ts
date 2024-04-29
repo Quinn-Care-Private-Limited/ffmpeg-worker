@@ -436,9 +436,18 @@ export class FFProcess {
     return this;
   }
 
+  settb(tb: string) {
+    this.process.videoFilterCmds.push(`settb=${tb}`);
+    return this;
+  }
+
   //audio filter cmds
   acopy() {
     this.process.audioFilterCmds.push(`acopy`);
+    return this;
+  }
+  asettb(tb: string) {
+    this.process.audioFilterCmds.push(`asettb=${tb}`);
     return this;
   }
 
