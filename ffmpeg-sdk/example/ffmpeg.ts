@@ -163,14 +163,20 @@ async function main() {
 
   const process = ffmpeg
     .process()
-    .input(["test/sources/source0.mp4", "test/sources/source3.png"])
-    .filterGraph(ffmpeg.process().vcopy().streamOut("v0"))
-    .filterGraph(ffmpeg.process().streamIn("1:v").opacity(0.3).streamOut("v1"))
-    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"]).overlay({ x: 0, y: 0 }).streamOut("vhstack"))
+    .input(["test/sources/source1.mp4", "test/sources/source2.mp4"])
+    .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(0, 2).atrim(0, 2).streamOut("v0", "a1"))
+    .filterGraph(ffmpeg.process().streamIn("1:v", "1:a").trim(0, 2).atrim(0, 2).streamOut("v1", "a1"))
+    .filterGraph(
+      ffmpeg
+        .process()
+        .streamIn(["v0", "v1"], ["a0", "a1"])
+        .transition({ type: "fade", duration: 2, offset: 0 })
+        .acrossFade(2)
+        .streamOut("vout", "aout"),
+    )
     .mux();
 
-  const cmd = ffmpeg.process().init(process).output("test/output.mp4").get();
-  console.log(cmd);
+  await ffmpeg.process().init(process).mux().output("test/output.mp4").run();
 
   // await ffmpeg
   //   .process()
