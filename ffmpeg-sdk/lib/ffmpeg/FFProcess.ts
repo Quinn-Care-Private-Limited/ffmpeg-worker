@@ -409,8 +409,8 @@ export class FFProcess {
     return this;
   }
 
-  transition({ type, duration, offset }: { type: string; duration: number; offset: number }) {
-    this.process.videoFilterCmds.push(`xfade=transition=${type}:duration=${duration}:offset=${offset}`);
+  transition({ type, duration, offset }: { type: string; duration: number; offset?: number }) {
+    this.process.videoFilterCmds.push(`xfade=transition=${type}:duration=${duration}:offset=${offset || 0}`);
     return this;
   }
 
@@ -451,7 +451,7 @@ export class FFProcess {
     return this;
   }
 
-  acrossFade(duration?: number) {
+  acrossfade(duration?: number) {
     if (!duration) return this;
     this.process.audioFilterCmds.push(`acrossfade=d=${duration}`);
     return this;
@@ -657,51 +657,4 @@ export class FFProcess {
       ...config,
     });
   }
-}
-
-async function getData() {
-  // Default options are marked with *
-  const response = await fetch(
-    "https://admin.shopify.com/api/shopify/quinn-store-dev?operation=SettingsActivityFeed&type=query",
-    {
-      method: "POST", // *GET, POST, PUT, DELETE, etc.
-      headers: {
-        "Caller-Pathname": "/store/quinn-store-dev/settings/activity",
-        "X-Csrf-Token": "L8tYom5r-gp2JSQ9SRPyGq1wgjEdo7eZIeX4",
-        "X-Shopify-Web-Force-Proxy": "1",
-      },
-      body: JSON.stringify({
-        operationName: "SettingsActivityFeed",
-        variables: {
-          first: 10,
-        },
-        query: `query SettingsActivityFeed($first: Int!) {
-            staffMember {   
-              id
-              privateData {
-                  activityFeed(first: $first) {
-                      pageInfo {
-                        hasNextPage
-                      }
-                      edges {
-                          ...SettingsActivity                        
-                        }
-                      }     
-                    } 
-                  }
-                }
-                fragment SettingsActivity on ActivityEdge {
-                  cursor  
-                  node {
-                        author
-                        createdAt
-                        messages
-                        attributed
-                      }
-              }`,
-      }),
-    },
-  );
-  const data = await response.json(); // parses JSON response into native JavaScript objects
-  console.log(data);
 }
