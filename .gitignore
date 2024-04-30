@@ -9,3 +9,7 @@ TRUNCATEDB.txt
 *.log.*
 terraform/.terraform*
 *.tfstate*
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
