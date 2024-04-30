@@ -163,14 +163,44 @@ async function main() {
 
   const process = ffmpeg
     .process()
-    .input(["test/sources/source0.mp4", "test/sources/source3.png"])
-    .filterGraph(ffmpeg.process().vcopy().streamOut("v0"))
-    .filterGraph(ffmpeg.process().streamIn("1:v").opacity(0.3).streamOut("v1"))
-    .filterGraph(ffmpeg.process().streamIn(["v0", "v1"]).overlay({ x: 0, y: 0 }).streamOut("vhstack"))
+    .input(["test/sources/source1.mp4", "test/sources/source2.mp4"])
+    .filterGraph(
+      ffmpeg.process().streamIn("0:v", "0:a").trim(0, 4).atrim(0, 4).settb("AVTB").asettb("AVTB").streamOut("v0", "a0"),
+    )
+    .filterGraph(
+      ffmpeg.process().streamIn("1:v", "1:a").trim(0, 4).atrim(0, 4).settb("AVTB").asettb("AVTB").streamOut("v1", "a1"),
+    )
+    .filterGraph(
+      ffmpeg
+        .process()
+        .streamIn(["v0", "v1"], ["a0", "a1"])
+        .transition({ type: "fade", duration: 4 })
+        .acrossfade(4 - 1)
+        .atrim(0, 4)
+        .streamOut("vout", "aout"),
+    )
     .mux();
 
-  const cmd = ffmpeg.process().init(process).output("test/output.mp4").get();
-  console.log(cmd);
+  await ffmpeg.process().init(process).audioCodec("aac").flag("pix_fmt", "yuv420p").output("test/output1.mp4").run();
+
+  // const process1 = ffmpeg
+  //   .process()
+  //   .input(["test/sources/source1.mp4", "test/sources/source2.mp4"])
+  //   .filterGraph(ffmpeg.process().streamIn("0:v", "0:a").trim(2, 4).atrim(2, 4).streamOut("v0", "a0"))
+  //   .filterGraph(ffmpeg.process().streamIn("1:v", "1:a").trim(2, 4).atrim(2, 4).streamOut("v1", "a1"))
+  //   .filterGraph(
+  //     ffmpeg
+  //       .process()
+  //       .streamIn(["v0", "v1"], ["a0", "a1"])
+  //       .transition({ type: "fade", duration: 2, offset: 0 })
+  //       .acrossFade(2)
+  //       .streamOut("vout", "aout"),
+  //   )
+  //   .mux();
+
+  // await ffmpeg.process().init(process1).flag("pix_fmt", "yuv420p").output("test/output2.mp4").run();
+
+  // await concat(["test/output1.mp4", "test/output2.mp4"], "test/output.mp4");
 
   // await ffmpeg
   //   .process()
@@ -236,6 +266,24 @@ async function main() {
   // });
   // console.log("Score: ", score);
   // console.log("Time taken: ", (Date.now() - currentTimeStamp) / 1000);
+}
+
+async function concat(inputFiles: string[], outputFile: string) {
+  const { path } = await files.path();
+  const extension = outputFile.split(".").pop();
+
+  const concatFileContent = inputFiles.map((item) => `file '${path}/${item}'`).join("\n");
+  const concatFilePath = outputFile.replace(`.${extension}`, ".txt");
+  await files.create(concatFilePath, concatFileContent);
+
+  await ffmpeg
+    .process()
+    .format("concat")
+    .flag("safe", "0")
+    .input(concatFilePath)
+    .codec("copy")
+    .output(outputFile)
+    .run();
 }
 
 main();

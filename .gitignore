@@ -13,3 +13,7 @@ video-sdk/xelp.json
 xelp-test-js
 video-sdk-test/*
 video-sdk-test
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store

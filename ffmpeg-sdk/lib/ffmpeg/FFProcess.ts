@@ -260,9 +260,9 @@ export class FFProcess {
 
   crop(crop?: { x: number | string; y: number | string; width: number | string; height: number | string }) {
     if (!crop) return this;
-    this.process.videoFilterCmds.push(`pad=ceil(iw/2)*2:ceil(ih/2)*2`);
+    this.process.videoFilterCmds.push(`pad='ceil(iw/2)*2:ceil(ih/2)*2'`);
     this.process.videoFilterCmds.push(
-      `crop=min(${crop.width},iw):min(${crop.height},ih):min(${crop.x},iw):min(${crop.y},ih)`,
+      `crop='min(${crop.width},iw):min(${crop.height},ih):min(${crop.x},iw):min(${crop.y},ih)'`,
     );
     return this;
   }
@@ -349,10 +349,10 @@ export class FFProcess {
     return this;
   }
 
-  resolution(resolution?: number | string) {
-    if (!resolution) return this;
-    const width = `'if(gt(iw,ih),-2,${resolution})'`;
-    const height = `'if(gt(iw,ih),${resolution},-2)'`;
+  resolution(value?: number | string, noUpscale?: boolean) {
+    if (!value) return this;
+    const width = !noUpscale ? `'if(gt(iw,ih),-2,${value})'` : `'if(gt(iw,ih),-2,min(${value},iw))'`;
+    const height = !noUpscale ? `'if(gt(iw,ih),${value},-2)'` : `'if(gt(iw,ih),min(${value},ih),-2)'`;
     this.process.videoFilterCmds.push(`scale=${width}:${height}`);
     return this;
   }
@@ -366,6 +366,18 @@ export class FFProcess {
   blur(radius?: number) {
     if (!radius) return this;
     this.process.videoFilterCmds.push(`boxblur=${radius}`);
+    return this;
+  }
+
+  fps(frameRate?: string) {
+    if (!frameRate) return this;
+    this.process.videoFilterCmds.push(`fps=${frameRate}`);
+    return this;
+  }
+
+  scaleToRef(ref?: { width: string; height: string }) {
+    if (!ref) return this;
+    this.process.videoFilterCmds.push(`scale2ref=${ref.width}:${ref.height}`);
     return this;
   }
 
@@ -397,8 +409,8 @@ export class FFProcess {
     return this;
   }
 
-  transition({ type, duration, offset }: { type: string; duration: number; offset: number }) {
-    this.process.videoFilterCmds.push(`xfade=transition=${type}:duration=${duration}:offset=${offset}`);
+  transition({ type, duration, offset }: { type: string; duration: number; offset?: number }) {
+    this.process.videoFilterCmds.push(`xfade=transition=${type}:duration=${duration}:offset=${offset || 0}`);
     return this;
   }
 
@@ -424,9 +436,24 @@ export class FFProcess {
     return this;
   }
 
+  settb(tb: string) {
+    this.process.videoFilterCmds.push(`settb=${tb}`);
+    return this;
+  }
+
   //audio filter cmds
   acopy() {
     this.process.audioFilterCmds.push(`acopy`);
+    return this;
+  }
+  asettb(tb: string) {
+    this.process.audioFilterCmds.push(`asettb=${tb}`);
+    return this;
+  }
+
+  acrossfade(duration?: number) {
+    if (!duration) return this;
+    this.process.audioFilterCmds.push(`acrossfade=d=${duration}`);
     return this;
   }
 
@@ -630,51 +657,4 @@ export class FFProcess {
       ...config,
     });
   }
-}
-
-async function getData() {
-  // Default options are marked with *
-  const response = await fetch(
-    "https://admin.shopify.com/api/shopify/quinn-store-dev?operation=SettingsActivityFeed&type=query",
-    {
-      method: "POST", // *GET, POST, PUT, DELETE, etc.
-      headers: {
-        "Caller-Pathname": "/store/quinn-store-dev/settings/activity",
-        "X-Csrf-Token": "L8tYom5r-gp2JSQ9SRPyGq1wgjEdo7eZIeX4",
-        "X-Shopify-Web-Force-Proxy": "1",
-      },
-      body: JSON.stringify({
-        operationName: "SettingsActivityFeed",
-        variables: {
-          first: 10,
-        },
-        query: `query SettingsActivityFeed($first: Int!) {
-            staffMember {   
-              id
-              privateData {
-                  activityFeed(first: $first) {
-                      pageInfo {
-                        hasNextPage
-                      }
-                      edges {
-                          ...SettingsActivity                        
-                        }
-                      }     
-                    } 
-                  }
-                }
-                fragment SettingsActivity on ActivityEdge {
-                  cursor  
-                  node {
-                        author
-                        createdAt
-                        messages
-                        attributed
-                      }
-              }`,
-      }),
-    },
-  );
-  const data = await response.json(); // parses JSON response into native JavaScript objects
-  console.log(data);
 }
