@@ -1,4 +1,6 @@
+import { writeFileSync } from "fs";
 import { Asset } from "../asset";
+import { CanvasObject } from "../canvas/canvas-object";
 import ClientKey from "../client-key";
 import Pipeline from "../pipeline";
 import { LamarRequest } from "../request";
@@ -91,7 +93,8 @@ export class Lamar extends LamarRequest {
     const inputs = this._getInputs().filter((input) => {
       return filters.some((filter) => filter.in.includes(input.id));
     }, []);
-    console.log(JSON.stringify({ options: payload, inputs, filters: uniqueFilters }, null, 2));
+    writeFileSync("filters.json", JSON.stringify(uniqueFilters, null, 2));
+    // console.log(JSON.stringify(filters, null, 2));
     // return this.request({
     //   data: {
     //     options: payload,
@@ -101,6 +104,15 @@ export class Lamar extends LamarRequest {
     //   url: "/asset/process-asset",
     //   method: "POST",
     // });
+  }
+
+  private getObjects(filters: Filter[]) {
+    const objects: CanvasObject[] = [];
+    filters.forEach((filter) => {
+      filter.in.forEach((input) => {
+        const video = this._videos.find((video) => video.uid == input);
+      });
+    });
   }
 
   private getFilters(targetVideo: Video) {

@@ -20,7 +20,8 @@ export type VideoOperationTypes =
   | "hstack"
   | "copy"
   | "pad"
-  | "transition";
+  | "transition"
+  | "object";
 
 type SplitScreen = { type: "splitscreen" };
 type Concat = { type: "concat" };

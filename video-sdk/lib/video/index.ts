@@ -1,7 +1,9 @@
+import { CanvasObject } from "../canvas/canvas-object";
 import { IVideo, LamarInput, VideoOperation } from "../types";
 import { LamarUtils } from "../util";
 export class Video {
   private _operations: VideoOperation[] = [];
+  private _objects: CanvasObject[] = [];
   private _source: IVideo & LamarInput;
   constructor(payload: IVideo & LamarInput) {
     this._source = payload;
@@ -73,6 +75,27 @@ export class Video {
     return this;
   }
 
+  addObject(
+    object: CanvasObject,
+    timing: {
+      start: number;
+      end?: number;
+    },
+  ) {
+    const input = this.getInputIdentifier();
+    this._operations.push({
+      type: "object",
+      params: {
+        ...object,
+        timing,
+      },
+      out: [input],
+      in: [this.getInputIdentifier()],
+      filterId: LamarUtils.generateRandomId(4),
+    });
+    return this;
+  }
+
   _getSource() {
     return this._source;
   }
@@ -83,6 +106,9 @@ export class Video {
   _getOutputIdentifier(): string {
     if (!this._operations.length) return this._source.uid;
     return this._operations[this._operations.length - 1].out[0];
+  }
+  _getObjects() {
+    return this._objects;
   }
 }
 

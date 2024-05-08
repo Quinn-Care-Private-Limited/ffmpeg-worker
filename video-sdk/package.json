@@ -5,7 +5,9 @@
   "scripts": {
     "build": "tsc",
     "deploy": "npm run build && npm version prerelease && npm publish --tag beta --access public",
-    "test": "ts-node examples/index.ts"
+    "test": "ts-node examples/index.ts",
+    "script": "ts-node examples/script.ts",
+    "canvas": "ts-node examples/canvas.ts"
   },
   "author": "Gulam Hussain",
   "license": "ISC",
@@ -16,9 +18,11 @@
     "tsconfig.json"
   ],
   "dependencies": {
-    "axios": "^1.6.7"
+    "axios": "^1.6.7",
+    "fabric": "^5.3.0"
   },
   "devDependencies": {
+    "@types/fabric": "^5.3.7",
     "@types/node": "17.0.25",
     "prettier": "2.6.2",
     "ts-node": "^10.9.1",
