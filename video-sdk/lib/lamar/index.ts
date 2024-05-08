@@ -93,25 +93,14 @@ export class Lamar extends LamarRequest {
     const inputs = this._getInputs().filter((input) => {
       return filters.some((filter) => filter.in.includes(input.id));
     }, []);
-    writeFileSync("filters.json", JSON.stringify(uniqueFilters, null, 2));
-    // console.log(JSON.stringify(filters, null, 2));
-    // return this.request({
-    //   data: {
-    //     options: payload,
-    //     inputs,
-    //     filters: uniqueFilters,
-    //   },
-    //   url: "/asset/process-asset",
-    //   method: "POST",
-    // });
-  }
-
-  private getObjects(filters: Filter[]) {
-    const objects: CanvasObject[] = [];
-    filters.forEach((filter) => {
-      filter.in.forEach((input) => {
-        const video = this._videos.find((video) => video.uid == input);
-      });
+    return this.request({
+      data: {
+        options: payload,
+        inputs,
+        filters: uniqueFilters,
+      },
+      url: "/asset/process-asset",
+      method: "POST",
     });
   }
 
