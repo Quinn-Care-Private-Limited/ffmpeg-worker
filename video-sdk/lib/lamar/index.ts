@@ -1,6 +1,4 @@
-import { writeFileSync } from "fs";
 import { Asset } from "../asset";
-import { CanvasObject } from "../canvas/canvas-object";
 import ClientKey from "../client-key";
 import Pipeline from "../pipeline";
 import { LamarRequest } from "../request";
