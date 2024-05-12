@@ -20,6 +20,7 @@ const checkSchema = z.object({
 const createFileSchema = z.object({
   path: z.string(),
   data: z.string().optional(),
+  encoding: z.enum(["utf8", "base64", "binary", "hex", "ascii", "ucs2"]).optional(),
 });
 
 const readFileSchema = z.object({
@@ -79,7 +80,7 @@ filesRoutes.post(`/check`, validateRequest(checkSchema), async (req: Request, re
 
 filesRoutes.post(`/create`, validateRequest(createFileSchema), async (req: Request, res: Response) => {
   try {
-    const { path, data } = req.body as z.infer<typeof createFileSchema>;
+    const { path, data, encoding } = req.body as z.infer<typeof createFileSchema>;
 
     if (data) {
       const dirPath = `${fsPath}/${path.split("/").slice(0, -1).join("/")}`;
@@ -88,7 +89,9 @@ filesRoutes.post(`/create`, validateRequest(createFileSchema), async (req: Reque
       if (!stat) {
         await fs.promises.mkdir(dirPath, { recursive: true });
       }
-      await fs.promises.writeFile(`${fsPath}/${path}`, data);
+      await fs.promises.writeFile(`${fsPath}/${path}`, data, {
+        encoding: encoding || "utf8",
+      });
     } else {
       await fs.promises.mkdir(`${fsPath}/${path}`, { recursive: true });
     }
