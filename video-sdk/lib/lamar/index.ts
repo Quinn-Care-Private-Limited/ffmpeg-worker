@@ -1,3 +1,4 @@
+import { writeFileSync } from "fs";
 import { Asset } from "../asset";
 import ClientKey from "../client-key";
 import Pipeline from "../pipeline";
@@ -91,6 +92,17 @@ export class Lamar extends LamarRequest {
     const inputs = this._getInputs().filter((input) => {
       return filters.some((filter) => filter.in.includes(input.id));
     }, []);
+    writeFileSync(
+      "filters.json",
+      JSON.stringify(
+        uniqueFilters.map((i) => {
+          const { params, ...rest } = i;
+          return rest;
+        }),
+        null,
+        2,
+      ),
+    );
     return this.request({
       data: {
         options: payload,

@@ -90,7 +90,7 @@ export class Video {
         timing,
       },
       out: [input],
-      in: [this.getInputIdentifier()],
+      in: [input],
       filterId: LamarUtils.generateRandomId(4),
     });
     return this;

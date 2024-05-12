@@ -35,7 +35,7 @@ import { Lamar } from "../lib/lamar";
     });
     const lamar = new Lamar({ apiKey: "test" });
     const video1 = lamar
-      .input({ id: "input1" })
+      .input({ id: "$0" })
       .addObject(circle, {
         start: 0,
         end: 4,
@@ -43,13 +43,15 @@ import { Lamar } from "../lib/lamar";
       .addObject(square, {
         start: 0,
         end: 1,
-      });
-    const video2 = lamar
-      .input({ id: "input2" })
-      .scale({ width: 100, height: 100 })
-      .addObject(text, { start: 9, end: 17 });
-    const video3 = lamar.concat(video1, video2);
-    await lamar.process(video3, { output: "mp4", handle: "t", name: "s" });
+      })
+      .trim({ start: 0, end: 4 })
+      .addObject(text, {
+        start: 0,
+        end: 4,
+      })
+      .scale({ width: 1920, height: 1080 });
+
+    await lamar.process(video1, { output: "mp4", handle: "t", name: "s" });
   } catch (e) {
     console.error(e);
   }
