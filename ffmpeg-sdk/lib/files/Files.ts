@@ -21,8 +21,8 @@ export class Files {
     return request<{ isExists: boolean; isDirectory?: boolean }>(this.axios, "/files/check", { path });
   }
 
-  create(path: string, data?: string) {
-    return request<{}>(this.axios, "/files/create", { path, data });
+  create(path: string, data?: string, encoding?: BufferEncoding) {
+    return request<{}>(this.axios, "/files/create", { path, data, encoding: encoding || "utf-8" });
   }
 
   read(path: string) {
