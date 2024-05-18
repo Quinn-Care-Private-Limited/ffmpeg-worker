@@ -463,6 +463,19 @@ export class FFProcess {
     return this;
   }
 
+  chromaKey({ color, similarity, blend }: { color: string; similarity?: number; blend?: number }) {
+    if (!color) return this;
+    this.process.videoFilterCmds.push(
+      `chromakey=color=${color}:similarity=${similarity || 0.01}:blend=${blend || 0.0}`,
+    );
+    return this;
+  }
+
+  negate() {
+    this.process.videoFilterCmds.push(`negate`);
+    return this;
+  }
+
   concat(count: number) {
     this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=1`);
     return this;
