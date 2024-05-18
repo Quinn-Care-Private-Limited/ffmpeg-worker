@@ -466,8 +466,13 @@ export class FFProcess {
   chromaKey({ color, similarity, blend }: { color: string; similarity?: number; blend?: number }) {
     if (!color) return this;
     this.process.videoFilterCmds.push(
-      `chromakey=color=${color}:similarity=${similarity || 0.01}:blend=${blend || 0.0},negate`,
+      `chromakey=color=${color}:similarity=${similarity || 0.01}:blend=${blend || 0.0}`,
     );
+    return this;
+  }
+
+  negate() {
+    this.process.videoFilterCmds.push(`negate`);
     return this;
   }
 
