@@ -33,9 +33,9 @@ import { Lamar } from "../lib/lamar";
       position: { x: 100, y: 100 },
       fontSize: 20,
     });
-    const lamar = new Lamar({ apiKey: "test" });
+    const lamar = new Lamar({ apiKey: "7b61d080d7139f17e23663cfa57e6f" });
     const video1 = lamar
-      .input({ id: "$0" })
+      .input({ id: "clv398rud0001a1jv8713wcwl" })
       .addObject(circle, {
         start: 0,
         end: 4,

@@ -92,17 +92,7 @@ export class Lamar extends LamarRequest {
     const inputs = this._getInputs().filter((input) => {
       return filters.some((filter) => filter.in.includes(input.id));
     }, []);
-    writeFileSync(
-      "filters.json",
-      JSON.stringify(
-        uniqueFilters.map((i) => {
-          const { params, ...rest } = i;
-          return rest;
-        }),
-        null,
-        2,
-      ),
-    );
+    writeFileSync("filters.json", JSON.stringify(uniqueFilters, null, 2));
     return this.request({
       data: {
         options: payload,

@@ -420,8 +420,12 @@ export class FFProcess {
     return this;
   }
 
-  trim(start: number, end: number) {
-    this.process.videoFilterCmds.push(`trim=${start}:${end}`);
+  trim(start: number, end?: number) {
+    if (end !== undefined) {
+      this.process.videoFilterCmds.push(`trim=start=${start}:end=${end}`);
+    } else {
+      this.process.videoFilterCmds.push(`trim=start=${start}`);
+    }
     this.process.videoFilterCmds.push(`setpts=PTS-STARTPTS`);
     return this;
   }

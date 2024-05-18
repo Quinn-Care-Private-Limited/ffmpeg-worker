@@ -21,7 +21,8 @@ export type VideoOperationTypes =
   | "copy"
   | "pad"
   | "transition"
-  | "object";
+  | "object"
+  | "overlay";
 
 type SplitScreen = { type: "splitscreen" };
 type Concat = { type: "concat" };
