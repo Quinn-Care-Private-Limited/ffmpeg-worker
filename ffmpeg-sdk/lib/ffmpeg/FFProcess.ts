@@ -476,6 +476,11 @@ export class FFProcess {
     return this;
   }
 
+  alphamerge() {
+    this.process.videoFilterCmds.push(`alphamerge`);
+    return this;
+  }
+
   concat(count: number) {
     this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=1`);
     return this;

@@ -1,6 +1,6 @@
 {
   "name": "@quinninc/ffmpeg-sdk",
-  "version": "0.1.59",
+  "version": "0.1.61",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
