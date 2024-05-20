@@ -3,7 +3,7 @@ import path from "path";
 import { Filter } from "../lib/types";
 
 const filepath = path.join(__dirname, "../filters.json");
-const updated = path.join(__dirname, "../update.json");
+const updated = path.join(__dirname, "canvases.json");
 
 const data: Filter[] = JSON.parse(readFileSync(filepath, "utf-8"));
 const objectFilters: Filter[] = data.filter((i) => i.type == "object");
@@ -98,14 +98,4 @@ function findOriginalSourceRecursively(input: string, data: Filter[]): string | 
   }
 }
 
-writeFileSync(
-  updated,
-  JSON.stringify(
-    {
-      filters: data.filter((i) => i.type != "object"),
-      canvases,
-    },
-    null,
-    2,
-  ),
-);
+writeFileSync(updated, JSON.stringify(canvases, null, 2));
