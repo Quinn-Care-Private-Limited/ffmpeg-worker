@@ -9,7 +9,8 @@ import TagKey from "../tag-key";
 import { Filter, GroupVideo, LamarInput, LamarProcess, SingleVideo, XelpVidoes } from "../types";
 import { LamarUtils } from "../util";
 import { Video } from "../video";
-type Input = { id: string };
+import Canvas from "../canvas";
+type Input = { id: string; type: "source" | "canvas"; objects?: any; properties?: any };
 export class Lamar extends LamarRequest {
   private _videos: XelpVidoes[];
   private statusChecker: JobStatusCheck;
@@ -58,6 +59,15 @@ export class Lamar extends LamarRequest {
      */
     const video = new Video({ uid, type: "intermediate", sequence: this._videos.length, id: "" });
     this._videos.push({ type: "group", videos, operationType: "vstack", uid, referenceVideo: video });
+    return video;
+  }
+  overlay(...videos: (Video | Canvas)[]) {
+    const uid = LamarUtils.generateRandomId(4);
+    /**
+     * Create a reference video for the group operation
+     */
+    const video = new Video({ uid, type: "intermediate", sequence: this._videos.length, id: "" });
+    this._videos.push({ type: "group", videos, operationType: "overlay", uid, referenceVideo: video });
     return video;
   }
 
@@ -120,17 +130,25 @@ export class Lamar extends LamarRequest {
       data.push({
         type: video.operationType,
         params: {},
-        in: videos.map((video) => video._getOutputIdentifier()),
+        in: videos.map((video) => {
+          if (video instanceof Canvas) {
+            return video.getId();
+          }
+          return video._getOutputIdentifier();
+        }),
         out: [referenceVideo._getSource().uid],
         filterId: LamarUtils.generateRandomId(4),
       });
       for (let i = 0; i < videos.length; i++) {
-        const source = videos[i]._getSource();
-        if (source.type == "source") {
-          data.push(...this._getSingleVideoOperation(videos[i]));
-        } else {
-          const operations = this._getMultiVideoOperation(videos[i]);
-          data.push(...operations.flat());
+        if (videos[i] instanceof Video) {
+          const video = videos[i] as Video;
+          const source = video._getSource();
+          if (source.type == "source") {
+            data.push(...this._getSingleVideoOperation(videos[i] as Video));
+          } else {
+            const operations = this._getMultiVideoOperation(videos[i] as Video);
+            data.push(...operations.flat());
+          }
         }
       }
       return data;
@@ -146,9 +164,24 @@ export class Lamar extends LamarRequest {
   }
   private _getInputs(): Input[] {
     const singleVideos = this._videos.filter((video) => video.type == "video") as SingleVideo[];
-    return singleVideos.map((video) => {
-      return { id: video.video._getSource().id };
+    const groupedVideos = this._videos.filter((video) => video.type == "group") as GroupVideo[];
+    const canvases: Input[] = [];
+    groupedVideos.forEach((group) => {
+      group.videos.forEach((video) => {
+        if (video instanceof Canvas) {
+          canvases.push({
+            id: video.getId(),
+            type: "canvas",
+            objects: video.getObjects(),
+            properties: video.getProperties(),
+          });
+        }
+      });
     });
+    const singleVideoId: Input[] = singleVideos.map((video) => {
+      return { id: video.video._getSource().id, type: "source" };
+    });
+    return singleVideoId.concat(canvases);
   }
 
   subscribe(jobId: string, callback: (data: any) => void) {

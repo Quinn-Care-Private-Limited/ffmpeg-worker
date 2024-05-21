@@ -1,7 +1,6 @@
 export type CanvasProperties = {
   height: number;
   width: number;
-  duration: number;
 };
 export type CanvasRectangle = {
   fill?: string;

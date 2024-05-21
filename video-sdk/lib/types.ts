@@ -1,3 +1,4 @@
+import Canvas from "./canvas";
 import { VideoClassType } from "./video";
 
 export type IVideo = {
@@ -54,8 +55,8 @@ export type CombinedOperation = {
 };
 export type GroupVideo = {
   type: "group";
-  videos: VideoClassType[];
-  operationType: "concat" | "vstack" | "hstack" | "transition";
+  videos: (VideoClassType | Canvas)[];
+  operationType: "concat" | "vstack" | "hstack" | "transition" | "overlay";
   referenceVideo: VideoClassType;
   uid: string;
 };
