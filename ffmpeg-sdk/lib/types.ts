@@ -73,7 +73,6 @@ export interface IFfProcess {
 }
 
 export type ResponseCallback = (payload: IResponsePayload) => void;
-
 export type FFProcessInput = {
   path: string;
   frameRate: number;
