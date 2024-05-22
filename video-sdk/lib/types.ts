@@ -59,8 +59,9 @@ export type GroupVideo = {
   operationType: "concat" | "vstack" | "hstack" | "transition" | "overlay";
   referenceVideo: VideoClassType;
   uid: string;
+  params?: any;
 };
-export type SingleVideo = { type: "video"; video: VideoClassType; uid: string };
+export type SingleVideo = { type: "video"; video: VideoClassType; uid: string; params?: any };
 
 export type XelpVidoes = {} & (GroupVideo | SingleVideo);
 
@@ -85,4 +86,12 @@ export type Filter = {
   out: string[];
   in: string[];
   filterId: string;
+};
+
+export type OverlayFilterParams = {
+  x: number;
+  y: number;
+  start?: number;
+  end?: number;
+  shortest?: number;
 };

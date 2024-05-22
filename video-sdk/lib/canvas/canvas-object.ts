@@ -1,9 +1,9 @@
-import { CanvasObjectProperties, CanvasObjectAnimation } from "./types";
+import { CanvasObjectAnimation, CanvasObjectType } from "./types";
 
 export class CanvasObject {
-  private properties: CanvasObjectProperties;
+  private properties: CanvasObjectType;
   private animations: CanvasObjectAnimation[] = [];
-  constructor(props: CanvasObjectProperties) {
+  constructor(props: CanvasObjectType) {
     this.properties = props;
     return this;
   }

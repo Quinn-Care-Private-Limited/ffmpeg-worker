@@ -1,20 +1,19 @@
 import { LamarUtils } from "../util";
 import { CanvasObject } from "./canvas-object";
-import { CanvasObjectProperties, CanvasProperties } from "./types";
+import { CanvasProperties } from "./types";
 
 export default class Canvas {
   private properties: CanvasProperties;
   private objects: CanvasObject[] = [];
   private id: string;
-  constructor({ height, width }: CanvasProperties) {
-    this.properties = { height, width };
+  constructor(props: CanvasProperties) {
+    this.properties = props;
     this.id = LamarUtils.generateRandomId(4);
   }
 
-  addObject(object: CanvasObjectProperties) {
-    const ob = new CanvasObject(object);
-    this.objects.push(ob);
-    return ob;
+  addObject(object: CanvasObject) {
+    this.objects.push(object);
+    return this;
   }
   getObjects() {
     return this.objects;

@@ -6,7 +6,7 @@ import { LamarRequest } from "../request";
 import { JobStatusCheck } from "../status-check";
 import Tag from "../tag";
 import TagKey from "../tag-key";
-import { Filter, GroupVideo, LamarInput, LamarProcess, SingleVideo, XelpVidoes } from "../types";
+import { Filter, GroupVideo, LamarInput, LamarProcess, OverlayFilterParams, SingleVideo, XelpVidoes } from "../types";
 import { LamarUtils } from "../util";
 import { Video } from "../video";
 import Canvas from "../canvas";
@@ -61,13 +61,13 @@ export class Lamar extends LamarRequest {
     this._videos.push({ type: "group", videos, operationType: "vstack", uid, referenceVideo: video });
     return video;
   }
-  overlay(...videos: (Video | Canvas)[]) {
+  overlay({ videos, params }: { videos: (Video | Canvas)[]; params: OverlayFilterParams }) {
     const uid = LamarUtils.generateRandomId(4);
     /**
      * Create a reference video for the group operation
      */
     const video = new Video({ uid, type: "intermediate", sequence: this._videos.length, id: "" });
-    this._videos.push({ type: "group", videos, operationType: "overlay", uid, referenceVideo: video });
+    this._videos.push({ type: "group", videos, operationType: "overlay", uid, referenceVideo: video, params });
     return video;
   }
 
@@ -102,7 +102,14 @@ export class Lamar extends LamarRequest {
     const inputs = this._getInputs().filter((input) => {
       return filters.some((filter) => filter.in.includes(input.id));
     }, []);
-    writeFileSync("filters.json", JSON.stringify(uniqueFilters, null, 2));
+    // writeFileSync(
+    //   "filters.json",
+    //   JSON.stringify(
+    //     inputs.filter((i) => i.type == "canvas"),
+    //     null,
+    //     2,
+    //   ),
+    // );
     return this.request({
       data: {
         options: payload,
@@ -129,7 +136,7 @@ export class Lamar extends LamarRequest {
       const { videos, referenceVideo } = video;
       data.push({
         type: video.operationType,
-        params: {},
+        params: video.params,
         in: videos.map((video) => {
           if (video instanceof Canvas) {
             return video.getId();
