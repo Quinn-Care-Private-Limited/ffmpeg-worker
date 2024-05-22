@@ -1,4 +1,4 @@
-import { IClientCredentials, IFfProcess, ResponseCallback } from "../types";
+import { FFProcessInput, IClientCredentials, IFfProcess, ResponseCallback } from "../types";
 import { AxiosInstance } from "axios";
 import { getAxiosInstance, request, requestWithResponseAbort } from "../request";
 
@@ -46,11 +46,24 @@ export class FFProcess {
     return this;
   }
 
-  input(path: string | string[]) {
+  input(path: string | string[] | FFProcessInput | FFProcessInput[]) {
     if (Array.isArray(path)) {
-      path.forEach((p) => this.process.chainCmds.push(`-i ${p}`));
+      if (typeof path[0] === "string") {
+        path.forEach((p) => this.process.chainCmds.push(`-i ${p}`));
+      } else {
+        const paths = path as Array<{ path: string; frameRate: number }>;
+        paths.forEach((p) => {
+          if (p.frameRate) this.process.chainCmds.push(`-r ${p.frameRate}`);
+          this.process.chainCmds.push(`-i ${p.path}`);
+        });
+      }
     } else {
-      this.process.chainCmds.push(`-i ${path}`);
+      if (typeof path === "object") {
+        if (path.frameRate) this.process.chainCmds.push(`-r ${path.frameRate}`);
+        this.process.chainCmds.push(`-i ${path.path}`);
+      } else {
+        this.process.chainCmds.push(`-i ${path}`);
+      }
     }
     return this;
   }
