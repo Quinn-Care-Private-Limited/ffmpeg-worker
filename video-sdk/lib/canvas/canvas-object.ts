@@ -3,6 +3,7 @@ import { CanvasObjectAnimation, CanvasObjectType } from "./types";
 export class CanvasObject {
   private properties: CanvasObjectType;
   private animations: CanvasObjectAnimation[] = [];
+  private destroyAt: number | undefined = undefined;
   constructor(props: CanvasObjectType) {
     this.properties = props;
     return this;
@@ -15,5 +16,16 @@ export class CanvasObject {
 
   getAnimations() {
     return this.animations;
+  }
+  getDestroyAt() {
+    return this.destroyAt;
+  }
+  getProperties() {
+    return this.properties;
+  }
+
+  destroy(timestamp: number) {
+    this.destroyAt = timestamp;
+    return this;
   }
 }

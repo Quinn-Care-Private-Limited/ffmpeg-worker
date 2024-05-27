@@ -102,23 +102,23 @@ export class Lamar extends LamarRequest {
     const inputs = this._getInputs().filter((input) => {
       return filters.some((filter) => filter.in.includes(input.id));
     }, []);
-    // writeFileSync(
-    //   "filters.json",
-    //   JSON.stringify(
-    //     inputs.filter((i) => i.type == "canvas"),
-    //     null,
-    //     2,
-    //   ),
-    // );
-    return this.request({
-      data: {
-        options: payload,
-        inputs,
-        filters: uniqueFilters,
-      },
-      url: "/asset/process-asset",
-      method: "POST",
-    });
+    writeFileSync(
+      "filters.json",
+      JSON.stringify(
+        inputs.filter((i) => i.type == "canvas"),
+        null,
+        2,
+      ),
+    );
+    // return this.request({
+    //   data: {
+    //     options: payload,
+    //     inputs,
+    //     filters: uniqueFilters,
+    //   },
+    //   url: "/asset/process-asset",
+    //   method: "POST",
+    // });
   }
 
   private getFilters(targetVideo: Video) {
@@ -179,7 +179,15 @@ export class Lamar extends LamarRequest {
           canvases.push({
             id: video.getId(),
             type: "canvas",
-            objects: video.getObjects(),
+            objects: video.getObjects().map((object) => {
+              return {
+                properties: {
+                  ...object.getProperties(),
+                  destroyAt: object.getDestroyAt(),
+                },
+                animations: object.getAnimations(),
+              };
+            }),
             properties: video.getProperties(),
           });
         }

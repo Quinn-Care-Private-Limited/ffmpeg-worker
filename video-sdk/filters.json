@@ -1,62 +1,55 @@
 [
   {
-    "id": "dyn-sx0r",
+    "id": "dyn-piue",
     "type": "canvas",
     "objects": [
       {
-        "animations": [
-          {
-            "type": "move",
-            "duration": 5,
-            "moveToX": 500,
-            "moveToY": 500,
-            "delay": 0
-          }
-        ],
         "properties": {
           "type": "circle",
-          "radius": 30,
+          "radius": 50,
           "position": {
             "x": 100,
             "y": 100
           },
-          "timeline": {
-            "start": 0,
-            "end": 3
-          },
-          "fill": "red"
-        }
-      },
-      {
+          "timestamp": 0,
+          "fill": "green"
+        },
         "animations": [
           {
             "type": "move",
-            "duration": 5,
-            "moveToX": 800,
-            "moveToY": 500,
-            "delay": 0
-          }
-        ],
-        "properties": {
-          "type": "text",
-          "text": "Hello World",
-          "fontSize": 50,
-          "fill": "yellow",
-          "position": {
-            "x": 300,
-            "y": 100
+            "startAt": 0,
+            "endAt": 3,
+            "moveToX": 980,
+            "moveToY": 100
           },
-          "timeline": {
-            "start": 3,
-            "end": 5
+          {
+            "type": "move",
+            "startAt": 3,
+            "endAt": 6,
+            "moveToX": 980,
+            "moveToY": 1820
+          },
+          {
+            "type": "move",
+            "startAt": 6,
+            "endAt": 9,
+            "moveToX": 100,
+            "moveToY": 1820
+          },
+          {
+            "type": "move",
+            "startAt": 9,
+            "endAt": 12,
+            "moveToX": 100,
+            "moveToY": 100
           }
-        }
+        ]
       }
     ],
     "properties": {
-      "height": 1080,
-      "width": 1920,
-      "duration": 5
+      "width": 1080,
+      "height": 1920,
+      "duration": 12
     }
   }
 ]

@@ -38,14 +38,10 @@ export type CanvasObjectType = {
   type: "rectangle" | "circle" | "text";
   position: CanvasObjectPosition;
   opacity?: number;
-  timeline: {
-    start: number;
-    end: number;
-  };
+  timestamp: number;
 } & (CanvasRectangle | CanvasCircle | CanvasText);
 export type MoveAnimation = {
   type: "move";
-  duration: number;
   moveToX?: number;
   moveToY?: number;
 };
@@ -74,8 +70,8 @@ export type RotateAnimation = {
 
 export type CanvasObjectAnimation = {
   type: "move" | "fade" | "spin" | "scale" | "rotate";
-  delay: number;
-  duration: number;
+  startAt: number;
+  endAt: number;
 } & (MoveAnimation | FadeAnimation | SpinAnimation | ScaleAnimation | RotateAnimation);
 
 export type CanvasType = {
