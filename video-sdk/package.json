@@ -8,7 +8,7 @@
     "test": "ts-node examples/index.ts",
     "script": "ts-node examples/script.ts",
     "canvas": "ts-node examples/canvas.ts",
-    "all": "yarn test && yarn script && yarn canvas"
+    "all": "yarn test && yarn canvas"
   },
   "author": "Gulam Hussain",
   "license": "ISC",

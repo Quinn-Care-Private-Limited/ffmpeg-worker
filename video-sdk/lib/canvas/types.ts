@@ -58,6 +58,7 @@ export type FadeAnimation = {
 
 export type SpinAnimation = {
   type: "spin";
+  speed: number;
 };
 export type ScaleAnimation = {
   type: "scale";
