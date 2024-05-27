@@ -1,6 +1,6 @@
 {
   "name": "@quinninc/lamar-server",
-  "version": "0.0.1-beta.5",
+  "version": "0.0.1-beta.6",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
