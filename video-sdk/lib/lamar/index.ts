@@ -91,16 +91,15 @@ export class Lamar extends LamarRequest {
     const inputs = this._getInputs().filter((input) => {
       return filters.some((filter) => filter.in.includes(input.id));
     }, []);
-    console.log(JSON.stringify({ options: payload, inputs, filters: uniqueFilters }, null, 2));
-    // return this.request({
-    //   data: {
-    //     options: payload,
-    //     inputs,
-    //     filters: uniqueFilters,
-    //   },
-    //   url: "/asset/process-asset",
-    //   method: "POST",
-    // });
+    return this.request({
+      data: {
+        options: payload,
+        inputs,
+        filters: uniqueFilters,
+      },
+      url: "/asset/process-asset",
+      method: "POST",
+    });
   }
 
   private getFilters(targetVideo: Video) {
