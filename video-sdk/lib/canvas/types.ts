@@ -67,12 +67,18 @@ export type RotateAnimation = {
   startAngle?: number;
   endAngle?: number;
 };
+export type ColorAnimation = {
+  type: "color";
+  startColor: string;
+  endColor: string;
+};
 
 export type CanvasObjectAnimation = {
-  type: "move" | "fade" | "spin" | "scale" | "rotate";
+  type: "move" | "fade" | "spin" | "scale" | "rotate" | "color";
   startAt: number;
   endAt: number;
-} & (MoveAnimation | FadeAnimation | SpinAnimation | ScaleAnimation | RotateAnimation);
+  timing?: "ease-in" | "ease-out" | "ease-in-out" | "linear";
+} & (MoveAnimation | FadeAnimation | SpinAnimation | ScaleAnimation | RotateAnimation | ColorAnimation);
 
 export type CanvasType = {
   properties: CanvasProperties;
