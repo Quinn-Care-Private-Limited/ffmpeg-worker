@@ -1,11 +1,21 @@
 export type LamarCreateAsset = {
-  pipelineIds?: string[];
+  pipelineDetails?: PipelineDetail[];
   handle: string;
   name: string;
   contentType: string;
   extension: string;
   type: "IMAGE" | "VIDEO";
   origin: string;
+  skipPipelines?: Boolean;
+};
+
+type PipelineDetail = {
+  pipelineId: string;
+  assetHandle?: string;
+  assetPath?: string;
+  keepParentPath?: boolean;
+  parentPipelineId?: string;
+  parentAssetId?: string;
 };
 
 export type LamarCreateAssetResponse = {

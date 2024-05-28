@@ -110,15 +110,15 @@ export class Lamar extends LamarRequest {
         2,
       ),
     );
-    // return this.request({
-    //   data: {
-    //     options: payload,
-    //     inputs,
-    //     filters: uniqueFilters,
-    //   },
-    //   url: "/asset/process-asset",
-    //   method: "POST",
-    // });
+    return this.request({
+      data: {
+        options: payload,
+        inputs,
+        filters: uniqueFilters,
+      },
+      url: "/asset/process-asset",
+      method: "POST",
+    });
   }
 
   private getFilters(targetVideo: Video) {
