@@ -1,4 +1,4 @@
-import { IClientCredentials, IFfProcess, ResponseCallback } from "../types";
+import { FFProcessInput, IClientCredentials, IFfProcess, ResponseCallback } from "../types";
 import { AxiosInstance } from "axios";
 import { getAxiosInstance, request, requestWithResponseAbort } from "../request";
 
@@ -46,11 +46,24 @@ export class FFProcess {
     return this;
   }
 
-  input(path: string | string[]) {
+  input(path: string | string[] | FFProcessInput | FFProcessInput[]) {
     if (Array.isArray(path)) {
-      path.forEach((p) => this.process.chainCmds.push(`-i ${p}`));
+      if (typeof path[0] === "string") {
+        path.forEach((p) => this.process.chainCmds.push(`-i ${p}`));
+      } else {
+        const paths = path as Array<{ path: string; frameRate: number }>;
+        paths.forEach((p) => {
+          if (p.frameRate) this.process.chainCmds.push(`-r ${p.frameRate}`);
+          this.process.chainCmds.push(`-i ${p.path}`);
+        });
+      }
     } else {
-      this.process.chainCmds.push(`-i ${path}`);
+      if (typeof path === "object") {
+        if (path.frameRate) this.process.chainCmds.push(`-r ${path.frameRate}`);
+        this.process.chainCmds.push(`-i ${path.path}`);
+      } else {
+        this.process.chainCmds.push(`-i ${path}`);
+      }
     }
     return this;
   }
@@ -225,6 +238,12 @@ export class FFProcess {
     return this;
   }
 
+  pixFmt(format?: string) {
+    if (!format) return this;
+    this.process.chainCmds.push(`-pix_fmt ${format}`);
+    return this;
+  }
+
   muted(val?: boolean) {
     if (!val) return this;
     this.process.chainCmds.push(`-an`);
@@ -258,11 +277,17 @@ export class FFProcess {
     return this;
   }
 
+  vfilterCmd(cmd?: string) {
+    if (!cmd) return this;
+    this.process.videoFilterCmds.push(cmd);
+    return this;
+  }
+
   crop(crop?: { x: number | string; y: number | string; width: number | string; height: number | string }) {
     if (!crop) return this;
-    this.process.videoFilterCmds.push(`pad=ceil(iw/2)*2:ceil(ih/2)*2`);
+    this.process.videoFilterCmds.push(`pad='ceil(iw/2)*2:ceil(ih/2)*2'`);
     this.process.videoFilterCmds.push(
-      `crop=min(${crop.width},iw):min(${crop.height},ih):min(${crop.x},iw):min(${crop.y},ih)`,
+      `crop='min(${crop.width},iw):min(${crop.height},ih):min(${crop.x},iw):min(${crop.y},ih)'`,
     );
     return this;
   }
@@ -276,6 +301,12 @@ export class FFProcess {
   ass(file?: string) {
     if (!file) return this;
     this.process.videoFilterCmds.push(`ass=${file}`);
+    return this;
+  }
+
+  vformat(type?: string) {
+    if (!type) return this;
+    this.process.videoFilterCmds.push(`format=${type}`);
     return this;
   }
 
@@ -349,10 +380,10 @@ export class FFProcess {
     return this;
   }
 
-  resolution(resolution?: number | string) {
-    if (!resolution) return this;
-    const width = `'if(gt(iw,ih),-2,${resolution})'`;
-    const height = `'if(gt(iw,ih),${resolution},-2)'`;
+  resolution(value?: number | string, noUpscale?: boolean) {
+    if (!value) return this;
+    const width = !noUpscale ? `'if(gt(iw,ih),-2,${value})'` : `'if(gt(iw,ih),-2,min(${value},iw))'`;
+    const height = !noUpscale ? `'if(gt(iw,ih),${value},-2)'` : `'if(gt(iw,ih),min(${value},ih),-2)'`;
     this.process.videoFilterCmds.push(`scale=${width}:${height}`);
     return this;
   }
@@ -369,6 +400,27 @@ export class FFProcess {
     return this;
   }
 
+  fade({ type, duration, startTime, color }: { type: string; duration: number; startTime?: number; color?: string }) {
+    let cmd = `fade=t=${type}:d=${duration}`;
+    if (startTime) cmd += `:st=${startTime}`;
+    if (color) cmd += `:color=${color}`;
+
+    this.process.videoFilterCmds.push(cmd);
+    return this;
+  }
+
+  fps(frameRate?: string) {
+    if (!frameRate) return this;
+    this.process.videoFilterCmds.push(`fps=${frameRate}`);
+    return this;
+  }
+
+  scaleToRef(ref?: { width: string; height: string }) {
+    if (!ref) return this;
+    this.process.videoFilterCmds.push(`scale2ref=${ref.width}:${ref.height}`);
+    return this;
+  }
+
   opacity(opacity?: number) {
     if (!opacity) return this;
     this.process.videoFilterCmds.push(`format=argb,geq=r='r(X,Y)':a='${opacity}*alpha(X,Y)'`);
@@ -381,9 +433,19 @@ export class FFProcess {
     return this;
   }
 
-  trim(start: number, end: number) {
-    this.process.videoFilterCmds.push(`trim=${start}:${end}`);
+  trim(start: number, end?: number) {
+    if (end !== undefined) {
+      this.process.videoFilterCmds.push(`trim=start=${start}:end=${end}`);
+    } else {
+      this.process.videoFilterCmds.push(`trim=start=${start}`);
+    }
     this.process.videoFilterCmds.push(`setpts=PTS-STARTPTS`);
+    return this;
+  }
+
+  speed(speed?: number) {
+    if (!speed) return this;
+    this.process.videoFilterCmds.push(`setpts=${1 / speed}*PTS`);
     return this;
   }
 
@@ -394,6 +456,11 @@ export class FFProcess {
 
   hstack(count: number, shortest?: boolean) {
     this.process.videoFilterCmds.push(`hstack=${count}:shortest=${shortest ? 1 : 0}`);
+    return this;
+  }
+
+  transition({ type, duration, offset }: { type: string; duration: number; offset?: number }) {
+    this.process.videoFilterCmds.push(`xfade=transition=${type}:duration=${duration}:offset=${offset || 0}`);
     return this;
   }
 
@@ -409,6 +476,24 @@ export class FFProcess {
     return this;
   }
 
+  chromaKey({ color, similarity, blend }: { color: string; similarity?: number; blend?: number }) {
+    if (!color) return this;
+    this.process.videoFilterCmds.push(
+      `chromakey=color=${color}:similarity=${similarity || 0.01}:blend=${blend || 0.0}`,
+    );
+    return this;
+  }
+
+  negate() {
+    this.process.videoFilterCmds.push(`negate`);
+    return this;
+  }
+
+  alphamerge() {
+    this.process.videoFilterCmds.push(`alphamerge`);
+    return this;
+  }
+
   concat(count: number) {
     this.process.videoFilterCmds.push(`concat=n=${count}:v=1:a=1`);
     return this;
@@ -419,9 +504,33 @@ export class FFProcess {
     return this;
   }
 
+  settb(tb: string) {
+    this.process.videoFilterCmds.push(`settb=${tb}`);
+    return this;
+  }
+
   //audio filter cmds
   acopy() {
     this.process.audioFilterCmds.push(`acopy`);
+    return this;
+  }
+
+  asettb(tb: string) {
+    this.process.audioFilterCmds.push(`asettb=${tb}`);
+    return this;
+  }
+
+  afade({ type, duration, startTime }: { type: string; duration: number; startTime?: number }) {
+    let cmd = `afade=t=${type}:d=${duration}`;
+    if (startTime) cmd += `:st=${startTime}`;
+
+    this.process.audioFilterCmds.push(cmd);
+    return this;
+  }
+
+  acrossfade(duration?: number) {
+    if (!duration) return this;
+    this.process.audioFilterCmds.push(`acrossfade=d=${duration}`);
     return this;
   }
 
@@ -431,6 +540,12 @@ export class FFProcess {
     if (loop) {
       this.aloop({ count: loop.count, duration: end - start, rate: loop.rate });
     }
+    return this;
+  }
+
+  atempo(tempo?: number) {
+    if (!tempo) return this;
+    this.process.audioFilterCmds.push(`atempo=${tempo}`);
     return this;
   }
 
@@ -485,6 +600,12 @@ export class FFProcess {
 
   aconcat(count: number) {
     this.process.audioFilterCmds.push(`concat=n=${count}:v=0:a=1`);
+    return this;
+  }
+
+  afilterCmd(cmd?: string) {
+    if (!cmd) return this;
+    this.process.audioFilterCmds.push(cmd);
     return this;
   }
 
@@ -625,51 +746,4 @@ export class FFProcess {
       ...config,
     });
   }
-}
-
-async function getData() {
-  // Default options are marked with *
-  const response = await fetch(
-    "https://admin.shopify.com/api/shopify/quinn-store-dev?operation=SettingsActivityFeed&type=query",
-    {
-      method: "POST", // *GET, POST, PUT, DELETE, etc.
-      headers: {
-        "Caller-Pathname": "/store/quinn-store-dev/settings/activity",
-        "X-Csrf-Token": "L8tYom5r-gp2JSQ9SRPyGq1wgjEdo7eZIeX4",
-        "X-Shopify-Web-Force-Proxy": "1",
-      },
-      body: JSON.stringify({
-        operationName: "SettingsActivityFeed",
-        variables: {
-          first: 10,
-        },
-        query: `query SettingsActivityFeed($first: Int!) {
-            staffMember {   
-              id
-              privateData {
-                  activityFeed(first: $first) {
-                      pageInfo {
-                        hasNextPage
-                      }
-                      edges {
-                          ...SettingsActivity                        
-                        }
-                      }     
-                    } 
-                  }
-                }
-                fragment SettingsActivity on ActivityEdge {
-                  cursor  
-                  node {
-                        author
-                        createdAt
-                        messages
-                        attributed
-                      }
-              }`,
-      }),
-    },
-  );
-  const data = await response.json(); // parses JSON response into native JavaScript objects
-  console.log(data);
 }

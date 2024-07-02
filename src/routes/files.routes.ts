@@ -20,6 +20,7 @@ const checkSchema = z.object({
 const createFileSchema = z.object({
   path: z.string(),
   data: z.string().optional(),
+  encoding: z.string().optional(),
 });
 
 const readFileSchema = z.object({
@@ -80,7 +81,7 @@ filesRoutes.post(`/check`, validateRequest(checkSchema), async (req: Request, re
 filesRoutes.post(`/create`, validateRequest(createFileSchema), async (req: Request, res: Response) => {
   try {
     const { path, data } = req.body as z.infer<typeof createFileSchema>;
-
+    const encoding: BufferEncoding = req.body.encoding || "utf-8";
     if (data) {
       const dirPath = `${fsPath}/${path.split("/").slice(0, -1).join("/")}`;
       const stat = await fs.promises.stat(`${fsPath}/${path}`).catch(() => false);
@@ -88,7 +89,9 @@ filesRoutes.post(`/create`, validateRequest(createFileSchema), async (req: Reque
       if (!stat) {
         await fs.promises.mkdir(dirPath, { recursive: true });
       }
-      await fs.promises.writeFile(`${fsPath}/${path}`, data);
+      await fs.promises.writeFile(`${fsPath}/${path}`, data, {
+        encoding,
+      });
     } else {
       await fs.promises.mkdir(`${fsPath}/${path}`, { recursive: true });
     }
@@ -134,10 +137,15 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
 
     const infoCmd = `${cmd} -v error -select_streams ${stream} -show_entries stream=duration,width,height,bit_rate,r_frame_rate -of default=noprint_wrappers=1 ${path}`;
     const sizeCmd = `${cmd} -v error -select_streams ${stream} -show_entries format=size -of default=noprint_wrappers=1 ${path}`;
+    const rotationCmd = `${cmd} -v error -select_streams ${stream} -show_entries stream_side_data=rotation -of default=noprint_wrappers=1 ${path}`;
 
-    const [fileInfo, sizeData] = await Promise.all([runcmd(infoCmd), runcmd(sizeCmd)]);
+    const [fileInfo, sizeData, rotationData] = await Promise.all([
+      runcmd(infoCmd),
+      runcmd(sizeCmd),
+      runcmd(rotationCmd),
+    ]);
     const data: any = {};
-    const lines = `${fileInfo}\n${sizeData}`.split("\n");
+    const lines = `${fileInfo}${sizeData}${rotationData}`.split("\n");
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -154,6 +162,12 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
           data[key] = +value;
         }
       }
+    }
+
+    if (data.rotation === 90 || data.rotation === -90) {
+      const { width, height } = data;
+      data.width = height;
+      data.height = width;
     }
 
     res.status(200).json({ data });
