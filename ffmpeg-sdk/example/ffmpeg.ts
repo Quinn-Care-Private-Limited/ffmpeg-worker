@@ -161,47 +161,57 @@ async function main() {
 
   // const { path } = await files.path();
 
-  const process = ffmpeg
-    .process()
-    .input(["test/sources/source1.mp4"])
-    // .filterGraph(
-    //   ffmpeg.process().streamIn("0:v", "0:a").trim(0, 4).atrim(0, 4).settb("AVTB").asettb("AVTB").streamOut("v0", "a0"),
-    // )
-    // .filterGraph(
-    //   ffmpeg.process().streamIn("1:v", "1:a").trim(0, 4).atrim(0, 4).settb("AVTB").asettb("AVTB").streamOut("v1", "a1"),
-    // )
-    // .filterGraph(
-    //   ffmpeg
-    //     .process()
-    //     .streamIn(["v0", "v1"], ["a0", "a1"])
-    //     .transition({ type: "fade", duration: 4 })
-    //     .acrossfade(4 - 1)
-    //     .atrim(0, 4)
-    //     .streamOut("vout", "aout"),
-    // )
-    .filterGraph(ffmpeg.process().vfilterCmd("color=black:d=4:s=720x1280:rate=30").settb("AVTB").streamOut("v0"))
-    .filterGraph(
-      ffmpeg
-        .process()
-        .afilterCmd("anullsrc=channel_layout=stereo:d=4:sample_rate=44100")
-        .asettb("AVTB")
-        .streamOut(null, "a0"),
-    )
-    .filterGraph(
-      ffmpeg.process().streamIn("0:v", "0:a").trim(0, 4).settb("AVTB").atrim(0, 4).asettb("AVTB").streamOut("v1", "a1"),
-    )
-    .filterGraph(
-      ffmpeg
-        .process()
-        .streamIn(["v0", "v1"], ["a0", "a1"])
-        .transition({ type: "slideright", duration: 4 })
-        .acrossfade(4 - 0.1)
-        .atrim(0, 4)
-        .streamOut("vout", "aout"),
-    )
-    .mux();
+  // const process = ffmpeg
+  //   .process()
+  //   .input(["test/sources/source1.mp4"])
+  // .filterGraph(
+  //   ffmpeg.process().streamIn("0:v", "0:a").trim(0, 4).atrim(0, 4).settb("AVTB").asettb("AVTB").streamOut("v0", "a0"),
+  // )
+  // .filterGraph(
+  //   ffmpeg.process().streamIn("1:v", "1:a").trim(0, 4).atrim(0, 4).settb("AVTB").asettb("AVTB").streamOut("v1", "a1"),
+  // )
+  // .filterGraph(
+  //   ffmpeg
+  //     .process()
+  //     .streamIn(["v0", "v1"], ["a0", "a1"])
+  //     .transition({ type: "fade", duration: 4 })
+  //     .acrossfade(4 - 1)
+  //     .atrim(0, 4)
+  //     .streamOut("vout", "aout"),
+  // )
+  // .filterGraph(ffmpeg.process().vfilterCmd("color=black:d=4:s=720x1280:rate=30").settb("AVTB").streamOut("v0"))
+  // .filterGraph(
+  //   ffmpeg
+  //     .process()
+  //     .afilterCmd("anullsrc=channel_layout=stereo:d=4:sample_rate=44100")
+  //     .asettb("AVTB")
+  //     .streamOut(null, "a0"),
+  // )
+  // .filterGraph(
+  //   ffmpeg.process().streamIn("0:v", "0:a").trim(0, 4).settb("AVTB").atrim(0, 4).asettb("AVTB").streamOut("v1", "a1"),
+  // )
+  // .filterGraph(
+  //   ffmpeg
+  //     .process()
+  //     .streamIn(["v0", "v1"], ["a0", "a1"])
+  //     .transition({ type: "slideright", duration: 4 })
+  //     .acrossfade(4 - 0.1)
+  //     .atrim(0, 4)
+  //     .streamOut("vout", "aout"),
+  // )
+  // .mux();
 
-  await ffmpeg.process().init(process).audioCodec("aac").flag("pix_fmt", "yuv420p").output("test/output1.mp4").run();
+  // await ffmpeg
+  //   .process()
+  //   .input(["test/IMG_2602.MOV"])
+  //   .audioCodec("aac")
+  //   .crf(18)
+  //   .videoCodec("libx264")
+  //   .output("test/output1.mp4")
+  //   .run();
+
+  const data = await files.info("test.mp4");
+  console.log(data);
 
   // const process1 = ffmpeg
   //   .process()

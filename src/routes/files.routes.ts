@@ -137,10 +137,15 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
 
     const infoCmd = `${cmd} -v error -select_streams ${stream} -show_entries stream=duration,width,height,bit_rate,r_frame_rate -of default=noprint_wrappers=1 ${path}`;
     const sizeCmd = `${cmd} -v error -select_streams ${stream} -show_entries format=size -of default=noprint_wrappers=1 ${path}`;
+    const rotationCmd = `${cmd} -v error -select_streams ${stream} -show_entries stream_side_data=rotation -of default=noprint_wrappers=1 ${path}`;
 
-    const [fileInfo, sizeData] = await Promise.all([runcmd(infoCmd), runcmd(sizeCmd)]);
+    const [fileInfo, sizeData, rotationData] = await Promise.all([
+      runcmd(infoCmd),
+      runcmd(sizeCmd),
+      runcmd(rotationCmd),
+    ]);
     const data: any = {};
-    const lines = `${fileInfo}\n${sizeData}`.split("\n");
+    const lines = `${fileInfo}${sizeData}${rotationData}`.split("\n");
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -157,6 +162,12 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
           data[key] = +value;
         }
       }
+    }
+
+    if (data.rotation === 90 || data.rotation === -90) {
+      const { width, height } = data;
+      data.width = height;
+      data.height = width;
     }
 
     res.status(200).json({ data });
