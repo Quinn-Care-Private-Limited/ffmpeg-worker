@@ -187,7 +187,7 @@ export class FFProcessGenerator {
     return this;
   }
 
-  frameRate(frameRate?: string) {
+  frameRate(frameRate?: number) {
     if (!frameRate) return this;
     this.process.chainCmds.push(`-r ${frameRate}`);
     return this;
@@ -397,7 +397,7 @@ export class FFProcessGenerator {
     return this;
   }
 
-  fps(frameRate?: string) {
+  fps(frameRate?: number) {
     if (!frameRate) return this;
     this.process.videoFilterCmds.push(`fps=${frameRate}`);
     return this;
