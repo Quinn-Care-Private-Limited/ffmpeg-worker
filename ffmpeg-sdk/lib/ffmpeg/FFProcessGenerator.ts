@@ -703,4 +703,8 @@ export class FFProcessGenerator {
       this.process.chainCmds.push(`-map "[${astream || this.process.last_astream_in}]"`);
     return this;
   }
+
+  getCmd() {
+    return [...this.process.chainCmds.join(" ").split(" "), this.process.output];
+  }
 }
