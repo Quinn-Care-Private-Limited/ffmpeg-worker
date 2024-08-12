@@ -116,7 +116,7 @@ filesRoutes.post(`/delete`, validateRequest(deleteSchema), async (req: Request, 
     const { path } = req.body as z.infer<typeof deleteSchema>;
     const stat = await fs.promises.stat(`${fsPath}/${path}`);
     if (stat.isDirectory()) {
-      await fs.promises.rmdir(`${fsPath}/${path}`, { recursive: true });
+      await fs.promises.rm(`${fsPath}/${path}`, { recursive: true });
     } else {
       await fs.promises.unlink(`${fsPath}/${path}`);
     }
