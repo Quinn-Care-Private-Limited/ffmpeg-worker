@@ -558,6 +558,16 @@ export class FFProcessGenerator {
     return this;
   }
 
+  adelay(delays?: string | string[]) {
+    if (!delays) return this;
+    if (Array.isArray(delays)) {
+      this.process.audioFilterCmds.push(`adelay=${delays.join("|")}`);
+    } else {
+      this.process.audioFilterCmds.push(`adelay=delays=${delays}`);
+    }
+    return this;
+  }
+
   aloop(data?: { count: number; duration: number; rate?: number }) {
     if (!data) return this;
     if (!data.count) return this;
@@ -704,7 +714,13 @@ export class FFProcessGenerator {
     return this;
   }
 
-  getCmd() {
-    return [...this.process.chainCmds.join(" ").split(" "), this.process.output];
+  getCmd(removeQuotes?: boolean) {
+    const cmd = [...this.process.chainCmds.join(" ").split(" "), this.process.output];
+
+    if (removeQuotes) {
+      return cmd.map((c) => c.replace(/"/g, ""));
+    }
+
+    return cmd;
   }
 }

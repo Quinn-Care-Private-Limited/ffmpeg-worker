@@ -210,8 +210,8 @@ async function main() {
   //   .output("test/output1.mp4")
   //   .run();
 
-  const data = await files.info("test.mp4");
-  console.log(data);
+  // const data = await files.info("test.mp4");
+  // console.log(data);
 
   // const process1 = ffmpeg
   //   .process()
@@ -296,6 +296,23 @@ async function main() {
   // });
   // console.log("Score: ", score);
   // console.log("Time taken: ", (Date.now() - currentTimeStamp) / 1000);
+
+  await ffmpeg
+    .process()
+    .input(["test/output.mp3"])
+    .filterGraph(
+      ffmpeg
+        .process()
+        .afilterCmd("anullsrc=channel_layout=mono:d=10:sample_rate=44100")
+        .asettb("AVTB")
+        .streamOut(null, "a0"),
+    )
+    .filterGraph(ffmpeg.process().streamIn(null, "0:a").adelay("5s:all=1").streamOut(null, "a1"))
+    .filterGraph(ffmpeg.process().streamIn(null, ["a0", "a1"]).amix(2).streamOut(null, "aout"))
+    .streamOut("aout")
+    .mux()
+    .output("output.mp3")
+    .run();
 }
 
 async function concat(inputFiles: string[], outputFile: string) {
