@@ -201,7 +201,7 @@ filesRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Reque
     if (!isExists) {
       await fs.promises.mkdir(dirPath, { recursive: true });
     }
-    await runcmd(`wget -O ${fsPath}/${output} ${url}`);
+    await runcmd(`wget -O ${fsPath}/${output} "${url}"`);
     res.status(200).json({});
   } catch (error) {
     res.status(400).send(error.message);
