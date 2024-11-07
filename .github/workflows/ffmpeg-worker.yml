@@ -52,17 +52,17 @@ jobs:
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ env.EC2_INSTANCE_IP }}
-          username: ec2-users
+          username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # Login to Amazon ECR
-            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
 
             # Pull the Docker image from ECR
-            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            docker pull ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
 
             # Stop the existing container if running
             docker rm -f my-ffmpeg-worker || true
 
             # Run the new container
-            docker run -d -p 3000:3000 --name my-ffmpeg-worker $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            docker run -d -p 3000:3000 --name my-ffmpeg-worker ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
