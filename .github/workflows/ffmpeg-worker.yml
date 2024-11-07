@@ -50,19 +50,30 @@ jobs:
 
       - name: SSH into EC2 and Deploy Docker Image
         uses: appleboy/ssh-action@v0.1.6
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         with:
           host: ${{ env.EC2_INSTANCE_IP }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,ECR_REGISTRY,ECR_REPOSITORY
           script: |
+            # Configure AWS credentials
+            mkdir -p ~/.aws
+            echo "[default]
+            aws_access_key_id=$AWS_ACCESS_KEY_ID
+            aws_secret_access_key=$AWS_SECRET_ACCESS_KEY
+            region=$AWS_REGION" > ~/.aws/credentials
+
             # Login to Amazon ECR
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
             # Pull the Docker image from ECR
-            docker pull ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
             # Stop the existing container if running
             docker rm -f my-ffmpeg-worker || true
 
             # Run the new container
-            docker run -d -p 3000:3000 --name my-ffmpeg-worker ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+            docker run -d -p 3000:3000 --name my-ffmpeg-worker $ECR_REGISTRY/$ECR_REPOSITORY:latest
