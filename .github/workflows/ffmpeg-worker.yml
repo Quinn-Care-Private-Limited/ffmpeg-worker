@@ -66,6 +66,10 @@ jobs:
             aws_secret_access_key=$AWS_SECRET_ACCESS_KEY
             region=$AWS_REGION" > ~/.aws/credentials
 
+            # Mount EFS on the host
+            sudo mkdir -p /mnt/efs
+            sudo mount -t nfs4 -o nfsvers=4.1 172.31.11.60:/ /mnt/efs
+
             # Login to Amazon ECR
             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
@@ -75,12 +79,11 @@ jobs:
             # Stop the existing container if running
             docker rm -f my-ffmpeg-worker || true
 
-            # Run the new container with hardcoded EFS IP
+            # Run the new container with the mounted EFS
             docker run -d \
               -p 80:3000 \
               -e FS_PATH=/mnt/efs \
-              -e FS_IP=172.31.11.60 \
-              -e FS_SHARE_NAME=/ \
+              -v /mnt/efs:/mnt/efs \
               --name my-ffmpeg-worker \
               $ECR_REGISTRY/$ECR_REPOSITORY:latest
 

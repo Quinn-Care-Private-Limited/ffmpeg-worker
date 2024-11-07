@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-# Create mount directory for service.
-mkdir -p $FS_PATH
-
-echo "Mounting Cloud Filestore."
-mount -o nolock $FS_IP:/$FS_SHARE_NAME $FS_PATH
-echo "Mounting completed."
 
 # Start the application
 node /app/build/index.js &
-
+echo "Application started."
 # Exit immediately when one of the background processes terminate.
 wait -n
