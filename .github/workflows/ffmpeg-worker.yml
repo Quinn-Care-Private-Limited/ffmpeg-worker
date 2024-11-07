@@ -75,17 +75,18 @@ jobs:
             # Stop the existing container if running
             docker rm -f my-ffmpeg-worker || true
 
-            # Run the new container with environment variables
+            # Run the new container with hardcoded EFS IP
             docker run -d \
               -p 80:3000 \
               -e FS_PATH=/mnt/efs \
-              -e NODE_ENV=development \
-              -v /mnt/efs:/mnt/efs \
+              -e FS_IP=172.31.11.60 \
+              -e FS_SHARE_NAME=/ \
               --name my-ffmpeg-worker \
               $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
             # Debug commands
             echo "Container logs:"
+            sleep 2
             docker logs my-ffmpeg-worker
 
             echo "Container status:"
