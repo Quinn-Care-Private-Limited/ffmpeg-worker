@@ -75,8 +75,14 @@ jobs:
             # Stop the existing container if running
             docker rm -f my-ffmpeg-worker || true
 
-            # Run the new container
-            docker run -d -p 80:3000 --name my-ffmpeg-worker $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            # Run the new container with environment variables
+            docker run -d \
+              -p 80:3000 \
+              -e FS_PATH=/mnt/efs \
+              -e NODE_ENV=development \
+              -v /mnt/efs:/mnt/efs \
+              --name my-ffmpeg-worker \
+              $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
             # Debug commands
             echo "Container logs:"
