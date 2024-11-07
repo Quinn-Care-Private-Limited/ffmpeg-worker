@@ -6,3 +6,4 @@ RUN npm install && npm run build
 RUN chmod +x /app/scripts/run.sh
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/app/scripts/run.sh"]
+EXPOSE 3000
