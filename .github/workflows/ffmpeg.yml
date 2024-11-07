@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: us-east-2
-  ECR_REPOSITORY: ffmpeg
+  ECR_REPOSITORY: ffmpeg-library
   EC2_INSTANCE_IP: 3.15.13.6
   ECR_REGISTRY: 079464146245.dkr.ecr.us-east-2.amazonaws.com
 jobs:
