@@ -1,5 +1,4 @@
-name: Deploy to AWS EC2
-
+name: Build and Push Python Image to AWS ECR
 on:
   push:
     branches: [aws-migration-test]
@@ -7,14 +6,17 @@ on:
 env:
   AWS_REGION: us-east-2
   ECR_REPOSITORY: ffmpeg-library
-  EC2_INSTANCE_IP: 3.15.13.6
+  IMAGE_NAME: ffmpeg
   ECR_REGISTRY: 079464146245.dkr.ecr.us-east-2.amazonaws.com
+
 jobs:
-  deploy:
+  build-push-ecr:
+    name: Build and Push to ECR
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -27,11 +29,19 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Build Docker Image
+        run: docker build -t $IMAGE_NAME:latest -f ./Dockerfile.ffmpeg .
+
+      - name: Automatic Tagging of Releases
+        id: increment-git-tag
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./Dockerfile.ffmpeg .
-          docker tag $ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          bash ./scripts/git_update.sh -v major
+
+      - name: Push Docker Image to ECR
+        env:
+          GIT_TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
+        run: |
+          docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG
