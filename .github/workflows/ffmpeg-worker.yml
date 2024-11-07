@@ -8,7 +8,7 @@ env:
   ECR_REPOSITORY: ffmpeg-worker-server
   IMAGE_NAME: ffmpeg-worker
   ECR_REGISTRY: 079464146245.dkr.ecr.us-east-2.amazonaws.com
-
+  EC2_INSTANCE_IP: 3.15.13.6
 jobs:
   build-push-ecr:
     name: Build and Push to ECR
@@ -45,3 +45,24 @@ jobs:
           docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG
+
+          # Additional steps at the end of your GitHub Actions YAML file
+
+      - name: SSH into EC2 and Deploy Docker Image
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ env.EC2_INSTANCE_IP }}
+          username: ec2-users
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Login to Amazon ECR
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+            # Pull the Docker image from ECR
+            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+            # Stop the existing container if running
+            docker rm -f my-ffmpeg-worker || true
+
+            # Run the new container
+            docker run -d -p 3000:3000 --name my-ffmpeg-worker $ECR_REGISTRY/$ECR_REPOSITORY:latest
