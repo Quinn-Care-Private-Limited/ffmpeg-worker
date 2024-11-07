@@ -1,12 +1,12 @@
 name: Build and Push Python Image to AWS ECR
 on:
   push:
-    branches: [ffmpeg]
+    branches: [aws-migration-test]
 
 env:
   AWS_REGION: us-east-2
-  ECR_REPOSITORY: ffmpeg-library
-  IMAGE_NAME: ffmpeg
+  ECR_REPOSITORY: ffmpeg-worker-server
+  IMAGE_NAME: ffmpeg-worker
   ECR_REGISTRY: 079464146245.dkr.ecr.us-east-2.amazonaws.com
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME:latest -f ./Dockerfile.ffmpeg .
+        run: docker build -t $IMAGE_NAME:latest .
 
       - name: Automatic Tagging of Releases
         id: increment-git-tag
