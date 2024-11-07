@@ -2,14 +2,12 @@ name: Deploy to AWS EC2
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [aws-migration-test]
 
 env:
   AWS_REGION: us-east-2
   ECR_REPOSITORY: ffmpeg-worker
-  EC2_INSTANCE_IP: your-ec2-ip
+  EC2_INSTANCE_IP: 3.15.13.6
   ECR_REGISTRY: 079464146245.dkr.ecr.us-east-2.amazonaws.com
 
 jobs:
