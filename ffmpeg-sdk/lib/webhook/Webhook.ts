@@ -14,6 +14,7 @@ export class Webhook {
           clientId: req.headers["x-client-id"] as string,
           clientSecret: req.headers["x-client-secret"] as string,
         });
+
         res.status(200).send("Ok");
       } catch (error) {
         res.status(400).send("Error in callback");

@@ -39,4 +39,8 @@ export abstract class CloudStorageConnector {
     },
     credentials?: ICloudStorageCredentials,
   ): Promise<void>;
+  abstract downloadAbrObject(
+    payload: { bucketName: string; objectKey: string; filePath: string },
+    credentials?: ICloudStorageCredentials,
+  ): Promise<void>;
 }
