@@ -81,6 +81,8 @@ jobs:
             docker run -d \
               -p 80:3000 \
               -e FS_PATH=/mnt/efs \
+              -e CLIENT_ID=QUINNCLIENTID \
+              -e CLIENT_SECRET=QUINNCLIENTSECRET \
               -v /mnt/efs:/mnt/efs \
               --name my-ffmpeg-worker \
               $ECR_REGISTRY/$ECR_REPOSITORY:latest
