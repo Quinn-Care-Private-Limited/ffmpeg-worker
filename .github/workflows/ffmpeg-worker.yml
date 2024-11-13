@@ -8,7 +8,7 @@ env:
   ECR_REPOSITORY: ffmpeg-worker-server
   IMAGE_NAME: ffmpeg-worker
   ECR_REGISTRY: 079464146245.dkr.ecr.us-east-2.amazonaws.com
-  EC2_INSTANCE_IP: 3.15.13.6
+  EC2_INSTANCE_IP: 18.227.190.122
 jobs:
   build-push-ecr:
     name: Build and Push to ECR
