@@ -53,14 +53,6 @@ jobs:
 
       - name: Tag with version
         run: |
-          aws ecr batch-get-image \
-            --repository-name $ECR_REPOSITORY \
-            --image-ids imageTag=latest \
-            --region $AWS_REGION \
-            --query 'images[].imageManifest' \
-            --output text | \
-          aws ecr put-image \
-            --repository-name $ECR_REPOSITORY \
-            --image-tag $VERSION \
-            --region $AWS_REGION \
-            --image-manifest -
+          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
