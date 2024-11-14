@@ -35,25 +35,32 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile.ffmpeg
-          platforms: linux/arm64
-          push: true
-          tags: |
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+      # - name: Build and Push Docker Image
+      #   uses: docker/build-push-action@v4
+      #   with:
+      #     context: .
+      #     file: ./Dockerfile.ffmpeg
+      #     platforms: linux/arm64
+      #     push: true
+      #     tags: |
+      #       ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
 
-      - name: Automatic Tagging of Releases
-        id: increment-git-tag
+      - name: Generate version tag
+        id: version
         run: |
-          bash ./scripts/git_update.sh -v major
+          VERSION="v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Tag with version
-        env:
-          GIT_TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
         run: |
-          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG
+          aws ecr batch-get-image \
+            --repository-name $ECR_REPOSITORY \
+            --image-ids imageTag=latest \
+            --region $AWS_REGION \
+            --query 'images[].imageManifest' \
+            --output text | \
+          aws ecr put-image \
+            --repository-name $ECR_REPOSITORY \
+            --image-tag $VERSION \
+            --region $AWS_REGION \
+            --image-manifest -
