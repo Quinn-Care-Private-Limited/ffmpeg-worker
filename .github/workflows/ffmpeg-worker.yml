@@ -1,7 +1,7 @@
 name: Build and Push Python Image to AWS ECR
 on:
   push:
-    branches: [aws-migration-test-1]
+    branches: [aws-migration-test]
 
 env:
   AWS_REGION: us-east-2
@@ -44,19 +44,17 @@ jobs:
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
 
-      - name: Automatic Tagging of Releases
-        id: increment-git-tag
+      - name: Generate version tag
+        id: version
         run: |
-          bash ./scripts/git_update.sh -v major
+          VERSION="v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Push Docker Image to ECR
-        env:
-          GIT_TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
+      - name:Tag with version
         run: |
-          docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG
+          docker pull --platform linux/arm64 $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
 
       - name: SSH into EC2 and Deploy Docker Image
         uses: appleboy/ssh-action@v0.1.6

@@ -1,7 +1,7 @@
 name: Build and Push FFmpeg Base Image to AWS ECR
 on:
   push:
-    branches: [aws-migration-test]
+    branches: [ffmpeg]
 
 env:
   AWS_REGION: us-east-2
