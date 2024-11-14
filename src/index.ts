@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", mainRoute);
 
 app.get("/health", (req, res) => {
-  res.status(200).send("OK");
+  res.status(200).send("OK | updated");
 });
 
 app.post("/test", (req, res) => {
