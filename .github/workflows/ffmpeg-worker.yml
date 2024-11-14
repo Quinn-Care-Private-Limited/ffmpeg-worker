@@ -50,7 +50,7 @@ jobs:
           VERSION="v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name:Tag with version
+      - name: Tag with version
         run: |
           docker pull --platform linux/arm64 $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
