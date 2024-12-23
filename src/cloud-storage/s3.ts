@@ -12,16 +12,19 @@ import {
 import fs from "fs";
 import { CloudStorageConnector } from "./base";
 import { IAWSCredentials } from "types";
-import { getChunks, parseAbrMasterFile, runcmd } from "utils/app";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
 const fsPath = process.env.FS_PATH || ".";
 const ffmpegPath = process.env.FFMPEG_PATH || "";
+const credentials = {
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+  region: process.env.AWS_REGION,
+} as IAWSCredentials;
 export class S3Connector implements CloudStorageConnector {
-  async downloadObject(
-    payload: { bucketName: string; objectKey: string; filePath: string },
-    credentials?: IAWSCredentials,
-  ) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+  async downloadObject(payload: { bucketName: string; objectKey: string; filePath: string }) {
+    const s3Client = new S3Client(credentials);
     const { bucketName, objectKey } = payload;
     const params = {
       Bucket: bucketName,
@@ -48,7 +51,7 @@ export class S3Connector implements CloudStorageConnector {
     payload: { bucketName: string; objectKey: string; filePath: string; contentType: string },
     credentials?: IAWSCredentials,
   ) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    const s3Client = new S3Client(credentials);
     const { bucketName, objectKey, filePath, contentType } = payload;
     const data: Buffer = await new Promise((resolve, reject) => {
       fs.readFile(filePath, (err, data) => {
@@ -80,7 +83,7 @@ export class S3Connector implements CloudStorageConnector {
     },
     credentials?: IAWSCredentials,
   ) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    const s3Client = new S3Client(credentials);
     let { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
 
     const headObjectCommand = new HeadObjectCommand({
@@ -156,7 +159,7 @@ export class S3Connector implements CloudStorageConnector {
     },
     credentials?: IAWSCredentials,
   ) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    const s3Client = new S3Client(credentials);
     let { bucketName, objectKey, filePath, contentType, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
 
     const { size: fileSize } = await fs.promises.stat(filePath);
@@ -267,75 +270,5 @@ export class S3Connector implements CloudStorageConnector {
       }
       throw new Error("Error in uploading object to S3");
     }
-  }
-  async downloadAbrObject(
-    payload: { bucketName: string; objectKey: string; filePath: string },
-    credentials?: IAWSCredentials,
-  ) {
-    /**
-     * Download ABR master file
-     */
-    const outputBaseFolder = payload.filePath.split("/").slice(0, -1).join("/");
-    const masterAbrFileOutputname = `${outputBaseFolder}/master.m3u8`;
-    await this.downloadObject(
-      {
-        ...payload,
-        filePath: masterAbrFileOutputname, // store the ABR master file as .m3u8
-      },
-      credentials,
-    );
-
-    // Extract all streams from ABR master file ordered by bandwidth (highest to lowest)
-    const streams = parseAbrMasterFile(fs.readFileSync(masterAbrFileOutputname, "utf-8"));
-    /**
-     * Download the highest bandwidth stream
-     */
-    const highestBandwidthStream = streams[0];
-
-    // Get the base key of the highest bandwidth stream
-    const baseKey = payload.objectKey.split("/").slice(0, -1).join("/");
-    // Get the highest bandwidth stream key
-    const highestBandwidthStreamKey = `${baseKey}/${highestBandwidthStream.url}`;
-    await this.downloadObject(
-      {
-        ...payload,
-        objectKey: highestBandwidthStreamKey,
-        filePath: `${outputBaseFolder}/highestBandwidthStream.m3u8`,
-      },
-      credentials,
-    );
-    const chunks = getChunks(fs.readFileSync(`${outputBaseFolder}/highestBandwidthStream.m3u8`, "utf-8"));
-    const chunksWithFullUrl = chunks.map((chunk) => {
-      const chunkName = chunk.url.split("/").slice(-1)[0];
-      return {
-        ...chunk,
-        key: `${baseKey}/main/chunks/${chunkName}`,
-        filePath: `${outputBaseFolder}/${chunkName}`,
-      };
-    });
-    const promises = chunksWithFullUrl.map((chunk) => {
-      return this.downloadObject(
-        {
-          ...payload,
-          objectKey: chunk.key,
-          filePath: chunk.filePath,
-        },
-        credentials,
-      );
-    });
-    await Promise.all(promises);
-    const ffmpegCmd = `${ffmpegPath}ffmpeg -i "concat:${chunksWithFullUrl
-      .map((chunk) => chunk.filePath)
-      .join("|")}" -c copy ${outputBaseFolder}/output.mp4`;
-    await runcmd(ffmpegCmd);
-  }
-  async generateV4ReadSignedUrl(bucketName: string, fileName: string, credentials?: IAWSCredentials) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
-    const command = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: fileName,
-    });
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 30 * 60 }); // expires in seconds
-    return url;
   }
 }

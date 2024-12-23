@@ -4,7 +4,7 @@
   "description": "Ffmpeg Worker Server",
   "main": "build/index.js",
   "scripts": {
-    "env": "dotenv -e",
+    "env": "NODE_PATH=./src dotenv -e",
     "forever": "forever",
     "build": "bash scripts/build.sh",
     "start": "node build/index.js",
