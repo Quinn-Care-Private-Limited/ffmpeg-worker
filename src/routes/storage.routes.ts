@@ -145,26 +145,28 @@ storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request
     typeof uploadSchema
   >;
   try {
-    const storage = getStorageConnector(cloudStorageType);
-    const filePath = `${fsPath}/${path}`;
-    if (multipart) {
-      await storage.uploadMultipartObject({
-        bucketName: bucket,
-        objectKey: key,
-        filePath,
-        contentType,
-        partSize,
-        batchSize,
-        ttl,
-      });
-    } else {
-      await storage.uploadObject({
-        bucketName: bucket,
-        objectKey: key,
-        filePath,
-        contentType,
-        ttl,
-      });
+    if (process.env.NODE_ENV === "production") {
+      const storage = getStorageConnector(cloudStorageType);
+      const filePath = `${fsPath}/${path}`;
+      if (multipart) {
+        await storage.uploadMultipartObject({
+          bucketName: bucket,
+          objectKey: key,
+          filePath,
+          contentType,
+          partSize,
+          batchSize,
+          ttl,
+        });
+      } else {
+        await storage.uploadObject({
+          bucketName: bucket,
+          objectKey: key,
+          filePath,
+          contentType,
+          ttl,
+        });
+      }
     }
 
     res.status(200).json({ bucket, key, path });
@@ -194,24 +196,26 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
       res.status(200).json({ callbackId });
     }
 
-    const storage = getStorageConnector(cloudStorageType);
-    const filePath = `${fsPath}/${path}`;
-    if (multipart) {
-      await storage.uploadMultipartObject({
-        bucketName: bucket,
-        objectKey: key,
-        filePath,
-        contentType,
-        partSize,
-        batchSize,
-      });
-    } else {
-      await storage.uploadObject({
-        bucketName: bucket,
-        objectKey: key,
-        filePath,
-        contentType,
-      });
+    if (process.env.NODE_ENV === "production") {
+      const storage = getStorageConnector(cloudStorageType);
+      const filePath = `${fsPath}/${path}`;
+      if (multipart) {
+        await storage.uploadMultipartObject({
+          bucketName: bucket,
+          objectKey: key,
+          filePath,
+          contentType,
+          partSize,
+          batchSize,
+        });
+      } else {
+        await storage.uploadObject({
+          bucketName: bucket,
+          objectKey: key,
+          filePath,
+          contentType,
+        });
+      }
     }
 
     await sendWebhook(callbackUrl, {
