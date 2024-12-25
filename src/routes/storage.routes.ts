@@ -11,8 +11,7 @@ import { getWebhookResponsePayload } from "utils/app";
 export const storageRoutes = express.Router();
 
 const fsPath = process.env.FS_PATH || "";
-
-const credentialsSchema = z.any();
+const cloudStorageType = process.env.CLOUD_STORAGE_TYPE as CloudStorageType;
 
 const downloadSchema = z.object({
   bucket: z.string(),
@@ -20,8 +19,6 @@ const downloadSchema = z.object({
   path: z.string(),
   multipart: z.boolean().optional(),
   partSize: z.number().optional(),
-  cloudStorageType: z.string(),
-  credentials: credentialsSchema,
 });
 
 const downloadScheduleSchema = downloadSchema.extend({
@@ -40,8 +37,6 @@ const uploadSchema = z.object({
   partSize: z.number().optional(),
   batchSize: z.number().optional(),
   ttl: z.number().optional(),
-  cloudStorageType: z.string(),
-  credentials: credentialsSchema,
 });
 
 const uploadScheduleSchema = uploadSchema.extend({
@@ -52,22 +47,20 @@ const uploadScheduleSchema = uploadSchema.extend({
 });
 
 storageRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Request, res: Response) => {
-  const { bucket, key, path, multipart, partSize, credentials, cloudStorageType } = req.body as z.infer<
-    typeof downloadSchema
-  >;
+  const { bucket, key, path, multipart, partSize } = req.body as z.infer<typeof downloadSchema>;
   try {
     const filePath = `${fsPath}/${path}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
-    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
+    const storage = getStorageConnector(cloudStorageType);
 
     if (multipart) {
-      await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
+      await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize });
     } else {
       if (multipart) {
-        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
+        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize });
       } else {
-        await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+        await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath });
       }
     }
 
@@ -88,8 +81,6 @@ storageRoutes.post(
       path,
       multipart,
       partSize,
-      credentials,
-      cloudStorageType,
       async,
       callbackId = cuid2.createId(),
       callbackUrl = "",
@@ -105,18 +96,15 @@ storageRoutes.post(
       const dirPath = filePath.split("/").slice(0, -1).join("/");
       await fs.promises.mkdir(dirPath, { recursive: true });
 
-      const storage = getStorageConnector(cloudStorageType as CloudStorageType);
+      const storage = getStorageConnector(cloudStorageType);
 
       if (multipart) {
-        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize }, credentials);
+        await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize });
       } else {
         if (multipart) {
-          await storage.downloadMultipartObject(
-            { bucketName: bucket, objectKey: key, filePath, partSize },
-            credentials,
-          );
+          await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize });
         } else {
-          await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath }, credentials);
+          await storage.downloadObject({ bucketName: bucket, objectKey: key, filePath });
         }
       }
       await sendWebhook(callbackUrl, {
@@ -153,14 +141,15 @@ storageRoutes.post(
 );
 
 storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request, res: Response) => {
-  const { bucket, key, path, contentType, multipart, partSize, batchSize, credentials, cloudStorageType, ttl } =
-    req.body as z.infer<typeof uploadSchema>;
+  const { bucket, key, path, contentType, multipart, partSize, batchSize, ttl } = req.body as z.infer<
+    typeof uploadSchema
+  >;
   try {
-    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
-    const filePath = `${fsPath}/${path}`;
-    if (multipart) {
-      await storage.uploadMultipartObject(
-        {
+    if (process.env.NODE_ENV === "production") {
+      const storage = getStorageConnector(cloudStorageType);
+      const filePath = `${fsPath}/${path}`;
+      if (multipart) {
+        await storage.uploadMultipartObject({
           bucketName: bucket,
           objectKey: key,
           filePath,
@@ -168,20 +157,16 @@ storageRoutes.post(`/upload`, validateRequest(uploadSchema), async (req: Request
           partSize,
           batchSize,
           ttl,
-        },
-        credentials,
-      );
-    } else {
-      await storage.uploadObject(
-        {
+        });
+      } else {
+        await storage.uploadObject({
           bucketName: bucket,
           objectKey: key,
           filePath,
           contentType,
           ttl,
-        },
-        credentials,
-      );
+        });
+      }
     }
 
     res.status(200).json({ bucket, key, path });
@@ -200,8 +185,6 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
     multipart,
     partSize,
     batchSize,
-    credentials,
-    cloudStorageType,
     async,
     callbackId = cuid2.createId(),
     callbackUrl = "",
@@ -213,30 +196,26 @@ storageRoutes.post(`/upload/schedule`, validateRequest(uploadScheduleSchema), as
       res.status(200).json({ callbackId });
     }
 
-    const storage = getStorageConnector(cloudStorageType as CloudStorageType);
-    const filePath = `${fsPath}/${path}`;
-    if (multipart) {
-      await storage.uploadMultipartObject(
-        {
+    if (process.env.NODE_ENV === "production") {
+      const storage = getStorageConnector(cloudStorageType);
+      const filePath = `${fsPath}/${path}`;
+      if (multipart) {
+        await storage.uploadMultipartObject({
           bucketName: bucket,
           objectKey: key,
           filePath,
           contentType,
           partSize,
           batchSize,
-        },
-        credentials,
-      );
-    } else {
-      await storage.uploadObject(
-        {
+        });
+      } else {
+        await storage.uploadObject({
           bucketName: bucket,
           objectKey: key,
           filePath,
           contentType,
-        },
-        credentials,
-      );
+        });
+      }
     }
 
     await sendWebhook(callbackUrl, {

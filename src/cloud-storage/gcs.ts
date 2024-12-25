@@ -3,15 +3,13 @@ import { CloudStorageConnector } from "./base";
 import fs from "fs";
 import { IGCPCredentials } from "types";
 import { ConfigMetadata } from "@google-cloud/storage/build/cjs/src/resumable-upload";
-import { getChunks, parseAbrMasterFile, runcmd } from "utils/app";
 
 const fsPath = process.env.FS_PATH || ".";
 const ffmpegPath = process.env.FFMPEG_PATH || "";
+const credentials = JSON.parse(process.env.GCP_CREDENTIALS || "") as IGCPCredentials;
+credentials.private_key = credentials.private_key.replace(/\\n/g, "\n");
 export class GCStorageConnector implements CloudStorageConnector {
-  async downloadObject(
-    payload: { bucketName: string; objectKey: string; filePath: string },
-    credentials?: IGCPCredentials,
-  ): Promise<void> {
+  async downloadObject(payload: { bucketName: string; objectKey: string; filePath: string }): Promise<void> {
     const storage = new Storage({
       credentials,
     });
@@ -42,16 +40,13 @@ export class GCStorageConnector implements CloudStorageConnector {
     });
   }
 
-  async uploadObject(
-    payload: {
-      bucketName: string;
-      objectKey: string;
-      filePath: string;
-      contentType: string;
-      ttl?: number;
-    },
-    credentials?: IGCPCredentials,
-  ): Promise<void> {
+  async uploadObject(payload: {
+    bucketName: string;
+    objectKey: string;
+    filePath: string;
+    contentType: string;
+    ttl?: number;
+  }): Promise<void> {
     const storage = new Storage({
       credentials,
     });
@@ -69,17 +64,14 @@ export class GCStorageConnector implements CloudStorageConnector {
     });
   }
 
-  async downloadMultipartObject(
-    payload: {
-      bucketName: string;
-      objectKey: string;
-      filePath: string;
-      partSize?: number;
-      batchSize?: number;
-      debug?: boolean;
-    },
-    credentials?: IGCPCredentials,
-  ): Promise<void> {
+  async downloadMultipartObject(payload: {
+    bucketName: string;
+    objectKey: string;
+    filePath: string;
+    partSize?: number;
+    batchSize?: number;
+    debug?: boolean;
+  }): Promise<void> {
     const storage = new Storage({
       credentials,
     });
@@ -173,19 +165,16 @@ export class GCStorageConnector implements CloudStorageConnector {
     if (debug) console.log("Download complete");
   }
 
-  async uploadMultipartObject(
-    payload: {
-      bucketName: string;
-      objectKey: string;
-      filePath: string;
-      contentType: string;
-      partSize?: number;
-      batchSize?: number;
-      debug?: boolean;
-      ttl?: number;
-    },
-    credentials?: IGCPCredentials,
-  ): Promise<void> {
+  async uploadMultipartObject(payload: {
+    bucketName: string;
+    objectKey: string;
+    filePath: string;
+    contentType: string;
+    partSize?: number;
+    batchSize?: number;
+    debug?: boolean;
+    ttl?: number;
+  }): Promise<void> {
     const storage = new Storage();
     let { bucketName, objectKey, filePath, partSize = 5 * 1024 * 1024, batchSize = 10, ttl } = payload;
 
@@ -197,7 +186,7 @@ export class GCStorageConnector implements CloudStorageConnector {
      * If file size is less than 5MB, use simple upload, because multipart upload requires minimum 5MB chunk size
      */
     if (fileSizeInMegabytes <= 5) {
-      return await this.uploadObject(payload, credentials);
+      return await this.uploadObject(payload);
     }
 
     /**
@@ -216,82 +205,5 @@ export class GCStorageConnector implements CloudStorageConnector {
       concurrencyLimit: batchSize,
       headers,
     });
-  }
-
-  /**
-   * Download highest bandwidth stream from an ABR object
-   */
-  async downloadAbrObject(
-    payload: { bucketName: string; objectKey: string; filePath: string },
-    credentials?: IGCPCredentials,
-  ): Promise<void> {
-    /**
-     * Download ABR master file
-     */
-    const outputBaseFolder = payload.filePath.split("/").slice(0, -1).join("/");
-    const masterAbrFileOutputname = `${outputBaseFolder}/master.m3u8`;
-    await this.downloadObject(
-      {
-        ...payload,
-        filePath: masterAbrFileOutputname, // store the ABR master file as .m3u8
-      },
-      credentials,
-    );
-
-    // Extract all streams from ABR master file ordered by bandwidth (highest to lowest)
-    const streams = parseAbrMasterFile(fs.readFileSync(masterAbrFileOutputname, "utf-8"));
-
-    /**
-     * Download the highest bandwidth stream
-     */
-    const highestBandwidthStream = streams[0];
-    // Get the base key of the highest bandwidth stream
-    const baseKey = payload.objectKey.split("/").slice(0, -1).join("/");
-    // Get the highest bandwidth stream key
-    const highestBandwidthStreamKey = `${baseKey}/${highestBandwidthStream.url}`;
-    await this.downloadObject(
-      {
-        ...payload,
-        objectKey: highestBandwidthStreamKey,
-        filePath: `${outputBaseFolder}/highestBandwidthStream.m3u8`,
-      },
-      credentials,
-    );
-    const chunks = getChunks(fs.readFileSync(`${outputBaseFolder}/highestBandwidthStream.m3u8`, "utf-8"));
-    const chunksWithFullUrl = chunks.map((chunk) => {
-      const chunkName = chunk.url.split("/").slice(-1)[0];
-      return {
-        ...chunk,
-        key: `${baseKey}/main/chunks/${chunkName}`,
-        filePath: `${outputBaseFolder}/${chunkName}`,
-      };
-    });
-    const promises = chunksWithFullUrl.map((chunk) => {
-      return this.downloadObject(
-        {
-          ...payload,
-          objectKey: chunk.key,
-          filePath: chunk.filePath,
-        },
-        credentials,
-      );
-    });
-    await Promise.all(promises);
-
-    const ffmpegCmd = `${ffmpegPath}ffmpeg -i "concat:${chunksWithFullUrl
-      .map((chunk) => chunk.filePath)
-      .join("|")}" -c copy ${outputBaseFolder}/output.mp4`;
-    await runcmd(ffmpegCmd);
-  }
-  async generateV4ReadSignedUrl(storage: Storage, bucketName: string, fileName: string) {
-    const [url] = await storage
-      .bucket(bucketName)
-      .file(fileName)
-      .getSignedUrl({
-        version: "v4",
-        action: "read",
-        expires: Date.now() + 30 * 60 * 1000, // 30 minutes
-      });
-    return url;
   }
 }
