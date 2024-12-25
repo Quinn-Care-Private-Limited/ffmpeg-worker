@@ -1,12 +1,12 @@
 import { AxiosInstance } from "axios";
-import { IClientCredentials } from "../types";
+import { IClientCredentials, IFileInfo, ResponseCallback } from "../types";
 import { getAxiosInstance, request } from "../request";
 
 export class Files {
   private axios: AxiosInstance;
 
-  constructor(credentials: IClientCredentials) {
-    this.axios = getAxiosInstance(credentials);
+  constructor(credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
+    this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
   path() {
@@ -21,8 +21,8 @@ export class Files {
     return request<{ isExists: boolean; isDirectory?: boolean }>(this.axios, "/files/check", { path });
   }
 
-  create(path: string, data?: string) {
-    return request<{}>(this.axios, "/files/create", { path, data });
+  create(path: string, data?: string, encoding?: BufferEncoding) {
+    return request<{}>(this.axios, "/files/create", { path, data, encoding: encoding || "utf-8" });
   }
 
   read(path: string) {
@@ -34,10 +34,14 @@ export class Files {
   }
 
   info(path: string) {
-    return request<{ data: Record<string, string> }>(this.axios, "/files/info", { input: path });
+    return request<{ data: IFileInfo }>(this.axios, "/files/info", { input: path });
   }
 
   copy(input: string, output: string) {
     return request<{}>(this.axios, "/files/copy", { input, output });
+  }
+
+  download(url: string, output: string) {
+    return request<{}>(this.axios, "/files/download", { url, output });
   }
 }

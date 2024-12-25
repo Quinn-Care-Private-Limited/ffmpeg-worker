@@ -4,25 +4,6 @@ export interface IClientCredentials {
   clientServerUrl: string;
 }
 
-export interface IRelativeScore {
-  originalFile: string;
-  compareFile: string;
-  scale?: { width?: number; height?: number };
-  threads?: number;
-  subsample?: number;
-  model?: string;
-  device?: string;
-}
-
-export interface ISourceData {
-  height: number;
-  width: number;
-  duration: number;
-  avgbitrate: number;
-  framerate: number;
-  size: number;
-}
-
 export enum WebhookType {
   FFMPEG = "FFMPEG",
   STORAGE_UPLOAD = "STORAGE_UPLOAD",
@@ -32,10 +13,10 @@ export enum WebhookType {
 export interface IWebhookResponse {
   callbackId: string;
   callbackMeta?: Record<string, any>;
-  responseTime: number;
   type: WebhookType;
   success: boolean;
   data: any;
+  responsePayload: IResponsePayload;
 }
 
 export interface IAWSCredentials {
@@ -59,3 +40,40 @@ export interface IGCPCredentials {
 }
 
 export type ICloudStorageCredentials = IAWSCredentials | IGCPCredentials;
+
+export interface IResponsePayload {
+  responseTime: number;
+  path: string;
+  method: string;
+  baseURL: string;
+  status: number;
+}
+
+export interface IFileInfo {
+  height: number;
+  width: number;
+  duration: number;
+  avgbitrate: number;
+  framerate: number;
+  size: number;
+}
+
+export interface IFfProcess {
+  chainCmds: string[];
+  videoFilterCmds: string[];
+  audioFilterCmds: string[];
+  filterGraphs: string[];
+  output: string;
+  vstream_in?: string | string[];
+  vstream_out?: string | string[];
+  astream_in?: string | string[];
+  astream_out?: string | string[];
+  last_vstream_in?: string;
+  last_astream_in?: string;
+}
+
+export type ResponseCallback = (payload: IResponsePayload) => void;
+export type FFProcessInput = {
+  path: string;
+  frameRate: number;
+};

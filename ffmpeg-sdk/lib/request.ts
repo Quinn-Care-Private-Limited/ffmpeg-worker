@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
-import { IClientCredentials } from "./types";
+import { IClientCredentials, ResponseCallback } from "./types";
 
-export const getAxiosInstance = (credentials: IClientCredentials) => {
+export const getAxiosInstance = (credentials: IClientCredentials, responseCallback?: ResponseCallback) => {
   const axiosInstance = axios.create({
     baseURL: credentials.clientServerUrl,
     headers: {
@@ -12,6 +12,17 @@ export const getAxiosInstance = (credentials: IClientCredentials) => {
     timeout: 60 * 60 * 1000,
   });
 
+  axiosInstance.interceptors.response.use((resp) => {
+    responseCallback?.({
+      responseTime: +resp.headers["x-response-time"],
+      path: resp.config.url || "",
+      method: resp.config.method || "",
+      baseURL: resp.config.baseURL || "",
+      status: resp.status,
+    });
+    return resp;
+  });
+
   return axiosInstance;
 };
 
@@ -19,10 +30,10 @@ export async function request<T = any>(
   axiosInstance: AxiosInstance,
   url: string,
   body: Record<string, any>,
-): Promise<T & { responseTime: number }> {
+): Promise<T> {
   try {
-    const { data, headers } = await axiosInstance.post(url, body);
-    return { ...data, responseTime: +headers["x-response-time"] };
+    const { data } = await axiosInstance.post(url, body);
+    return data;
   } catch (error) {
     const err = error as AxiosError<string>;
     throw new Error(err.response?.data || err.message);
