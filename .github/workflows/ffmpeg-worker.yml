@@ -2,13 +2,13 @@ name: Build and Push Python Image to Google Cloud Platform
 on:
   push:
     branches: [main]
+env:
+  IMAGE_NAME: ffmpeg-worker
+  PROJECT_ID: shopify-442807
 jobs:
   build-push-gcr:
     name: Build and Push to GCP
     runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ffmpeg-worker
-      PROJECT_ID: shopify-442807
     steps:
       - name: Checkout
         uses: actions/checkout@v2
