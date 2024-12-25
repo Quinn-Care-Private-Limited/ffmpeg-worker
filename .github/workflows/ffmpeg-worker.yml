@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ffmpeg-worker
-      PROJECT_ID: quinn-video-platform
+      PROJECT_ID: shopify-442807
     steps:
       - name: Checkout
         uses: actions/checkout@v2
