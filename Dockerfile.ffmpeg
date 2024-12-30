@@ -12,6 +12,7 @@ RUN apt-get update && \
     pkg-config \
     libx264-dev \
     libx265-dev \
+    libass-devel \
     curl \
     gnupg \
     nasm \
