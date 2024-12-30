@@ -6,8 +6,9 @@ import { ConfigMetadata } from "@google-cloud/storage/build/cjs/src/resumable-up
 
 const fsPath = process.env.FS_PATH || ".";
 const ffmpegPath = process.env.FFMPEG_PATH || "";
-const credentials = JSON.parse(process.env.GCP_CREDENTIALS || "") as IGCPCredentials;
-credentials.private_key = credentials.private_key.replace(/\\n/g, "\n");
+const credentials = JSON.parse(process.env.GCP_CREDENTIALS || "{}") as IGCPCredentials;
+
+credentials.private_key = credentials.private_key?.replace(/\\n/g, "\n");
 export class GCStorageConnector implements CloudStorageConnector {
   async downloadObject(payload: { bucketName: string; objectKey: string; filePath: string }): Promise<void> {
     const storage = new Storage({
