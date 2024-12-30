@@ -186,7 +186,7 @@ export class GCStorageConnector implements CloudStorageConnector {
     },
     credentials?: IGCPCredentials,
   ): Promise<void> {
-    const storage = new Storage();
+    const storage = new Storage({ credentials });
     let { bucketName, objectKey, filePath, partSize = 5 * 1024 * 1024, batchSize = 10, ttl } = payload;
 
     const stats = fs.statSync(filePath);
@@ -196,13 +196,16 @@ export class GCStorageConnector implements CloudStorageConnector {
     /**
      * If file size is less than 5MB, use simple upload, because multipart upload requires minimum 5MB chunk size
      */
-    if (fileSizeInMegabytes <= 5) {
+    if (fileSizeInMegabytes <= 50) {
       return await this.uploadObject(payload, credentials);
     }
 
     /**
      * Minimum chunk size is 5MB, you can not upload a file in chunks smaller than 5MB
      */
+
+    // TODO: NOT WORKING
+
     // Creates a transfer manager client
     const transferManager = new TransferManager(storage.bucket(bucketName));
     const headers: {
