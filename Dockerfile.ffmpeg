@@ -26,13 +26,12 @@ RUN apt-get update && \
 RUN pip3 install --upgrade pip
 RUN pip3 install --no-cache-dir meson cython numpy
 
-RUN wget https://github.com/libass/libass/releases/download/0.14.0/libass-0.14.0.tar.xz
-RUN tar -xf libass-0.14.0.tar.xz
-RUN cd libass-0.14.0 && \
-    autoreconf -fiv && \
-    ./configure --disable-shared && \
+RUN wget https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.xz
+RUN tar -xf libass-0.17.3.tar.xz
+RUN cd libass-0.17.3 && \
+    ./configure --prefix=/usr --disable-shared && \
     make -j4 && \
-    make install distclean
+    make install
 
 RUN wget -O vmaf.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v3.0.0.tar.gz
 RUN tar -xf vmaf.tar.gz
@@ -51,5 +50,5 @@ RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesourc
 RUN apt update
 RUN apt install nodejs -y
 
-RUN rm -rf libass-0.14.0/ vmaf-3.0.0/ ffmpeg-6.0/ install libass-0.14.0.tar.xz ffmpeg.tar.xz vmaf.tar.gz
+RUN rm -rf libass-0.17.3/ vmaf-3.0.0/ ffmpeg-6.0/ install libass-0.17.3.tar.xz ffmpeg.tar.xz vmaf.tar.gz
 RUN echo 'export LD_LIBRARY_PATH=/usr/local/lib/aarch64-linux-gnu' >> ~/.bashrc
