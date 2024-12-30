@@ -1,4 +1,4 @@
-FROM us-west1-docker.pkg.dev/quinn-video-platform/xelp/ffmpeg:latest
+FROM quinninc/ffmpeg:latest
 RUN apt-get update -y && apt-get install -y tini nfs-common libtool
 WORKDIR /app
 COPY . .
