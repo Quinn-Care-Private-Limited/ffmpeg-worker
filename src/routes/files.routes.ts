@@ -49,6 +49,7 @@ filesRoutes.post(`/path`, async (req: Request, res: Response) => {
   try {
     res.status(200).json({ path: fsPath });
   } catch (error) {
+    console.log(`path error `, error);
     res.status(400).send(error.message);
   }
 });
@@ -59,6 +60,7 @@ filesRoutes.post(`/list`, validateRequest(listSchema), async (req: Request, res:
     const data = await fs.promises.readdir(`${fsPath}/${path}`);
     res.status(200).json({ list: data });
   } catch (error) {
+    console.log(`list error `, error);
     res.status(400).send(error.message);
   }
 });
@@ -97,6 +99,7 @@ filesRoutes.post(`/create`, validateRequest(createFileSchema), async (req: Reque
     }
     res.status(200).json({});
   } catch (error) {
+    console.log(`create error `, error);
     res.status(400).send(error.message);
   }
 });
@@ -107,6 +110,7 @@ filesRoutes.post(`/read`, validateRequest(readFileSchema), async (req: Request, 
     const data = await fs.promises.readFile(`${fsPath}/${path}`, "utf8");
     res.status(200).json({ data });
   } catch (error) {
+    console.log(`read error `, error);
     res.status(400).send(error.message);
   }
 });
@@ -122,6 +126,7 @@ filesRoutes.post(`/delete`, validateRequest(deleteSchema), async (req: Request, 
     }
     res.status(200).json({});
   } catch (error) {
+    console.log(`delete error `, error);
     res.status(400).send(error.message);
   }
 });
@@ -172,6 +177,7 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
 
     res.status(200).json({ data });
   } catch (error) {
+    console.log(`info error `, error);
     res.status(400).send(error.message);
   }
 });
@@ -188,6 +194,7 @@ filesRoutes.post(`/copy`, validateRequest(copySchema), async (req: Request, res:
     await fs.promises.copyFile(`${fsPath}/${input}`, `${fsPath}/${output}`);
     res.status(200).json({});
   } catch (error) {
+    console.log(`copy error `, error);
     res.status(400).send(error.message);
   }
 });
@@ -204,6 +211,7 @@ filesRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Reque
     await runcmd(`wget -O ${fsPath}/${output} "${url}"`);
     res.status(200).json({});
   } catch (error) {
+    console.log(`download error `, error);
     res.status(400).send(error.message);
   }
 });
