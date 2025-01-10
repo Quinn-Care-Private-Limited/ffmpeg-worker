@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { runcmd } from "utils/app";
+import { runcmd } from "utils";
 
 const ffmpegPath = process.env.FFMPEG_PATH || "";
 const fsPath = process.env.FS_PATH || ".";
