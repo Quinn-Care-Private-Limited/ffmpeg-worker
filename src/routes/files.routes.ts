@@ -2,7 +2,7 @@ import fs from "fs";
 import { z } from "zod";
 import express, { Request, Response } from "express";
 import { validateRequest } from "middlewares/req-validator";
-import { runcmd } from "handlers/utils";
+import { runcmd } from "utils";
 
 export const filesRoutes = express.Router();
 

@@ -12,19 +12,8 @@ import {
   vmafHandler,
   vmafSchema,
 } from "handlers/ffmpeg";
-import { IHandlerResponse } from "handlers/types";
-import { z } from "zod";
-
-const requestValidator = async (schema: z.ZodSchema, body: any) => {
-  const result = await schema.safeParseAsync(body);
-  if (!result.success) {
-    const error = new Error();
-    error.message = JSON.stringify({
-      errors: result.error.errors,
-    });
-    throw error;
-  }
-};
+import { IHandlerResponse } from "types";
+import { requestValidator } from "./validator";
 
 export const handler = async (event: any, context: Context): Promise<APIGatewayProxyResult> => {
   if (process.env.NODE_ENV === "development") {

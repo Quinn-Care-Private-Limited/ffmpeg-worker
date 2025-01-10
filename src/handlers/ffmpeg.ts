@@ -1,6 +1,6 @@
 import cuid2 from "@paralleldrive/cuid2";
-import { IHandlerResponse, WebhookType } from "./types";
-import { getWebhookResponsePayload, runcmd, runProcess, sendWebhook } from "./utils";
+import { IHandlerResponse, WebhookType } from "../types";
+import { getWebhookResponsePayload, runcmd, runProcess, sendWebhook } from "../utils";
 import { z } from "zod";
 import path from "path";
 
@@ -174,7 +174,7 @@ export const vmafHandler = async (body: z.infer<typeof vmafSchema>): Promise<IHa
     const { input1, input2, scale, model, subsample = 10, threads = 8 } = body as z.infer<typeof vmafSchema>;
 
     let cmd = `${ffmpegPath}ffmpeg`;
-    const modelPath = path.join(__dirname, `${model}.json`);
+    const modelPath = path.join(__dirname, "..", "models", `${model}.json`);
 
     cmd += ` -i ${fsPath}/${input1} -i ${fsPath}/${input2} -lavfi "[0:v]${scale}:flags=bicubic,setpts=PTS-STARTPTS[distorted];[1:v]${scale}:flags=bicubic,setpts=PTS-STARTPTS[reference];[distorted][reference]libvmaf=model='path=${modelPath}':n_subsample=${subsample}:n_threads=${threads}" -f null -`;
     const data = await runcmd(cmd);
