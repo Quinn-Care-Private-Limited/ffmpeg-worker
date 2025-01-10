@@ -1,0 +1,36 @@
+{
+  "name": "ffmpeg-lambdar",
+  "version": "0.0.1",
+  "description": "Ffmpeg lambda",
+  "main": "dist/index.js",
+  "scripts": {
+    "prebuild": "rm -rf dist",
+    "build": "esbuild index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
+    "postbuild": "cp -r handlers/vmaf_*.json dist/ && cd dist && zip -r lambda.zip *"
+  },
+  "author": "Shubhankar Das",
+  "license": "MIT",
+  "files": [
+    "build",
+    "bin",
+    "package.json",
+    "README.md",
+    "tsconfig.json"
+  ],
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.418.0",
+    "@aws-sdk/s3-request-presigner": "^3.503.1",
+    "@google-cloud/storage": "^7.7.0",
+    "@paralleldrive/cuid2": "^2.2.2",
+    "axios": "^1.5.0",
+    "zod": "^3.22.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "17.0.25",
+    "esbuild": "^0.24.2",
+    "ts-node": "^10.9.1",
+    "tsc-alias": "^1.8.8",
+    "typescript": "^4.6.3"
+  }
+}

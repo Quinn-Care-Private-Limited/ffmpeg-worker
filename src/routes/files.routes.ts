@@ -2,11 +2,11 @@ import fs from "fs";
 import { z } from "zod";
 import express, { Request, Response } from "express";
 import { validateRequest } from "middlewares/req-validator";
-import { runcmd } from "utils/app";
-
-const ffmpegPath = process.env.FFMPEG_PATH || "";
+import { runcmd } from "handlers/utils";
 
 export const filesRoutes = express.Router();
+
+const ffmpegPath = process.env.FFMPEG_PATH || "";
 const fsPath = process.env.FS_PATH || ".";
 
 const listSchema = z.object({

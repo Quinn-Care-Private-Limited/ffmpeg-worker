@@ -1,6 +1,6 @@
 import { exec } from "child_process";
-import { Request } from "express";
-import { IResponsePayload } from "types";
+import { IResponsePayload, IWebhookResponse } from "./types";
+import axios from "axios";
 import fs from "fs";
 
 const fsPath = process.env.FS_PATH || ".";
@@ -54,7 +54,15 @@ export async function runProcess(payload: { chainCmds?: string[]; output?: strin
   return runcmd(cmd);
 }
 
-export function getWebhookResponsePayload(req: Request, status: number, responseTime: number): IResponsePayload {
+export function getWebhookResponsePayload(
+  req: {
+    baseUrl: string;
+    method: string;
+    originalUrl: string;
+  },
+  status: number,
+  responseTime: number,
+): IResponsePayload {
   return {
     baseURL: req.baseUrl,
     method: req.method,
@@ -64,39 +72,23 @@ export function getWebhookResponsePayload(req: Request, status: number, response
   };
 }
 
-export function parseAbrMasterFile(string: string): { bandwidth: string; url: string }[] {
-  const lines = string.split("\n");
-  const result = [];
-  let obj: any = {};
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.includes("#EXT-X-STREAM-INF")) {
-      obj = {};
-      const bandwidth = line.match(/BANDWIDTH=(\d+)/)![1]!;
-      obj.bandwidth = +bandwidth;
-    } else if (line.includes(".m3u8")) {
-      obj.url = line;
-      result.push(obj);
+const MAX_RETRIES = 3;
+export const sendWebhook = async (url: string, payload: IWebhookResponse, responseTime = 0, retries = 0) => {
+  try {
+    await axios.post(url, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-client-id": process.env.CLIENT_ID || "",
+        "x-client-secret": process.env.CLIENT_SECRET || "",
+        "X-Response-Time": responseTime,
+      },
+    });
+  } catch (error) {
+    if (retries < MAX_RETRIES) {
+      await sleep(1000);
+      await sendWebhook(url, payload, responseTime, retries + 1);
+    } else {
+      console.log(`Error invoking callbackUrl ${url}`, error.message);
     }
   }
-  return result.sort((a, b) => b.bandwidth - a.bandwidth);
-}
-
-export function getChunks(streamString: string) {
-  const lines = streamString.split("\n");
-  const chunks = [];
-  let chunk: any = {};
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.startsWith("#EXTINF:")) {
-      chunk = {
-        duration: Number(line.split(":")[1]),
-      };
-    } else if (line.startsWith("chunk")) {
-      chunk.url = line;
-      chunks.push(chunk);
-      chunk = null;
-    }
-  }
-  return chunks;
-}
+};

@@ -19,8 +19,22 @@ export interface IResponsePayload {
 export interface IWebhookResponse {
   callbackId: string;
   callbackMeta?: Record<string, any>;
-  responsePayload: IResponsePayload;
+  responsePayload?: IResponsePayload;
   type: WebhookType;
   success: boolean;
   data: any;
 }
+
+export interface IHandlerResponseSuccess {
+  status: 200;
+  data: any;
+}
+
+export interface IHandlerResponseError {
+  status: 400;
+  data: {
+    error: string;
+  };
+}
+
+export type IHandlerResponse = IHandlerResponseSuccess | IHandlerResponseError;

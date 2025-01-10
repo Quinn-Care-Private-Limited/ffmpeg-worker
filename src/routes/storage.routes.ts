@@ -3,10 +3,9 @@ import cuid2 from "@paralleldrive/cuid2";
 import { CloudStorageType, getStorageConnector } from "cloud-storage/connector";
 import express, { Request, Response } from "express";
 import { z } from "zod";
-import { sendWebhook } from "utils/webhook";
-import { WebhookType } from "types";
+import { WebhookType } from "handlers/types";
 import { validateRequest } from "middlewares/req-validator";
-import { getWebhookResponsePayload } from "utils/app";
+import { getWebhookResponsePayload, sendWebhook } from "handlers/utils";
 
 export const storageRoutes = express.Router();
 
