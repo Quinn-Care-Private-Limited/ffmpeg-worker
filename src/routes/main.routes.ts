@@ -3,7 +3,6 @@ import responseTime from "response-time";
 import { ffmpegRoutes } from "./ffmpeg.routes";
 import { filesRoutes } from "./files.routes";
 import { storageRoutes } from "./storage.routes";
-import { authRequest } from "middlewares/auth";
 
 export const mainRoute = express.Router();
 
@@ -13,6 +12,6 @@ mainRoute.use(
     digits: 0,
   }),
 );
-mainRoute.use(`/ffmpeg`, authRequest(), ffmpegRoutes);
-mainRoute.use(`/files`, authRequest(), filesRoutes);
-mainRoute.use(`/storage`, authRequest(), storageRoutes);
+mainRoute.use(`/ffmpeg`, ffmpegRoutes);
+mainRoute.use(`/files`, filesRoutes);
+mainRoute.use(`/storage`, storageRoutes);

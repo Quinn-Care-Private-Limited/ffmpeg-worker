@@ -1,4 +1,6 @@
 import { Context, APIGatewayProxyResult } from "aws-lambda";
+import { IHandlerResponse } from "types";
+import { requestValidator } from "./validator";
 import {
   multiProcessHandler,
   multiProcessScheduleHandler,
@@ -12,8 +14,6 @@ import {
   vmafHandler,
   vmafSchema,
 } from "handlers/ffmpeg";
-import { IHandlerResponse } from "types";
-import { requestValidator } from "./validator";
 
 export const handler = async (event: any, context: Context): Promise<APIGatewayProxyResult> => {
   if (process.env.NODE_ENV === "development") {
@@ -25,6 +25,7 @@ export const handler = async (event: any, context: Context): Promise<APIGatewayP
 
   try {
     switch (path as string) {
+      //ffmpeg
       case "ffmpeg/test": {
         resp = await testHandler();
         break;

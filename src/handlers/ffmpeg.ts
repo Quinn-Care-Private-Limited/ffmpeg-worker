@@ -17,7 +17,9 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     const data = await runProcess(body);
     return {
       status: 200,
-      data,
+      data: {
+        output: data,
+      },
     };
   } catch (error) {
     return {
@@ -38,7 +40,9 @@ export const multiProcessHandler = async (body: z.infer<typeof multiProcessSchem
     const data = await Promise.all(body.processes.map(runProcess));
     return {
       status: 200,
-      data,
+      data: {
+        output: data,
+      },
     };
   } catch (error) {
     return {
@@ -82,7 +86,9 @@ export const processScheduleHandler = async (
 
     return {
       status: 200,
-      data,
+      data: {
+        output: data,
+      },
     };
   } catch (error) {
     await sendWebhook(callbackUrl, {
@@ -137,7 +143,9 @@ export const multiProcessScheduleHandler = async (
 
     return {
       status: 200,
-      data,
+      data: {
+        output: data,
+      },
     };
   } catch (error) {
     await sendWebhook(callbackUrl, {
