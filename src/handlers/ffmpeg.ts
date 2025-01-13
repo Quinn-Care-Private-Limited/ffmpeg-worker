@@ -210,7 +210,9 @@ export const testHandler = async (): Promise<IHandlerResponse> => {
 
     return {
       status: 200,
-      data,
+      data: {
+        output: data,
+      },
     };
   } catch (error) {
     return {
