@@ -38,3 +38,8 @@ export interface IHandlerResponseError {
 }
 
 export type IHandlerResponse = IHandlerResponseSuccess | IHandlerResponseError;
+
+export enum CloudStorageType {
+  S3 = "S3",
+  GCS = "GCS",
+}

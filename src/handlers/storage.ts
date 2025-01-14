@@ -1,12 +1,11 @@
 import fs from "fs";
 import cuid2 from "@paralleldrive/cuid2";
-import { CloudStorageType, getStorageConnector } from "cloud-storage/connector";
 import { z } from "zod";
 import { IHandlerResponse, WebhookType } from "types";
 import { getWebhookResponsePayload, sendWebhook } from "utils";
+import { CloudStorageConnector } from "cloud-storage/base";
 
 const fsPath = process.env.FS_PATH || "";
-const cloudStorageType = process.env.CLOUD_STORAGE_TYPE as CloudStorageType;
 
 export const downloadSchema = z.object({
   bucket: z.string(),
@@ -16,13 +15,15 @@ export const downloadSchema = z.object({
   partSize: z.number().optional(),
 });
 
-export const downloadHandler = async (body: z.infer<typeof downloadSchema>): Promise<IHandlerResponse> => {
+export const downloadHandler = async (
+  body: z.infer<typeof downloadSchema>,
+  storage: CloudStorageConnector,
+): Promise<IHandlerResponse> => {
   const { bucket, key, path, multipart, partSize } = body as z.infer<typeof downloadSchema>;
   try {
     const filePath = `${fsPath}/${path}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
-    const storage = getStorageConnector(cloudStorageType);
 
     if (multipart) {
       await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize });
@@ -58,6 +59,7 @@ export const downloadScheduleSchema = downloadSchema.extend({
 
 export const downloadScheduleHandler = async (
   body: z.infer<typeof downloadScheduleSchema>,
+  storage: CloudStorageConnector,
   req?: {
     baseUrl: string;
     method: string;
@@ -80,8 +82,6 @@ export const downloadScheduleHandler = async (
     const filePath = `${fsPath}/${path}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
-
-    const storage = getStorageConnector(cloudStorageType);
 
     if (multipart) {
       await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath, partSize });
@@ -144,11 +144,13 @@ export const uploadSchema = z.object({
   ttl: z.number().optional(),
 });
 
-export const uploadHandler = async (body: z.infer<typeof uploadSchema>): Promise<IHandlerResponse> => {
+export const uploadHandler = async (
+  body: z.infer<typeof uploadSchema>,
+  storage: CloudStorageConnector,
+): Promise<IHandlerResponse> => {
   const { bucket, key, path, contentType, multipart, partSize, batchSize, ttl } = body as z.infer<typeof uploadSchema>;
   try {
     if (process.env.NODE_ENV === "production") {
-      const storage = getStorageConnector(cloudStorageType);
       const filePath = `${fsPath}/${path}`;
       if (multipart) {
         await storage.uploadMultipartObject({
@@ -199,6 +201,7 @@ export const uploadScheduleSchema = uploadSchema.extend({
 
 export const uploadScheduleHandler = async (
   body: z.infer<typeof uploadScheduleSchema>,
+  storage: CloudStorageConnector,
   req?: {
     baseUrl: string;
     method: string;
@@ -221,7 +224,6 @@ export const uploadScheduleHandler = async (
   const start = Date.now();
   try {
     if (process.env.NODE_ENV === "production") {
-      const storage = getStorageConnector(cloudStorageType);
       const filePath = `${fsPath}/${path}`;
       if (multipart) {
         await storage.uploadMultipartObject({

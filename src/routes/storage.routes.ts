@@ -1,9 +1,9 @@
 import fs from "fs";
 import cuid2 from "@paralleldrive/cuid2";
-import { CloudStorageType, getStorageConnector } from "cloud-storage/connector";
+import { getStorageConnector } from "cloud-storage/connector";
 import express, { Request, Response } from "express";
 import { z } from "zod";
-import { WebhookType } from "types";
+import { CloudStorageType, WebhookType } from "types";
 import { validateRequest } from "middlewares/req-validator";
 import { getWebhookResponsePayload, sendWebhook } from "utils";
 

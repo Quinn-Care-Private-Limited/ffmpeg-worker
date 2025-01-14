@@ -48,7 +48,7 @@ export class S3Connector implements CloudStorageConnector {
   }
 
   async uploadObject(
-    payload: { bucketName: string; objectKey: string; filePath: string; contentType: string },
+    payload: { bucketName: string; objectKey: string; filePath: string; contentType: string; ttl?: number },
     credentials?: IAWSCredentials,
   ) {
     const s3Client = new S3Client(credentials);
@@ -156,6 +156,7 @@ export class S3Connector implements CloudStorageConnector {
       partSize?: number;
       batchSize?: number;
       debug?: boolean;
+      ttl?: number;
     },
     credentials?: IAWSCredentials,
   ) {
