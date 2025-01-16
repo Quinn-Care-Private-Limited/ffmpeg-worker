@@ -13,8 +13,6 @@ import fs from "fs";
 import { CloudStorageConnector } from "./base";
 import { IAWSCredentials } from "types";
 
-const fsPath = process.env.FS_PATH || ".";
-const ffmpegPath = process.env.FFMPEG_PATH || "";
 const credentials = {
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,

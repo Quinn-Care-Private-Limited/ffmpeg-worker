@@ -4,8 +4,6 @@ import fs from "fs";
 import { IGCPCredentials } from "types";
 import { ConfigMetadata } from "@google-cloud/storage/build/cjs/src/resumable-upload";
 
-const fsPath = process.env.FS_PATH || ".";
-const ffmpegPath = process.env.FFMPEG_PATH || "";
 const credentials = JSON.parse(process.env.GCP_CREDENTIALS || "{}") as IGCPCredentials;
 
 credentials.private_key = credentials.private_key?.replace(/\\n/g, "\n");
