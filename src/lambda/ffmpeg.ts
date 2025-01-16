@@ -6,6 +6,8 @@ import {
   multiProcessScheduleHandler,
   multiProcessScheduleSchema,
   multiProcessSchema,
+  probeHandler,
+  probeSchema,
   processHandler,
   processScheduleHandler,
   processScheduleSchema,
@@ -53,6 +55,11 @@ export const handler = async (event: any, context: Context): Promise<APIGatewayP
       case "ffmpeg/vmaf": {
         await requestValidator(vmafSchema, body);
         resp = await vmafHandler(body);
+        break;
+      }
+      case "ffmpeg/probe": {
+        await requestValidator(probeSchema, body);
+        resp = await probeHandler(body);
         break;
       }
 

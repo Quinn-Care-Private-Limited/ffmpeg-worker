@@ -203,6 +203,38 @@ export const vmafHandler = async (body: z.infer<typeof vmafSchema>): Promise<IHa
   }
 };
 
+export const probeSchema = z.object({
+  input: z.string(),
+  chainCmds: z.array(z.string()),
+});
+
+export const probeHandler = async (body: z.infer<typeof probeSchema>): Promise<IHandlerResponse> => {
+  try {
+    const { input, chainCmds } = body as z.infer<typeof probeSchema>;
+    let cmd = `${ffmpegPath}ffprobe`;
+
+    if (chainCmds.length > 0) {
+      cmd += ` ${chainCmds.join(" ")}`;
+    }
+    cmd += ` ${fsPath}/${input}`;
+    const data = await runcmd(cmd);
+
+    return {
+      status: 200,
+      data: {
+        output: data,
+      },
+    };
+  } catch (error) {
+    return {
+      status: 400,
+      data: {
+        error: error.message,
+      },
+    };
+  }
+};
+
 export const testHandler = async (): Promise<IHandlerResponse> => {
   try {
     const cmd = `${ffmpegPath}ffmpeg -version`;
