@@ -78,8 +78,6 @@ export const sendWebhook = async (url: string, payload: IWebhookResponse, respon
     await axios.post(url, payload, {
       headers: {
         "Content-Type": "application/json",
-        "x-client-id": process.env.CLIENT_ID || "",
-        "x-client-secret": process.env.CLIENT_SECRET || "",
         "X-Response-Time": responseTime,
       },
     });

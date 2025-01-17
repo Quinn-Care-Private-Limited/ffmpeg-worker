@@ -32,46 +32,46 @@ export const handler = async (event: any, context: Context): Promise<APIGatewayP
   try {
     switch (path as string) {
       //files
-      case "files/path": {
+      case "/files/path": {
         resp = await pathHandler();
         break;
       }
-      case "files/list": {
+      case "/files/list": {
         await requestValidator(listSchema, body);
         resp = await listHandler(body);
         break;
       }
-      case "files/check": {
+      case "/files/check": {
         await requestValidator(checkSchema, body);
         resp = await checkHandler(body);
         break;
       }
-      case "files/create": {
+      case "/files/create": {
         await requestValidator(createSchema, body);
         resp = await createHandler(body);
         break;
       }
-      case "files/read": {
+      case "/files/read": {
         await requestValidator(readSchema, body);
         resp = await readHandler(body);
         break;
       }
-      case "files/delete": {
+      case "/files/delete": {
         await requestValidator(deleteSchema, body);
         resp = await deleteHandler(body);
         break;
       }
-      case "files/info": {
+      case "/files/info": {
         await requestValidator(infoSchema, body);
         resp = await infoHandler(body);
         break;
       }
-      case "files/copy": {
+      case "/files/copy": {
         await requestValidator(copySchema, body);
         resp = await copyHandler(body);
         break;
       }
-      case "files/download": {
+      case "/files/download": {
         await requestValidator(downloadFileSchema, body);
         resp = await downloaFileHandler(body);
         break;

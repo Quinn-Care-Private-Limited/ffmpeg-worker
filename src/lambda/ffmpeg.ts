@@ -28,36 +28,36 @@ export const handler = async (event: any, context: Context): Promise<APIGatewayP
   try {
     switch (path as string) {
       //ffmpeg
-      case "ffmpeg/test": {
+      case "/ffmpeg/test": {
         resp = await testHandler();
         break;
       }
-      case "ffmpeg/process": {
+      case "/ffmpeg/process": {
         await requestValidator(processSchema, body);
         resp = await processHandler(body);
         break;
       }
-      case "ffmpeg/process/schedule": {
+      case "/ffmpeg/process/schedule": {
         await requestValidator(processScheduleSchema, body);
         resp = await processScheduleHandler(body);
         break;
       }
-      case "ffmpeg/multi_process": {
+      case "/ffmpeg/multi_process": {
         await requestValidator(multiProcessSchema, body);
         resp = await multiProcessHandler(body);
         break;
       }
-      case "ffmpeg/multi_process/schedule": {
+      case "/ffmpeg/multi_process/schedule": {
         await requestValidator(multiProcessScheduleSchema, body);
         resp = await multiProcessScheduleHandler(body);
         break;
       }
-      case "ffmpeg/vmaf": {
+      case "/ffmpeg/vmaf": {
         await requestValidator(vmafSchema, body);
         resp = await vmafHandler(body);
         break;
       }
-      case "ffmpeg/probe": {
+      case "/ffmpeg/probe": {
         await requestValidator(probeSchema, body);
         resp = await probeHandler(body);
         break;

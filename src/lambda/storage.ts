@@ -24,22 +24,22 @@ export const handler = async (event: any, context: Context): Promise<APIGatewayP
   try {
     switch (path as string) {
       //storage
-      case "storage/download": {
+      case "/storage/download": {
         await requestValidator(downloadSchema, body);
         resp = await downloadHandler(body, storage);
         break;
       }
-      case "storage/download/schedule": {
+      case "/storage/download/schedule": {
         await requestValidator(downloadScheduleSchema, body);
         resp = await downloadScheduleHandler(body, storage);
         break;
       }
-      case "storage/upload": {
+      case "/storage/upload": {
         await requestValidator(uploadSchema, body);
         resp = await uploadHandler(body, storage);
         break;
       }
-      case "storage/upload/schedule": {
+      case "/storage/upload/schedule": {
         await requestValidator(uploadScheduleSchema, body);
         resp = await uploadScheduleHandler(body, storage);
         break;
