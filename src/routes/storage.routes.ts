@@ -12,11 +12,12 @@ import {
   uploadScheduleSchema,
   uploadSchema,
 } from "handlers/storage";
-import { GCStorageConnector } from "cloud-storage/gcs";
+import { getStorageConnector } from "cloud-storage/connector";
+import { CloudStorageType } from "types";
 
 export const storageRoutes = express.Router();
 
-const storage = new GCStorageConnector();
+const storage = getStorageConnector(process.env.CLOUD_STORAGE_TYPE as CloudStorageType);
 
 storageRoutes.post(`/download`, validateRequest(downloadSchema), async (req: Request, res: Response) => {
   const resp = await downloadHandler(req.body, storage);

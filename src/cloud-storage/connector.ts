@@ -4,7 +4,7 @@ import { GCStorageConnector } from "./gcs";
 import { S3Connector } from "./s3";
 
 export const getStorageConnector = (type: CloudStorageType): CloudStorageConnector => {
-  switch (type) {
+  switch (type.toUpperCase()) {
     case CloudStorageType.S3:
       return new S3Connector();
     case CloudStorageType.GCS:
