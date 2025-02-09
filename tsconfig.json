@@ -18,6 +18,7 @@
     "paths": {
       "*": ["*"]
     },
+    "typeRoots": ["src/types.d.ts"]
   },
   "include": ["src"],
   }
