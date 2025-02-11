@@ -1,4 +1,5 @@
 rm -rf dist
+esbuild src/lambda/canvas.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/canvas.js
 esbuild src/lambda/ffmpeg.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/ffmpeg.js
 esbuild src/lambda/files.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/files.js
 esbuild src/lambda/storage.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/storage.js
