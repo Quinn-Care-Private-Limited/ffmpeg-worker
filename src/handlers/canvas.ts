@@ -135,7 +135,9 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
 
     return {
       status: 200,
-      data: {},
+      data: {
+        output: "Process completed",
+      },
     };
   } catch (error) {
     console.log(error);
