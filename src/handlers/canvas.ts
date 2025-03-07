@@ -62,7 +62,7 @@ const closeServer = () =>
 
 export const processHandler = async (body: z.infer<typeof processSchema>): Promise<IHandlerResponse> => {
   const browser = await puppeteer.launch({
-    headless: process.env.NODE_ENV == "development", // Set to false to see what's happening
+    headless: true, // Set to false to see what's happening
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
     protocolTimeout: 6000_000,
     timeout: 0,
