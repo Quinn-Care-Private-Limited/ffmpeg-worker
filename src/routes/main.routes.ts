@@ -3,6 +3,7 @@ import responseTime from "response-time";
 import { ffmpegRoutes } from "./ffmpeg.routes";
 import { filesRoutes } from "./files.routes";
 import { storageRoutes } from "./storage.routes";
+import { canvasRoutes } from "./canvas.routes";
 
 export const mainRoute = express.Router();
 
@@ -15,3 +16,4 @@ mainRoute.use(
 mainRoute.use(`/ffmpeg`, ffmpegRoutes);
 mainRoute.use(`/files`, filesRoutes);
 mainRoute.use(`/storage`, storageRoutes);
+mainRoute.use(`/canvas`, canvasRoutes);
