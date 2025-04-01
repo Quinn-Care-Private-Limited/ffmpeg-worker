@@ -2,7 +2,7 @@ import fs from "fs";
 import { z } from "zod";
 import express, { Request, Response } from "express";
 import { validateRequest } from "middlewares/req-validator";
-import { runcmd } from "utils/app";
+import { runcmd, sleep } from "utils/app";
 
 const ffmpegPath = process.env.FFMPEG_PATH || "";
 
@@ -135,8 +135,24 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
   try {
     const { input } = req.body as z.infer<typeof infoSchema>;
     let cmd = `${ffmpegPath}ffprobe`;
-
     const path = `${fsPath}/${input}`;
+
+    const retryCount = 3;
+    const delay = 1000;
+    const incrementDelay = 1000;
+    // Wait for file to exist
+    for (let i = 0; i < retryCount; i++) {
+      try {
+        if (fs.existsSync(`${path}/randomfile`)) {
+          break;
+        } else {
+          await sleep(delay + i * incrementDelay);
+        }
+      } catch (error) {
+        await sleep(delay + i * incrementDelay);
+      }
+    }
+
     const extension = path.split(".").pop();
     const stream = ["mp3", "wav", "flac", "m4a", "aac", "opus"].includes(extension!) ? "a:0" : "v:0";
 
