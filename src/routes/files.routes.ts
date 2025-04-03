@@ -159,14 +159,18 @@ filesRoutes.post(`/info`, validateRequest(infoSchema), async (req: Request, res:
     const infoCmd = `${cmd} -v error -select_streams ${stream} -show_entries stream=duration,width,height,bit_rate,r_frame_rate -of default=noprint_wrappers=1 ${path}`;
     const sizeCmd = `${cmd} -v error -select_streams ${stream} -show_entries format=size -of default=noprint_wrappers=1 ${path}`;
     const rotationCmd = `${cmd} -v error -select_streams ${stream} -show_entries stream_side_data=rotation -of default=noprint_wrappers=1 ${path}`;
+    const audioCmd = `${cmd} -v error -select_streams a -show_entries stream=codec_type -of default=noprint_wrappers=1 ${path}`;
 
-    const [fileInfo, sizeData, rotationData] = await Promise.all([
+    const [fileInfo, sizeData, rotationData, audioData] = await Promise.all([
       runcmd(infoCmd),
       runcmd(sizeCmd),
       runcmd(rotationCmd),
+      runcmd(audioCmd),
     ]);
     const data: any = {};
     const lines = `${fileInfo}${sizeData}${rotationData}`.split("\n");
+    // Check if file has audio
+    data.hasAudio = audioData.includes("codec_type=audio");
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];

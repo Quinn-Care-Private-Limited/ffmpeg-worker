@@ -56,6 +56,7 @@ export interface IFileInfo {
   avgbitrate: number;
   framerate: number;
   size: number;
+  hasAudio: boolean;
 }
 
 export interface IFfProcess {

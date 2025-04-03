@@ -249,6 +249,15 @@ export class FFProcess {
     this.process.chainCmds.push(`-an`);
     return this;
   }
+  noAudio() {
+    this.process.chainCmds.push(`-an`);
+    return this;
+  }
+
+  noVideo() {
+    this.process.chainCmds.push(`-vn`);
+    return this;
+  }
 
   flag(key: string, value?: string) {
     if (value) {
