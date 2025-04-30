@@ -4,7 +4,7 @@ import { IHandlerResponse } from "types";
 import fs from "fs";
 import { z } from "zod";
 import { createServer } from "http";
-import { runcmd } from "utils";
+import { runcmd, runProcess } from "utils";
 
 let window: any;
 
@@ -15,6 +15,7 @@ export const processSchema = z.object({
   startTime: z.number().min(0),
   endTime: z.number().min(0),
   fps: z.number().min(0).optional(),
+  chunkNumber: z.number(),
   output: z.string(),
 });
 
@@ -62,11 +63,12 @@ const closeServer = () =>
 
 export const processHandler = async (body: z.infer<typeof processSchema>): Promise<IHandlerResponse> => {
   const browser = await puppeteer.launch({
-    headless: true, // Set to false to see what's happening
+    headless: false, // Use headless mode for better performance
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
     protocolTimeout: 6000_000,
     timeout: 0,
   });
+  const chunkNumber = body.chunkNumber;
 
   try {
     //check if bundle exists in dir if not download bucket url
@@ -118,16 +120,26 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
 
     // console.log(json);
 
-    const dir = `${fsPath}/${body.output}`;
-    if (!fs.existsSync(dir)) {
-      await fs.promises.mkdir(`${fsPath}/${body.output}`, { recursive: true });
+    // Create temp directory for frames
+    const tempFramesDir = `${fsPath}/temp_frames_${Date.now()}`;
+    await fs.promises.mkdir(tempFramesDir, { recursive: true });
+
+    // Create output directory if it doesn't exist
+    const outputDir = path.dirname(`${fsPath}/${body.output}`);
+    if (!fs.existsSync(outputDir)) {
+      await fs.promises.mkdir(outputDir, { recursive: true });
     }
 
     //batch the json start and end to every 10 frames
     //calculate seconds for 10 frames given fps
 
     const fps = body.fps || 30;
-    const secondsPerBatch = 5 / (body.fps || 30);
+
+    // For 4 second chunks at 30fps (typical case), optimize batch size
+    // Use the full duration as a single batch for short durations, or split into 2 equal chunks otherwise
+    const totalDuration = body.endTime - body.startTime;
+    const secondsPerBatch = totalDuration <= 4 ? totalDuration : totalDuration / 2;
+
     let start = body.startTime;
     let end = Math.min(start + secondsPerBatch, body.endTime);
     let totalFrames = 0;
@@ -141,8 +153,19 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // }
 
     console.log("Starting frame capture");
+    console.log(
+      `Processing ${totalDuration} seconds of content at ${fps} fps (expected ${Math.ceil(
+        totalDuration * fps,
+      )} frames)`,
+    );
+
+    // Array to hold frame data before writing to disk
+    const frameWriters = [];
 
     while (start < body.endTime) {
+      console.log(`Processing batch: ${start}s to ${end}s`);
+      const startTime = Date.now();
+
       const frames = await page.evaluate(
         (startTime, endTime, fps) => window.processCanvas(startTime, endTime, fps),
         start,
@@ -150,11 +173,20 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
         fps,
       );
 
-      for (let i = 0; i < frames.length; i++) {
-        const frameNumber = i + totalFrames;
-        const base64Data = frames[i].replace(/^data:image\/png;base64,/, "");
-        const path = `${fsPath}/${body.output}/frame_${frameNumber.toString().padStart(3, "0")}.png`;
-        await fs.promises.writeFile(path, base64Data, "base64");
+      console.log(`Captured ${frames.length} frames in ${(Date.now() - startTime) / 1000}s`);
+
+      // Process frames in parallel batches of 6 to avoid memory issues
+      for (let i = 0; i < frames.length; i += 6) {
+        const batchPromises = [];
+        for (let j = 0; j < 6 && i + j < frames.length; j++) {
+          const frameNumber = i + j + totalFrames;
+          const base64Data = frames[i + j].replace(/^data:image\/png;base64,/, "");
+          const framePath = `${tempFramesDir}/frame_${frameNumber.toString().padStart(5, "0")}.png`;
+          batchPromises.push(fs.promises.writeFile(framePath, base64Data, "base64"));
+        }
+
+        // Wait for this small batch to complete before moving to next
+        await Promise.all(batchPromises);
       }
 
       totalFrames += frames.length;
@@ -163,8 +195,39 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     }
 
     await browser.close();
-
     console.log("Frame capture finished", { frames: totalFrames });
+
+    // Use ffmpeg to stitch frames into a video
+    console.log("Creating video from frames...");
+    console.log(`Using parameters: fps=${fps}, totalFrames=${totalFrames}, duration=${body.endTime - body.startTime}s`);
+
+    // Construct the ffmpeg command to create video from frames
+    const outputPath = body.output.endsWith(".mp4") ? body.output : `${body.output}.mp4`;
+
+    // If fps is 0 or not set properly, default to 30
+    const safeFps = !fps || fps <= 0 ? 30 : fps;
+
+    await runProcess({
+      chainCmds: [
+        `-framerate ${safeFps}`,
+        `-i ${tempFramesDir.replace(`${fsPath}/`, "")}/frame_%05d.png`,
+        `-c:v libx264`,
+        `-preset ultrafast`,
+        `-pix_fmt yuv420p`,
+        `-crf 23`,
+      ],
+      output: outputPath,
+    });
+
+    console.log("Video creation completed");
+
+    // Clean up temp frames
+    try {
+      await runcmd(`rm -rf ${tempFramesDir}`);
+      console.log("Temporary frames cleaned up");
+    } catch (cleanupError) {
+      console.log("Warning: Failed to clean up temporary frames:", cleanupError);
+    }
 
     await closeServer();
     console.log("File server closed");
@@ -172,12 +235,12 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     return {
       status: 200,
       data: {
-        output: "Process completed",
+        output: "Video processing completed",
       },
     };
   } catch (error) {
     console.log(error);
-    await browser.close();
+    // await browser.close();
     await closeServer();
     console.log("File server closed");
     return {
