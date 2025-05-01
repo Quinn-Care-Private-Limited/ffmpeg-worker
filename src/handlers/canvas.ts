@@ -15,7 +15,6 @@ export const processSchema = z.object({
   startTime: z.number().min(0),
   endTime: z.number().min(0),
   fps: z.number().min(0).optional(),
-  chunkNumber: z.number(),
   output: z.string(),
 });
 
@@ -34,17 +33,46 @@ const host = `http://127.0.0.1:${port}`;
 
 const fileServer = createServer((req: any, res: any) => {
   const filePath = `${fsPath}/${req.url.replace(host, "")}`;
-  fs.readFile(filePath, (err, data) => {
-    const extension = path.extname(req.url).slice(1);
-    const type = types[extension];
-    if (err) {
-      res.writeHead(404, { "Content-Type": "text/html" });
-      res.end("404: File not found");
-    } else {
-      res.writeHead(200, { "Access-Control-Allow-Origin": "*", "Content-Type": type });
-      res.end(data);
-    }
-  });
+  const stat = fs.statSync(filePath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  const extension = path.extname(req.url).slice(1);
+  const type = types[extension];
+
+  if (range && type === "video/mp4") {
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunksize = end - start + 1;
+    const file = fs.createReadStream(filePath, { start, end });
+
+    const head = {
+      "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": chunksize,
+      "Content-Type": type,
+      "Access-Control-Allow-Origin": "*",
+    };
+
+    res.writeHead(206, head);
+    file.pipe(res);
+  } else {
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404, { "Content-Type": "text/html" });
+        res.end("404: File not found");
+      } else {
+        res.writeHead(200, {
+          "Content-Type": type,
+          "Content-Length": fileSize,
+          "Accept-Ranges": "bytes",
+          "Access-Control-Allow-Origin": "*",
+        });
+        res.end(data);
+      }
+    });
+  }
 });
 
 const listenServer = () =>
@@ -68,7 +96,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     protocolTimeout: 6000_000,
     timeout: 0,
   });
-  const chunkNumber = body.chunkNumber;
 
   try {
     //check if bundle exists in dir if not download bucket url
@@ -121,7 +148,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // console.log(json);
 
     // Create temp directory for frames
-    const tempFramesDir = `${fsPath}/temp_frames_${Date.now()}`;
+    const tempFramesDir = `${fsPath}/tmp/frames_${Date.now()}`;
     await fs.promises.mkdir(tempFramesDir, { recursive: true });
 
     // Create output directory if it doesn't exist
@@ -158,9 +185,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
         totalDuration * fps,
       )} frames)`,
     );
-
-    // Array to hold frame data before writing to disk
-    const frameWriters = [];
 
     while (start < body.endTime) {
       console.log(`Processing batch: ${start}s to ${end}s`);
@@ -202,7 +226,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     console.log(`Using parameters: fps=${fps}, totalFrames=${totalFrames}, duration=${body.endTime - body.startTime}s`);
 
     // Construct the ffmpeg command to create video from frames
-    const outputPath = body.output.endsWith(".mp4") ? body.output : `${body.output}.mp4`;
+    const outputPath = `${body.output}.mp4`;
 
     // If fps is 0 or not set properly, default to 30
     const safeFps = !fps || fps <= 0 ? 30 : fps;
@@ -214,7 +238,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
         `-c:v libx264`,
         `-preset ultrafast`,
         `-pix_fmt yuv420p`,
-        `-crf 23`,
+        `-crf 16`,
       ],
       output: outputPath,
     });
