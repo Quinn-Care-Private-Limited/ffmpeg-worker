@@ -91,7 +91,7 @@ const closeServer = () =>
 
 export const processHandler = async (body: z.infer<typeof processSchema>): Promise<IHandlerResponse> => {
   const browser = await puppeteer.launch({
-    headless: false, // Use headless mode for better performance
+    headless: true, // Use headless mode for better performance
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
     protocolTimeout: 6000_000,
     timeout: 0,
@@ -225,9 +225,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     console.log("Creating video from frames...");
     console.log(`Using parameters: fps=${fps}, totalFrames=${totalFrames}, duration=${body.endTime - body.startTime}s`);
 
-    // Construct the ffmpeg command to create video from frames
-    const outputPath = `${body.output}.mp4`;
-
     // If fps is 0 or not set properly, default to 30
     const safeFps = !fps || fps <= 0 ? 30 : fps;
 
@@ -240,7 +237,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
         `-pix_fmt yuv420p`,
         `-crf 16`,
       ],
-      output: outputPath,
+      output: body.output,
     });
 
     console.log("Video creation completed");

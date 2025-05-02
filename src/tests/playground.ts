@@ -195,7 +195,7 @@ const json = {
 // };
 
 async function main() {
-  let resp = await processHandler({ json, startTime: 0, endTime: 4, fps: 10, output: "frames/chunk_0" });
+  let resp = await processHandler({ json, startTime: 0, endTime: 4, fps: 10, output: "frames/chunk_0.mp4" });
   console.log(resp);
   // resp = await processHandler({
   //   json,
