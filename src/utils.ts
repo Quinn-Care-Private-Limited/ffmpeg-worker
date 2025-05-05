@@ -51,6 +51,8 @@ export async function runProcess(payload: { chainCmds?: string[]; output?: strin
     }
   }
 
+  // console.log(cmd);
+
   return runcmd(cmd);
 }
 

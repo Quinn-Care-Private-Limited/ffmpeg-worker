@@ -7,7 +7,7 @@ import { createServer } from "http";
 import { runcmd, runProcess } from "utils";
 
 let window: any;
-
+let fileServerStarted = false;
 const fsPath = process.env.FS_PATH || ".";
 
 export const processSchema = z.object({
@@ -32,7 +32,13 @@ const port = 5500;
 const host = `http://127.0.0.1:${port}`;
 
 const fileServer = createServer((req: any, res: any) => {
-  const filePath = `${fsPath}/${req.url.replace(host, "")}`;
+  if (req.url == "/.well-known/appspecific/com.chrome.devtools.json") {
+    res.writeHead(204, { "Content-Type": "text/html" });
+    res.end();
+    return;
+  }
+
+  const filePath = `${fsPath}${req.url.replace(host, "")}`;
   const stat = fs.statSync(filePath);
   const fileSize = stat.size;
   const range = req.headers.range;
@@ -79,6 +85,8 @@ const listenServer = () =>
   new Promise((resolve, reject) => {
     fileServer.listen(port, () => {
       resolve(true);
+      fileServerStarted = true;
+      console.log("File server started");
     });
   });
 
@@ -89,13 +97,43 @@ const closeServer = () =>
     });
   });
 
+listenServer();
+
 export const processHandler = async (body: z.infer<typeof processSchema>): Promise<IHandlerResponse> => {
   const browser = await puppeteer.launch({
-    headless: true, // Use headless mode for better performance
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--enable-gpu-rasterization",
+      "--enable-zero-copy",
+      "--ignore-gpu-blocklist",
+      "--enable-gpu-compositing",
+      "--enable-native-gpu-memory-buffers",
+      "--enable-unsafe-swiftshader",
+      "--enable-webgl",
+      "--enable-webgl2",
+      "--use-gl=angle",
+      "--enable-accelerated-2d-canvas",
+      "--enable-accelerated-mjpeg-decode",
+      "--enable-accelerated-video-decode",
+      "--enable-features=VaapiVideoDecoder",
+      "--disable-features=UseChromeOSDirectVideoDecoder",
+      "--disable-gpu-vsync",
+      "--disable-frame-rate-limit",
+      "--disable-web-security",
+      "--disable-features=IsolateOrigins,site-per-process",
+    ],
     protocolTimeout: 6000_000,
     timeout: 0,
   });
+
+  while (!fileServerStarted) {
+    await new Promise((resolve) => {
+      setTimeout(() => resolve(false), 500);
+    });
+  }
 
   try {
     //check if bundle exists in dir if not download bucket url
@@ -107,16 +145,11 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       await runcmd(`wget -O ${fsPath}/bundle.min.js "https://storage.googleapis.com/lamar-infra-assets/bundle.min.js"`);
     }
 
-    await listenServer();
-    console.log("File server started");
-
     const json = body.json as any;
     for (let i = 0; i < json.nodes.length; i++) {
       const config = json.nodes[i].config as { src: string };
       if (!(config.src.startsWith("https://") || config.src.startsWith("http://"))) {
         json.nodes[i].config.src = `${host}/${json.nodes[i].config.src}`;
-        // json.nodes[i].config.src = `https://f8f485567ad5.ngrok.app/${json.nodes[i].config.src}`;
-        // json.nodes[i].config.src = "https://storage.googleapis.com/yume-artifacts/sources/source0.mp4";
       }
     }
 
@@ -131,6 +164,24 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       width: json.dimensions.width,
       height: json.dimensions.height,
       deviceScaleFactor: 1,
+    });
+
+    // Set page timeout
+    page.setDefaultNavigationTimeout(0);
+    page.setDefaultTimeout(0);
+
+    // Enable request interception for better performance
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      if (
+        request.resourceType() === "image" ||
+        request.resourceType() === "stylesheet" ||
+        request.resourceType() === "font"
+      ) {
+        request.abort();
+      } else {
+        request.continue();
+      }
     });
 
     await page.goto(`${host}/index.html`);
@@ -171,7 +222,23 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     let end = Math.min(start + secondsPerBatch, body.endTime);
     let totalFrames = 0;
 
+    // console.log(json);
+
     await page.evaluate((json) => window.initCanvas(json), json);
+
+    await page.waitForFunction(
+      () => {
+        return new Promise((resolve) => {
+          if (window.canvas) {
+            resolve(true);
+          } else {
+            setTimeout(() => resolve(false), 100);
+          }
+        });
+      },
+      { timeout: 10000 },
+    );
+
     // await page.evaluate((json) => window.canvas.fromJson(json), json);
 
     //sleep for a second to allow the app to load
@@ -232,6 +299,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       chainCmds: [
         `-framerate ${safeFps}`,
         `-i ${tempFramesDir.replace(`${fsPath}/`, "")}/frame_%05d.png`,
+        `-vf scale=${json.dimensions.width}:${json.dimensions.height}:force_original_aspect_ratio=disable`,
         `-c:v libx264`,
         `-preset ultrafast`,
         `-pix_fmt yuv420p`,
@@ -250,9 +318,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       console.log("Warning: Failed to clean up temporary frames:", cleanupError);
     }
 
-    await closeServer();
-    console.log("File server closed");
-
     return {
       status: 200,
       data: {
@@ -262,7 +327,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
   } catch (error) {
     console.log(error);
     // await browser.close();
-    await closeServer();
     console.log("File server closed");
     return {
       status: 400,
