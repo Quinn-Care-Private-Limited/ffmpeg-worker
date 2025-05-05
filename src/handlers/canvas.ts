@@ -129,13 +129,18 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     timeout: 0,
   });
 
-  while (!fileServerStarted) {
-    await new Promise((resolve) => {
-      setTimeout(() => resolve(false), 500);
-    });
-  }
-
   try {
+    let retries = 0;
+    while (!fileServerStarted) {
+      if (retries == 10) {
+        throw new Error("File server failed to start");
+      }
+      await new Promise((resolve) => {
+        setTimeout(() => resolve(false), 500);
+      });
+      retries++;
+    }
+
     //check if bundle exists in dir if not download bucket url
     if (!fs.existsSync(`${fsPath}/index.html`)) {
       await runcmd(`wget -O ${fsPath}/index.html "https://storage.googleapis.com/lamar-infra-assets/index.html"`);
@@ -327,7 +332,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
   } catch (error) {
     console.log(error);
     // await browser.close();
-    console.log("File server closed");
     return {
       status: 400,
       data: {
