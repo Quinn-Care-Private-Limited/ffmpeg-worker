@@ -143,11 +143,15 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
 
     //check if bundle exists in dir if not download bucket url
     if (!fs.existsSync(`${fsPath}/index.html`)) {
-      await runcmd(`wget -O ${fsPath}/index.html "https://storage.googleapis.com/lamar-infra-assets/index.html"`);
+      await runcmd(
+        `wget -O ${fsPath}/index.html "https://storage.googleapis.com/lamar-infra-assets/index.html?v=${Date.now()}"`,
+      );
     }
 
     if (!fs.existsSync(`${fsPath}/bundle.min.js`)) {
-      await runcmd(`wget -O ${fsPath}/bundle.min.js "https://storage.googleapis.com/lamar-infra-assets/bundle.min.js"`);
+      await runcmd(
+        `wget -O ${fsPath}/bundle.min.js "https://storage.googleapis.com/lamar-infra-assets/bundle.min.js?v=${Date.now()}"`,
+      );
     }
 
     const json = body.json as any;
