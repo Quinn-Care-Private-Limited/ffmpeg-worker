@@ -197,16 +197,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // await page.goto(`https://storage.googleapis.com/lamar-infra-assets/index.html?v=123`);
     // await page.goto(`https://storage.googleapis.com/pixi-site/index.html?v=8778`);
 
-    // Set the width and height of the canvas div element
-    await page.evaluate((dimensions) => {
-      const doc = window.document;
-      const canvasDiv = doc.getElementById("canvas");
-      if (canvasDiv) {
-        canvasDiv.style.width = `${dimensions.width}px`;
-        canvasDiv.style.height = `${dimensions.height}px`;
-      }
-    }, json.dimensions);
-
     // Load the app from the existing server
     await page.addScriptTag({ url: `${host}/bundle.min.js` });
     // await page.addScriptTag({ url: `https://storage.googleapis.com/lamar-infra-assets/bundle.min.js?v=123` });
