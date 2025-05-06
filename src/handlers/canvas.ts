@@ -193,6 +193,16 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // await page.goto(`https://storage.googleapis.com/lamar-infra-assets/index.html?v=123`);
     // await page.goto(`https://storage.googleapis.com/pixi-site/index.html?v=8778`);
 
+    // Set the width and height of the canvas div element
+    await page.evaluate((dimensions) => {
+      const doc = window.document;
+      const canvasDiv = doc.getElementById("canvas");
+      if (canvasDiv) {
+        canvasDiv.style.width = `${dimensions.width}px`;
+        canvasDiv.style.height = `${dimensions.height}px`;
+      }
+    }, json.dimensions);
+
     // Load the app from the existing server
     await page.addScriptTag({ url: `${host}/bundle.min.js` });
     // await page.addScriptTag({ url: `https://storage.googleapis.com/lamar-infra-assets/bundle.min.js?v=123` });
@@ -216,12 +226,12 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     //batch the json start and end to every 10 frames
     //calculate seconds for 10 frames given fps
 
-    const fps = body.fps || 30;
+    const fps = body.fps || 15;
 
     // For 4 second chunks at 30fps (typical case), optimize batch size
     // Use the full duration as a single batch for short durations, or split into 2 equal chunks otherwise
     const totalDuration = body.endTime - body.startTime;
-    const secondsPerBatch = totalDuration <= 4 ? totalDuration : totalDuration / 2;
+    const secondsPerBatch = totalDuration <= 2 ? totalDuration : totalDuration / 2;
 
     let start = body.startTime;
     let end = Math.min(start + secondsPerBatch, body.endTime);
