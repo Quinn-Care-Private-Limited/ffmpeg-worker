@@ -41,6 +41,7 @@ RUN apt-get update -y && apt-get install -y tini nfs-common libtool \
 WORKDIR /app
 COPY . .
 RUN npm install && npm run build
+RUN npx puppeteer browsers install chrome
 RUN chmod +x /app/scripts/run.sh
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/app/scripts/run.sh"]
