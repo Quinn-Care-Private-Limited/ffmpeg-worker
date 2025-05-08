@@ -226,7 +226,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // For 4 second chunks at 30fps (typical case), optimize batch size
     // Use the full duration as a single batch for short durations, or split into 2 equal chunks otherwise
     const totalDuration = body.endTime - body.startTime;
-    const secondsPerBatch = totalDuration <= 1 ? totalDuration : totalDuration / 2;
+    const secondsPerBatch = totalDuration <= 1 ? totalDuration : 1;
 
     let start = body.startTime;
     let end = Math.min(start + secondsPerBatch, body.endTime);
