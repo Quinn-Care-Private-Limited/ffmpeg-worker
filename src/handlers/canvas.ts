@@ -281,8 +281,10 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
         const batchPromises = [];
         for (let j = 0; j < 6 && i + j < frames.length; j++) {
           const frameNumber = i + j + totalFrames;
-          const base64Data = frames[i + j].replace(/^data:image\/png;base64,/, "");
-          const framePath = `${tempFramesDir}/frame_${frameNumber.toString().padStart(5, "0")}.png`;
+          // Adjust base64 prefix for JPEG
+          const base64Data = frames[i + j].replace(/^data:image\/jpeg;base64,/, "");
+          // Change file extension to .jpg
+          const framePath = `${tempFramesDir}/frame_${frameNumber.toString().padStart(5, "0")}.jpg`;
           batchPromises.push(fs.promises.writeFile(framePath, base64Data, "base64"));
         }
 
@@ -311,7 +313,8 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     await runProcess({
       chainCmds: [
         `-framerate ${safeFps}`,
-        `-i ${tempFramesDir.replace(`${fsPath}/`, "")}/frame_%05d.png`,
+        // Update ffmpeg input to use .jpg
+        `-i ${tempFramesDir.replace(`${fsPath}/`, "")}/frame_%05d.jpg`,
         `-vf scale=${json.dimensions.width}:${json.dimensions.height}:force_original_aspect_ratio=disable`,
         `-c:v libx264`,
         `-preset ultrafast`,
