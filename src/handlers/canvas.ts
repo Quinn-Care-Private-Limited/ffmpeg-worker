@@ -226,7 +226,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // For 4 second chunks at 30fps (typical case), optimize batch size
     // Use the full duration as a single batch for short durations, or split into 2 equal chunks otherwise
     const totalDuration = body.endTime - body.startTime;
-    const secondsPerBatch = totalDuration <= 2 ? totalDuration : totalDuration / 2;
+    const secondsPerBatch = totalDuration <= 1 ? totalDuration : totalDuration / 2;
 
     let start = body.startTime;
     let end = Math.min(start + secondsPerBatch, body.endTime);
@@ -289,6 +289,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
         // Wait for this small batch to complete before moving to next
         await Promise.all(batchPromises);
       }
+      console.log(`${id} - Wrote batch frames to efs: from ${start}s to ${end}s`);
 
       totalFrames += frames.length;
       start = end;
@@ -325,9 +326,9 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // Clean up temp frames
     try {
       await runcmd(`rm -rf ${tempFramesDir}`);
-      console.log("Temporary frames cleaned up");
+      console.log(`${id} - Temporary frames cleaned up`);
     } catch (cleanupError) {
-      console.log("Warning: Failed to clean up temporary frames:", cleanupError);
+      console.log(`${id} - Warning: Failed to clean up temporary frames:`, cleanupError);
     }
 
     return {
