@@ -30,6 +30,7 @@ const types: Record<string, string> = {
 
 const port = 5500;
 const host = `http://127.0.0.1:${port}`;
+const id = generateRandomNumberId();
 
 const fileServer = createServer((req: any, res: any) => {
   if (req.url == "/.well-known/appspecific/com.chrome.devtools.json") {
@@ -255,15 +256,15 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     //   await new Promise((resolve) => setTimeout(resolve, 1000));
     // }
 
-    console.log("Starting frame capture");
+    console.log(`${id} - Starting frame capture`);
     console.log(
-      `Processing ${totalDuration} seconds of content at ${fps} fps (expected ${Math.ceil(
+      `${id} - Processing ${totalDuration} seconds of content at ${fps} fps (expected ${Math.ceil(
         totalDuration * fps,
       )} frames)`,
     );
 
     while (start < body.endTime) {
-      console.log(`Processing batch: ${start}s to ${end}s`);
+      console.log(`${id} - Processing batch: ${start}s to ${end}s`);
       const startTime = Date.now();
 
       const frames = await page.evaluate(
@@ -273,7 +274,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
         fps,
       );
 
-      console.log(`Captured ${frames.length} frames in ${(Date.now() - startTime) / 1000}s`);
+      console.log(`${id} - Captured ${frames.length} frames in ${(Date.now() - startTime) / 1000}s`);
 
       // Process frames in parallel batches of 6 to avoid memory issues
       for (let i = 0; i < frames.length; i += 6) {
@@ -295,11 +296,13 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     }
 
     await browser.close();
-    console.log("Frame capture finished", { frames: totalFrames });
+    console.log(`${id} - Frame capture finished`, { frames: totalFrames });
 
     // Use ffmpeg to stitch frames into a video
-    console.log("Creating video from frames...");
-    console.log(`Using parameters: fps=${fps}, totalFrames=${totalFrames}, duration=${body.endTime - body.startTime}s`);
+    console.log(`${id} - Creating video from frames...`);
+    console.log(
+      `${id} - Using parameters: fps=${fps}, totalFrames=${totalFrames}, duration=${body.endTime - body.startTime}s`,
+    );
 
     // If fps is 0 or not set properly, default to 30
     const safeFps = !fps || fps <= 0 ? 30 : fps;
@@ -317,7 +320,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       output: body.output,
     });
 
-    console.log("Video creation completed");
+    console.log(`${id} - Video creation completed`);
 
     // Clean up temp frames
     try {
@@ -344,3 +347,9 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     };
   }
 };
+
+function generateRandomNumberId(length = 3) {
+  return Math.random()
+    .toString(36)
+    .substring(2, 2 + length);
+}
