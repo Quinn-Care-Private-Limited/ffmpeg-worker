@@ -343,7 +343,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
   } catch (error) {
     console.log(`${id} - Error processing canvas`);
     console.log(error);
-    // await browser.close();
+    await browser.close();
     return {
       status: 400,
       data: {
