@@ -108,7 +108,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
-      "--enable-accelerated-2d-canvas",
+      "--disable-gpu",
       "--disable-web-security",
     ],
     protocolTimeout: 6000_000,
@@ -214,8 +214,10 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // console.log(json);
 
     // Create temp directory for frames
-    const tempFramesDir = `${fsPath}/tmp/frames_${Date.now()}`;
-    await fs.promises.mkdir(tempFramesDir, { recursive: true });
+    const rawTempFramesDir = `${fsPath}/tmp/frames_${Date.now()}`;
+    const absoluteTempFramesDir = path.resolve(rawTempFramesDir); // Ensure absolute path
+    console.log(`${id} - Temp frames directory will be: ${absoluteTempFramesDir}`);
+    await fs.promises.mkdir(absoluteTempFramesDir, { recursive: true });
 
     // Create output directory if it doesn't exist
     const outputDir = path.dirname(`${fsPath}/${body.output}`);
@@ -286,7 +288,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
           // Adjust base64 prefix for JPEG
           const base64Data = frames[i + j].replace(/^data:image\/jpeg;base64,/, "");
           // Change file extension to .jpg
-          const framePath = `${tempFramesDir}/frame_${frameNumber.toString().padStart(5, "0")}.jpg`;
+          const framePath = `${absoluteTempFramesDir}/frame_${frameNumber.toString().padStart(5, "0")}.jpg`; // Use absolute path
           batchPromises.push(fs.promises.writeFile(framePath, base64Data, "base64"));
         }
 
@@ -304,7 +306,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
 
     // Clean up temp frames
     try {
-      await runcmd(`rm -rf ${tempFramesDir}`);
+      await runcmd(`rm -rf ${absoluteTempFramesDir}`);
       console.log(`${id} - Temporary frames cleaned up`);
     } catch (cleanupError) {
       console.log(`${id} - Warning: Failed to clean up temporary frames:`, cleanupError);
@@ -341,6 +343,19 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     console.log(
       `${id} - Using parameters: fps=${fps}, totalFrames=${totalFrames}, duration=${body.endTime - body.startTime}s`,
     );
+    console.log(`${id} - Source frames are expected in: ${absoluteTempFramesDir}`);
+
+    // Log directory contents for debugging before ffmpeg execution
+    console.log(`${id} - Listing contents of ${absoluteTempFramesDir} before ffmpeg execution:`);
+    try {
+      await runcmd(`ls -lh ${absoluteTempFramesDir} | cat`);
+    } catch (lsError) {
+      console.error(`${id} - Error listing directory ${absoluteTempFramesDir}:`, lsError);
+    }
+
+    // Optional: Add a small delay for EFS consistency. Uncomment if ls shows files but ffmpeg still fails.
+    // console.log(`${id} - Adding a 3-second delay before ffmpeg for EFS consistency...`);
+    // await new Promise(resolve => setTimeout(resolve, 3000));
 
     // If fps is 0 or not set properly, default to 30
     const safeFps = !fps || fps <= 0 ? 30 : fps;
@@ -348,8 +363,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     await runProcess({
       chainCmds: [
         `-framerate ${safeFps}`,
-        // Update ffmpeg input to use .jpg
-        `-i ${tempFramesDir.replace(`${fsPath}/`, "")}/frame_%05d.jpg`,
+        `-i ${absoluteTempFramesDir}/frame_%05d.jpg`,
         `-vf scale=${json.dimensions.width}:${json.dimensions.height}:force_original_aspect_ratio=disable`,
         `-c:v libx264`,
         `-preset ultrafast`,
@@ -358,16 +372,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       ],
       output: body.output,
     });
-
-    console.log(`${id} - Video creation completed`);
-
-    // Clean up temp frames
-    try {
-      await runcmd(`rm -rf ${tempFramesDir}`);
-      console.log(`${id} - Temporary frames cleaned up`);
-    } catch (cleanupError) {
-      console.log(`${id} - Warning: Failed to clean up temporary frames:`, cleanupError);
-    }
 
     return {
       status: 200,
