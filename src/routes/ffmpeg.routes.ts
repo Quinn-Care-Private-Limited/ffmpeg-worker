@@ -10,6 +10,7 @@ import {
   processHandler,
   processScheduleSchema,
   processSchema,
+  rawProbeHandler,
   vmafHandler,
   vmafSchema,
 } from "handlers/ffmpeg";
@@ -61,5 +62,10 @@ ffmpegRoutes.post(`/vmaf`, validateRequest(vmafSchema), async (req: Request, res
 
 ffmpegRoutes.post(`/probe`, validateRequest(probeSchema), async (req: Request, res: Response) => {
   const resp = await probeHandler(req.body);
+  res.status(resp.status).json(resp.data);
+});
+
+ffmpegRoutes.post(`/raw_probe`, validateRequest(probeSchema), async (req: Request, res: Response) => {
+  const resp = await rawProbeHandler(req.body);
   res.status(resp.status).json(resp.data);
 });
