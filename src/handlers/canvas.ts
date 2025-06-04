@@ -192,21 +192,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
 
     // console.log(json);
 
-    await page.evaluate((json) => window.initCanvas(json), json);
-
-    await page.waitForFunction(
-      () => {
-        return new Promise((resolve) => {
-          if (window.canvas) {
-            resolve(true);
-          } else {
-            setTimeout(() => resolve(false), 100);
-          }
-        });
-      },
-      { timeout: 10000 },
-    );
-
     // Create temp directory for frames
     const tempFramesDir = `${fsPath}/tmp/frames_${Date.now()}`;
     await fs.promises.mkdir(tempFramesDir, { recursive: true });
@@ -231,6 +216,30 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     let end = Math.min(start + secondsPerBatch, body.endTime);
     let totalFrames = 0;
 
+    // console.log(json);
+
+    await page.evaluate((json) => window.initCanvas(json), json);
+
+    await page.waitForFunction(
+      () => {
+        return new Promise((resolve) => {
+          if (window.canvas) {
+            resolve(true);
+          } else {
+            setTimeout(() => resolve(false), 100);
+          }
+        });
+      },
+      { timeout: 10000 },
+    );
+
+    // await page.evaluate((json) => window.canvas.fromJson(json), json);
+
+    //sleep for a second to allow the app to load
+    // while (true) {
+    //   await new Promise((resolve) => setTimeout(resolve, 1000));
+    // }
+
     console.log(`${id} - Starting frame capture`);
     console.log(`${id} - CPU cores: ${require("os").cpus().length}`);
     const memUsage = process.memoryUsage();
@@ -245,51 +254,39 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       )} frames)`,
     );
 
-    // Frame-based processing instead of time-based
-    const totalExpectedFrames = Math.ceil(totalDuration * fps);
-    const framesPerBatch = 10; // Process 10 frames at a time
-    totalFrames = 0;
-
-    console.log(`${id} - Processing ${totalExpectedFrames} frames in batches of ${framesPerBatch}`);
-
-    // Process frames in small batches
-    for (let frameStart = 0; frameStart < totalExpectedFrames; frameStart += framesPerBatch) {
-      const frameEnd = Math.min(frameStart + framesPerBatch, totalExpectedFrames);
-      const batchStartTime = body.startTime + frameStart / fps;
-      const batchEndTime = body.startTime + frameEnd / fps;
-
-      console.log(
-        `${id} - Processing frames ${frameStart}-${frameEnd - 1} (${batchStartTime.toFixed(
-          2,
-        )}s to ${batchEndTime.toFixed(2)}s)`,
-      );
+    while (start < body.endTime) {
+      console.log(`${id} - Processing batch: ${start}s to ${end}s`);
       const startTime = Date.now();
 
       const frames = await page.evaluate(
         (startTime, endTime, fps) => window.processCanvas(startTime, endTime, fps),
-        batchStartTime,
-        batchEndTime,
+        start,
+        end,
         fps,
       );
 
       console.log(`${id} - Captured ${frames.length} frames in ${(Date.now() - startTime) / 1000}s`);
 
-      // Write frames in parallel to improve I/O performance
-      const writePromises = frames.map(async (frame: string, i: number) => {
-        const frameNumber = frameStart + i;
-        const base64Data = frame.replace(/^data:image\/jpeg;base64,/, "");
-        const framePath = `${tempFramesDir}/frame_${frameNumber.toString().padStart(5, "0")}.jpg`;
-        return fs.promises.writeFile(framePath, base64Data, "base64");
-      });
+      // Process frames in parallel batches of 6 to avoid memory issues
+      for (let i = 0; i < frames.length; i += 6) {
+        const batchPromises = [];
+        for (let j = 0; j < 6 && i + j < frames.length; j++) {
+          const frameNumber = i + j + totalFrames;
+          // Adjust base64 prefix for JPEG
+          const base64Data = frames[i + j].replace(/^data:image\/jpeg;base64,/, "");
+          // Change file extension to .jpg
+          const framePath = `${tempFramesDir}/frame_${frameNumber.toString().padStart(5, "0")}.jpg`;
+          batchPromises.push(fs.promises.writeFile(framePath, base64Data, "base64"));
+        }
 
-      await Promise.all(writePromises);
-      totalFrames += frames.length;
-      console.log(`${id} - Wrote ${frames.length} frames to disk, total: ${totalFrames}/${totalExpectedFrames}`);
-
-      // Optional: Add small delay to prevent overwhelming the system
-      if (frameStart + framesPerBatch < totalExpectedFrames) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        // Wait for this small batch to complete before moving to next
+        await Promise.all(batchPromises);
       }
+      console.log(`${id} - Wrote batch frames to efs: from ${start}s to ${end}s`);
+
+      totalFrames += frames.length;
+      start = end;
+      end = Math.min(start + secondsPerBatch, body.endTime);
     }
 
     await browser.close();
