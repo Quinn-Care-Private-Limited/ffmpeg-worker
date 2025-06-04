@@ -223,9 +223,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       { timeout: 10000 },
     );
 
-    // **NEW OPTIMIZED APPROACH**: Stream frames directly to ffmpeg
-    const startTime = Date.now();
-
     // Ensure canvas is properly initialized and seek to start time
     console.log(`${id} - Initializing canvas and seeking to start time: ${body.startTime}s`);
     await page.evaluate(async (startTime: number) => {
@@ -242,7 +239,10 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       console.log("Canvas initialized and ready for frame capture");
     }, body.startTime);
 
-    await streamFramesToFFmpeg(page, body, json, fps, totalFrames);
+    // Use batch processing approach instead of streaming
+    console.log(`${id} - Starting batch frame processing`);
+    const startTime = Date.now();
+    await batchProcessFrames(page, body, json, fps, totalFrames);
 
     console.log(`${id} - Video creation completed in ${(Date.now() - startTime) / 1000}s`);
 
@@ -267,172 +267,92 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
   }
 };
 
-async function streamFramesToFFmpeg(page: any, body: any, json: any, fps: number, totalFrames: number) {
-  return new Promise((resolve, reject) => {
-    const safeFps = !fps || fps <= 0 ? 30 : fps;
+async function batchProcessFrames(page: any, body: any, json: any, fps: number, totalFrames: number) {
+  const batchSize = 60; // Process 60 frames at a time
+  const totalDuration = body.endTime - body.startTime;
 
-    // Start ffmpeg process with pipe input
-    const ffmpeg = spawn(
-      "ffmpeg",
-      [
-        "-f",
-        "image2pipe",
-        "-vcodec",
-        "mjpeg",
-        "-framerate",
-        safeFps.toString(),
-        "-i",
-        "pipe:0",
-        "-vf",
-        `scale=${json.dimensions.width}:${json.dimensions.height}:force_original_aspect_ratio=disable`,
-        "-c:v",
-        "libx264",
-        "-preset",
-        "ultrafast",
-        "-pix_fmt",
-        "yuv420p",
-        "-crf",
-        "16",
-        "-y",
-        `${fsPath}/${body.output}`,
-      ],
-      {
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
+  // Create output directory if it doesn't exist
+  const outputDir = path.dirname(`${fsPath}/${body.output}`);
+  if (!fs.existsSync(outputDir)) {
+    await fs.promises.mkdir(outputDir, { recursive: true });
+  }
 
-    let frameCount = 0;
-    let completedFrames = 0;
-    let startTime = Date.now();
-    let lastLogTime = Date.now();
-    let lastLogFrameCount = 0;
+  const tempFramesDir = `${outputDir}/temp_frames_${id}`;
+  if (!fs.existsSync(tempFramesDir)) {
+    await fs.promises.mkdir(tempFramesDir, { recursive: true });
+  }
 
-    ffmpeg.stderr.on("data", (data) => {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`FFmpeg: ${data}`);
-      }
-    });
+  try {
+    console.log(`${id} - Processing ${totalFrames} frames in batches of ${batchSize}`);
 
-    ffmpeg.on("close", (code) => {
-      if (code === 0) {
-        const totalTime = (Date.now() - startTime) / 1000;
-        const avgFps = completedFrames / totalTime;
-        console.log(`${id} - FFmpeg completed successfully`);
-        console.log(
-          `${id} - Final stats: ${completedFrames} frames in ${totalTime.toFixed(2)}s (avg ${avgFps.toFixed(2)} fps)`,
-        );
-        resolve(true);
-      } else {
-        console.log(`${id} - FFmpeg failed with code ${code}`);
-        reject(new Error(`FFmpeg failed with code ${code}`));
-      }
-    });
+    let frameIndex = 0;
+    for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
+      const batchEnd = Math.min(batchStart + batchSize, totalFrames);
+      const batchFrameCount = batchEnd - batchStart;
 
-    ffmpeg.on("error", (error) => {
-      console.log(`${id} - FFmpeg error:`, error);
-      reject(error);
-    });
+      const batchStartTime = body.startTime + batchStart / fps;
+      const batchEndTime = body.startTime + batchEnd / fps;
 
-    // Optimized frame generation function
-    const generateNextFrame = async () => {
-      if (frameCount >= totalFrames) {
-        console.log(`${id} - All frames generated, closing ffmpeg input`);
-        ffmpeg.stdin.end();
-        return;
-      }
+      console.log(
+        `${id} - Processing batch ${Math.floor(batchStart / batchSize) + 1}/${Math.ceil(
+          totalFrames / batchSize,
+        )}: frames ${batchStart}-${batchEnd - 1} (${batchStartTime.toFixed(2)}s-${batchEndTime.toFixed(2)}s)`,
+      );
 
-      const currentTime = body.startTime + frameCount / fps;
-      console.log(`${id} - Generating frame ${frameCount + 1}/${totalFrames} at time ${currentTime.toFixed(3)}s`);
+      // Use the existing processCanvas function
+      const frames = await page.evaluate(
+        async (startTime: number, endTime: number, fps: number) => {
+          return await (window as any).processCanvas(startTime, endTime, fps);
+        },
+        batchStartTime,
+        batchEndTime,
+        fps,
+      );
 
-      try {
-        // Seek canvas to current time and wait for it to complete
-        await page.evaluate(async (time: number) => {
-          if (!(window as any).canvas) {
-            throw new Error("Canvas not initialized");
-          }
-          await (window as any).canvas.seek(time);
-          // Give canvas time to render the seek
-          await new Promise((resolve) => setTimeout(resolve, 50));
-        }, currentTime);
-
-        // Take screenshot using canvas method
-        const base64Screenshot = await page.evaluate(async () => {
-          try {
-            const screenshot = await (window as any).canvas.screenshot({
-              format: "jpg",
-              quality: 90,
-            });
-            return screenshot;
-          } catch (error) {
-            console.error("Canvas screenshot error:", error);
-            throw error;
-          }
-        });
-
-        if (!base64Screenshot || !base64Screenshot.includes("base64,")) {
-          throw new Error(`Invalid screenshot data for frame ${frameCount}`);
-        }
-
-        // Convert base64 to buffer for ffmpeg
-        const base64Data = base64Screenshot.replace(/^data:image\/[a-z]+;base64,/, "");
+      // Save frames to temporary files
+      for (let i = 0; i < frames.length; i++) {
+        const frameFilename = `${tempFramesDir}/frame_${String(frameIndex).padStart(6, "0")}.jpg`;
+        const base64Data = frames[i].replace(/^data:image\/[a-z]+;base64,/, "");
         const imageBuffer = Buffer.from(base64Data, "base64");
-
-        if (imageBuffer.length === 0) {
-          throw new Error(`Empty image buffer for frame ${frameCount}`);
-        }
-
-        console.log(`${id} - Frame ${frameCount + 1} captured (${imageBuffer.length} bytes)`);
-
-        // Write directly to ffmpeg stdin
-        const writeSuccess = ffmpeg.stdin.write(imageBuffer);
-
-        frameCount++;
-        completedFrames++;
-
-        // Log progress every 30 frames or every 5 seconds, whichever comes first
-        const now = Date.now();
-        const timeSinceLastLog = now - lastLogTime;
-
-        if (completedFrames % 30 === 0 || timeSinceLastLog >= 5000) {
-          const framesSinceLastLog = completedFrames - lastLogFrameCount;
-          const captureFps = framesSinceLastLog / (timeSinceLastLog / 1000);
-          const overallFps = completedFrames / ((now - startTime) / 1000);
-          const remainingFrames = totalFrames - completedFrames;
-          const estimatedTimeRemaining = remainingFrames / overallFps;
-
-          console.log(
-            `${id} - Progress: ${completedFrames}/${totalFrames} frames (${Math.round(
-              (completedFrames / totalFrames) * 100,
-            )}%)`,
-          );
-          console.log(
-            `${id} - Capture rate: ${captureFps.toFixed(1)} fps (last ${(timeSinceLastLog / 1000).toFixed(
-              1,
-            )}s), overall: ${overallFps.toFixed(1)} fps`,
-          );
-          console.log(`${id} - ETA: ${estimatedTimeRemaining.toFixed(1)}s remaining`);
-
-          lastLogTime = now;
-          lastLogFrameCount = completedFrames;
-        }
-
-        // Handle backpressure
-        if (!writeSuccess) {
-          ffmpeg.stdin.once("drain", generateNextFrame);
-        } else {
-          // Use setTimeout instead of setImmediate to allow other operations
-          setTimeout(generateNextFrame, 10);
-        }
-      } catch (error) {
-        console.log(`${id} - Error generating frame ${frameCount}:`, error);
-        ffmpeg.stdin.end();
-        reject(error);
+        await fs.promises.writeFile(frameFilename, imageBuffer);
+        frameIndex++;
       }
-    };
 
-    // Start the frame generation
-    generateNextFrame();
-  });
+      console.log(`${id} - Batch completed: ${frames.length} frames saved`);
+    }
+
+    // Create video from frames using ffmpeg
+    console.log(`${id} - Creating video from ${frameIndex} frames`);
+    const ffmpegCmd = [
+      "-framerate",
+      fps.toString(),
+      "-i",
+      `${tempFramesDir}/frame_%06d.jpg`,
+      "-c:v",
+      "libx264",
+      "-preset",
+      "ultrafast",
+      "-pix_fmt",
+      "yuv420p",
+      "-crf",
+      "16",
+      "-y",
+      `${fsPath}/${body.output}`,
+    ].join(" ");
+
+    await runcmd(`ffmpeg ${ffmpegCmd}`);
+    console.log(`${id} - Video creation completed`);
+
+    // Cleanup temp frames
+    await runcmd(`rm -rf ${tempFramesDir}`);
+    console.log(`${id} - Temporary frames cleaned up`);
+  } catch (error) {
+    // Cleanup on error
+    if (fs.existsSync(tempFramesDir)) {
+      await runcmd(`rm -rf ${tempFramesDir}`).catch(() => {});
+    }
+    throw error;
+  }
 }
 
 function generateRandomNumberId(length = 3) {
