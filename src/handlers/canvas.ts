@@ -107,22 +107,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
-      "--enable-gpu-rasterization",
-      "--enable-zero-copy",
-      "--ignore-gpu-blocklist",
-      "--enable-gpu-compositing",
-      "--enable-native-gpu-memory-buffers",
-      "--enable-unsafe-swiftshader",
-      "--enable-webgl",
-      "--enable-webgl2",
-      "--use-gl=angle",
-      "--enable-accelerated-2d-canvas",
-      "--enable-accelerated-mjpeg-decode",
-      "--enable-accelerated-video-decode",
-      "--enable-features=VaapiVideoDecoder",
-      "--disable-features=UseChromeOSDirectVideoDecoder",
-      "--disable-gpu-vsync",
-      "--disable-frame-rate-limit",
       "--disable-web-security",
       "--disable-features=IsolateOrigins,site-per-process",
     ],
@@ -257,6 +241,13 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
     // }
 
     console.log(`${id} - Starting frame capture`);
+    console.log(`${id} - CPU cores: ${require("os").cpus().length}`);
+    const memUsage = process.memoryUsage();
+    console.log(
+      `${id} - Memory usage: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB heap, ${Math.round(
+        memUsage.rss / 1024 / 1024,
+      )}MB RSS`,
+    );
     console.log(
       `${id} - Processing ${totalDuration} seconds of content at ${fps} fps (expected ${Math.ceil(
         totalDuration * fps,
