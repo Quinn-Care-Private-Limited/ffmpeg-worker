@@ -247,7 +247,7 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
 
     // Frame-based processing instead of time-based
     const totalExpectedFrames = Math.ceil(totalDuration * fps);
-    const framesPerBatch = 60; // Match previous 1-second batches at 60fps for optimal performance
+    const framesPerBatch = 10; // Process 10 frames at a time
     totalFrames = 0;
 
     console.log(`${id} - Processing ${totalExpectedFrames} frames in batches of ${framesPerBatch}`);
