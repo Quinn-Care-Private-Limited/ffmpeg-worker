@@ -225,23 +225,6 @@ export const processHandler = async (body: z.infer<typeof processSchema>): Promi
 
     // **NEW OPTIMIZED APPROACH**: Stream frames directly to ffmpeg
     const startTime = Date.now();
-
-    // Ensure canvas is properly initialized and seek to start time
-    console.log(`${id} - Initializing canvas and seeking to start time: ${body.startTime}s`);
-    await page.evaluate(async (startTime: number) => {
-      if (!(window as any).canvas) {
-        throw new Error("Canvas not initialized");
-      }
-
-      // Initial seek to start time
-      await (window as any).canvas.seek(startTime);
-
-      // Wait for initial render
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      console.log("Canvas initialized and ready for frame capture");
-    }, body.startTime);
-
     await streamFramesToFFmpeg(page, body, json, fps, totalFrames);
 
     console.log(`${id} - Video creation completed in ${(Date.now() - startTime) / 1000}s`);
@@ -336,52 +319,26 @@ async function streamFramesToFFmpeg(page: any, body: any, json: any, fps: number
     // Optimized frame generation function
     const generateNextFrame = async () => {
       if (frameCount >= totalFrames) {
-        console.log(`${id} - All frames generated, closing ffmpeg input`);
         ffmpeg.stdin.end();
         return;
       }
 
       const currentTime = body.startTime + frameCount / fps;
-      console.log(`${id} - Generating frame ${frameCount + 1}/${totalFrames} at time ${currentTime.toFixed(3)}s`);
 
       try {
-        // Seek canvas to current time and wait for it to complete
-        await page.evaluate(async (time: number) => {
-          if (!(window as any).canvas) {
-            throw new Error("Canvas not initialized");
-          }
-          await (window as any).canvas.seek(time);
-          // Give canvas time to render the seek
-          await new Promise((resolve) => setTimeout(resolve, 50));
+        // Update canvas to current time before screenshot
+        await page.evaluate((time: number) => {
+          (window as any).canvas.seek(time);
         }, currentTime);
 
-        // Take screenshot using canvas method
-        const base64Screenshot = await page.evaluate(async () => {
-          try {
-            const screenshot = await (window as any).canvas.screenshot({
-              format: "jpg",
-              quality: 90,
-            });
-            return screenshot;
-          } catch (error) {
-            console.error("Canvas screenshot error:", error);
-            throw error;
-          }
+        // Use canvas screenshot method directly instead of page screenshot
+        const base64Screenshot = await page.evaluate(() => {
+          return (window as any).canvas.screenshot({ format: "jpg", quality: 95 });
         });
-
-        if (!base64Screenshot || !base64Screenshot.includes("base64,")) {
-          throw new Error(`Invalid screenshot data for frame ${frameCount}`);
-        }
 
         // Convert base64 to buffer for ffmpeg
         const base64Data = base64Screenshot.replace(/^data:image\/[a-z]+;base64,/, "");
         const imageBuffer = Buffer.from(base64Data, "base64");
-
-        if (imageBuffer.length === 0) {
-          throw new Error(`Empty image buffer for frame ${frameCount}`);
-        }
-
-        console.log(`${id} - Frame ${frameCount + 1} captured (${imageBuffer.length} bytes)`);
 
         // Write directly to ffmpeg stdin
         const writeSuccess = ffmpeg.stdin.write(imageBuffer);
@@ -420,8 +377,8 @@ async function streamFramesToFFmpeg(page: any, body: any, json: any, fps: number
         if (!writeSuccess) {
           ffmpeg.stdin.once("drain", generateNextFrame);
         } else {
-          // Use setTimeout instead of setImmediate to allow other operations
-          setTimeout(generateNextFrame, 10);
+          // Use setImmediate to avoid blocking the event loop
+          setImmediate(generateNextFrame);
         }
       } catch (error) {
         console.log(`${id} - Error generating frame ${frameCount}:`, error);
