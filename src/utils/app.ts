@@ -26,7 +26,6 @@ export async function runProcess(payload: { chainCmds?: string[]; output?: strin
   const { chainCmds, output } = payload;
 
   let cmd = `${ffmpegPath}ffmpeg -y`;
-  console.log(`Running process with path: ${path}`);
   if (chainCmds && chainCmds.length > 0) {
     chainCmds.forEach((chainCmd) => {
       const [key, value] = chainCmd.split(" ");

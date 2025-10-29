@@ -63,14 +63,11 @@ export class MediaProcessorUtils {
   async downloadFromSourceUrl(params: DownloadFromSourceUrlArgs) {
     const { sourceid, sourceurl, cloudStorageCredentials } = params;
     const sourcePath = this.getSourcePath(sourceid);
-    console.log(`Downloading from source url ${sourceurl} to ${sourcePath}`);
     const dirPath = `${tempPath}/${sourcePath.split("/").slice(0, -1).join("/")}`;
     const isExists = await fs.promises.stat(dirPath).catch(() => false);
     if (!isExists) {
-      console.log(`Creating directory ${dirPath}`);
       await fs.promises.mkdir(dirPath, { recursive: true });
     }
-    console.log(`Running command wget -O ${tempPath}/${sourcePath} "${sourceurl}"`);
     await runcmd(`wget -O ${tempPath}/${sourcePath} "${sourceurl}"`);
     await this.upload({
       bucket: s3Bucket,
@@ -88,18 +85,13 @@ export class MediaProcessorUtils {
     // check if file exists
     const fileExists = await Files.check({ path: sourcePath });
     if (fileExists.isExists) {
-      console.log(`File already exists: ${sourcePath}`);
       return sourceid;
     }
-    console.log(`Source path: ${sourcePath}`);
     const filePath = `${tempPath}/${sourcePath}`;
-    console.log(`File path: ${filePath}`);
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
-    console.log(`Directory path: ${dirPath}`);
     const storage = getStorageConnector("GCS" as CloudStorageType);
     const key = `${mediaid}/${mediaFilePrefix}_${mediaid}.mp4`;
-    console.log(`Key: ${key}`);
     await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath }, cloudStorageCredentials);
     return sourceid;
   }
@@ -115,9 +107,7 @@ export class MediaProcessorUtils {
     const modelPath = path.join(__dirname, "..", "models", `${model}.json`);
 
     cmd += ` -i ${tempPath}/${compareFile} -i ${tempPath}/${originalFile} -lavfi "[0:v]${scale_filter}:flags=bicubic,setpts=PTS-STARTPTS[distorted];[1:v]${scale_filter}:flags=bicubic,setpts=PTS-STARTPTS[reference];[distorted][reference]libvmaf=model='path=${modelPath}':n_subsample=${subsample}:n_threads=${threads}" -f null -`;
-    console.log(`Running relative score command: ${cmd}`);
     const data = await runcmd(cmd);
-    console.log(`Relative score data: ${data}`);
     let score = Math.floor(parseFloat(data.split("VMAF score:")[1]));
     score = isNaN(score) ? 0 : score;
     return { score };
@@ -388,3 +378,7 @@ type UploadArgs = {
   ttl?: number;
   cloudStorageCredentials: ICloudStorageCredentials;
 };
+
+export function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

@@ -240,11 +240,9 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
     >;
     const mediaProcessorUtils = new MediaProcessorUtils();
     if (sourceurl) {
-      console.log(`Downloading from source url ${sourceurl}`);
       // download from source url
       await mediaProcessorUtils.downloadFromSourceUrl({ sourceid: mediaid, sourceurl, cloudStorageCredentials });
     } else {
-      console.log(`Downloading from bucket ${bucket}`);
       // download from bucket
       await mediaProcessorUtils.downloadFromSource({
         mediaid,
@@ -256,9 +254,8 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
     // this is where original file is stored
     const sourcePath = mediaProcessorUtils.getSourcePath(mediaid);
     const fileInfo = await Files.info(sourcePath);
-    console.log(`File info: ${JSON.stringify(fileInfo)}`);
-    console.log(`Variants: ${JSON.stringify(variants)}`);
-    const processedVariants: { type: VariantConfigTypes; fileId: string; url: string }[] = [];
+    const processedVariants: { type: VariantConfigTypes; fileId: string; url: string; status: "success" | "error" }[] =
+      [];
     for (const variant of variants) {
       try {
         console.log(`Processing variant: ${variant.type}`);
@@ -279,13 +276,22 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
           type: variant.type,
           fileId: variant.fileid,
           url: MediaProcessorUtils.getMediaFileUrl(mediaid, variant.fileid, fileConfigs[variant.type].type, 1),
+          status: "success",
         });
+        console.log(`Processing done variant: ${variant.type}`);
       } catch (err) {
         console.log(err);
+        processedVariants.push({
+          type: variant.type,
+          fileId: variant.fileid,
+          status: "error",
+          url: "",
+        });
       }
     }
     return res.status(200).json({ variants: processedVariants });
   } catch (error) {
-    res.status(400).send(error.message);
+    console.log(error);
+    return res.status(400).json(error.message);
   }
 });
