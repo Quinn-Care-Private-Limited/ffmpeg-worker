@@ -6,7 +6,7 @@ EventEmitter.setMaxListeners(0);
 console.log("Starting FFmpeg Worker server");
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3002;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", mainRoute);
 
 app.get("/health", (req, res) => {
-  res.status(200).send("OK");
+  res.status(200).send("OK hel");
 });
 
 app.post("/test", (req, res) => {

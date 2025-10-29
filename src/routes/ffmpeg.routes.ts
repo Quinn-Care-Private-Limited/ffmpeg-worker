@@ -6,6 +6,9 @@ import { getWebhookResponsePayload, runProcess, runcmd } from "utils/app";
 import cuid2 from "@paralleldrive/cuid2";
 import { sendWebhook } from "utils/webhook";
 import { WebhookType } from "types";
+import { MediaProcessorUtils } from "service/MediaProcessingUtil";
+import { File } from "winston/lib/winston/transports";
+import Files from "service/files";
 
 export const ffmpegRoutes = express.Router();
 
@@ -203,6 +206,43 @@ ffmpegRoutes.post(`/vmaf`, validateRequest(vmafSchema), async (req: Request, res
     score = isNaN(score) ? 0 : score;
 
     res.status(200).json({ score });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
+const processV2Schema = z.object({
+  mediaid: z.string(),
+  sourceurl: z.string().optional(),
+  bucket: z.string(),
+  variants: z.array(z.string()),
+  cloudStorageCredentials: z.any(),
+});
+
+ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: Request, res: Response) => {
+  try {
+    const { mediaid, sourceurl, bucket, cloudStorageCredentials, variants } = req.body as z.infer<
+      typeof processV2Schema
+    >;
+    const mediaProcessorUtils = new MediaProcessorUtils();
+    if (sourceurl) {
+      console.log(`Downloading from source url ${sourceurl}`);
+      // download from source url
+      await mediaProcessorUtils.downloadFromSourceUrl({ sourceid: mediaid, sourceurl, cloudStorageCredentials });
+    } else {
+      console.log(`Downloading from bucket ${bucket}`);
+      // download from bucket
+      await mediaProcessorUtils.downloadFromSource({
+        mediaid,
+        sourceid: mediaid,
+        cloudStorageCredentials,
+        bucket: bucket,
+      });
+    }
+    // this is where original file is stored
+    const sourcePath = mediaProcessorUtils.getSourcePath(mediaid);
+    const fileInfo = await Files.info(sourcePath);
+    console.log(`File info: ${JSON.stringify(fileInfo)}`);
   } catch (error) {
     res.status(400).send(error.message);
   }

@@ -4,7 +4,7 @@ import { FFProbe } from "./FFProbe";
 import { FFVmaf } from "./FFVmaf";
 
 export class Ffmpeg {
-  constructor(private credentials: IClientCredentials, private responseCallback?: ResponseCallback) {}
+  constructor(private credentials?: IClientCredentials, private responseCallback?: ResponseCallback) {}
 
   process() {
     return new FFProcess(this.credentials, this.responseCallback);

@@ -12,7 +12,7 @@ export class FFProcess {
     output: "",
   };
 
-  constructor(private credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
+  constructor(private credentials?: IClientCredentials, private responseCallback?: ResponseCallback) {
     this.axios = getAxiosInstance(credentials, responseCallback);
   }
 

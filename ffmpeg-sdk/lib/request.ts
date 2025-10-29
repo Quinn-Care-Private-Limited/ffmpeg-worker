@@ -1,12 +1,12 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { IClientCredentials, ResponseCallback } from "./types";
 
-export const getAxiosInstance = (credentials: IClientCredentials, responseCallback?: ResponseCallback) => {
+export const getAxiosInstance = (credentials?: IClientCredentials, responseCallback?: ResponseCallback) => {
   const axiosInstance = axios.create({
-    baseURL: credentials.clientServerUrl,
+    baseURL: credentials?.clientServerUrl,
     headers: {
-      "x-client-id": credentials.clientId,
-      "x-client-secret": credentials.clientSecret,
+      "x-client-id": credentials?.clientId,
+      "x-client-secret": credentials?.clientSecret,
       "Content-Type": "application/json",
     },
     timeout: 60 * 60 * 1000,

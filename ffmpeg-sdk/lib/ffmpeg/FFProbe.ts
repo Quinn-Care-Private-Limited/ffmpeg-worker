@@ -7,7 +7,7 @@ export class FFProbe {
   private chainCmds: string[] = [];
   private inputFile: string = "";
 
-  constructor(private credentials: IClientCredentials, private responseCallback?: ResponseCallback) {
+  constructor(private credentials?: IClientCredentials, private responseCallback?: ResponseCallback) {
     this.axios = getAxiosInstance(credentials, responseCallback);
   }
 
