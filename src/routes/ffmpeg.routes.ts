@@ -9,6 +9,9 @@ import { WebhookType } from "types";
 import { MediaProcessorUtils } from "service/MediaProcessingUtil";
 import { File } from "winston/lib/winston/transports";
 import Files from "service/files";
+import { VariantConfig, VariantConfigTypes } from "service/types";
+import { MediaFileProcessor } from "service/MediaProcessor";
+import { fileConfigs } from "service/config";
 
 export const ffmpegRoutes = express.Router();
 
@@ -215,7 +218,18 @@ const processV2Schema = z.object({
   mediaid: z.string(),
   sourceurl: z.string().optional(),
   bucket: z.string(),
-  variants: z.array(z.string()),
+  variants: z.array(
+    z.object({
+      type: z.enum([
+        VariantConfigTypes.X264_FULL,
+        VariantConfigTypes.X264_SHORT,
+        VariantConfigTypes.JPG_POSTER,
+        VariantConfigTypes.JPG_STORY,
+      ]),
+      fileid: z.string(),
+      config: z.any().optional(),
+    }),
+  ),
   cloudStorageCredentials: z.any(),
 });
 
@@ -243,6 +257,34 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
     const sourcePath = mediaProcessorUtils.getSourcePath(mediaid);
     const fileInfo = await Files.info(sourcePath);
     console.log(`File info: ${JSON.stringify(fileInfo)}`);
+    console.log(`Variants: ${JSON.stringify(variants)}`);
+    const processedVariants: { type: VariantConfigTypes; fileId: string; url: string }[] = [];
+    for (const variant of variants) {
+      try {
+        console.log(`Processing variant: ${variant.type}`);
+        const mediaFileProcessor = new MediaFileProcessor({
+          mediaid,
+          fileid: variant.fileid,
+          variantConfigType: variant.type,
+          storeCredentials: cloudStorageCredentials,
+          cloudStorageCredentials,
+        });
+        await mediaFileProcessor.processVariant({
+          sourceid: mediaid,
+          attempt: 0,
+          sourceInfo: fileInfo,
+          config: variant.config as VariantConfig,
+        });
+        processedVariants.push({
+          type: variant.type,
+          fileId: variant.fileid,
+          url: MediaProcessorUtils.getMediaFileUrl(mediaid, variant.fileid, fileConfigs[variant.type].type, 1),
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+    return res.status(200).json({ variants: processedVariants });
   } catch (error) {
     res.status(400).send(error.message);
   }

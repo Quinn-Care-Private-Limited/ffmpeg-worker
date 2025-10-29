@@ -3,7 +3,7 @@ import { VariantConfigTypes, VariantConfig, FileType, ResolutionTypes, CodecType
 export const s3Bucket = "videocdn.quinn.live";
 export const dynamoDbTableName = "quinnlive_media";
 export const mediaFilePrefix = "quinn";
-export const tempPath = "/tmp";
+export const tempPath = process.env.TEMP_PATH || "/tmp";
 export const CdnUrl = `https://videocdn.quinn.live/`;
 export const S3BucketUrl = `https://storage.googleapis.com/${s3Bucket}/`;
 export const ffmpegPath = process.env.FFMPEG_PATH || "";

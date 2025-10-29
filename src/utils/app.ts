@@ -22,11 +22,11 @@ export async function sleep(delay: number) {
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-export async function runProcess(payload: { chainCmds?: string[]; output?: string }) {
+export async function runProcess(payload: { chainCmds?: string[]; output?: string }, path = fsPath) {
   const { chainCmds, output } = payload;
 
   let cmd = `${ffmpegPath}ffmpeg -y`;
-
+  console.log(`Running process with path: ${path}`);
   if (chainCmds && chainCmds.length > 0) {
     chainCmds.forEach((chainCmd) => {
       const [key, value] = chainCmd.split(" ");
@@ -34,7 +34,7 @@ export async function runProcess(payload: { chainCmds?: string[]; output?: strin
         if (value.startsWith("anullsrc") || value.startsWith("nullsrc")) {
           cmd += ` ${key} ${value}`;
         } else {
-          cmd += ` ${key} ${fsPath}/${value}`;
+          cmd += ` ${key} ${path}/${value}`;
         }
       } else {
         cmd += ` ${chainCmd}`;
@@ -46,8 +46,8 @@ export async function runProcess(payload: { chainCmds?: string[]; output?: strin
     if (output === "/dev/null") {
       cmd += ` ${output}`;
     } else {
-      await fs.promises.mkdir(`${fsPath}/${output.split("/").slice(0, -1).join("/")}`, { recursive: true });
-      cmd += ` ${fsPath}/${output}`;
+      await fs.promises.mkdir(`${path}/${output.split("/").slice(0, -1).join("/")}`, { recursive: true });
+      cmd += ` ${path}/${output}`;
     }
   }
 

@@ -1,11 +1,4 @@
-import {
-  Ffmpeg,
-  IClientCredentials,
-  ICloudStorageCredentials,
-  IFileInfo,
-  ResponseCallback,
-  Storage,
-} from "@quinninc/ffmpeg-sdk";
+import { Ffmpeg, ICloudStorageCredentials, IFileInfo } from "@quinninc/ffmpeg-sdk";
 import { FileType, IRelativeScore, MediaFileStatusTypes } from "./types";
 import {
   PROCESS_RESOLUTIONS,
@@ -55,7 +48,7 @@ export class MediaProcessorUtils {
 
   getMediaSourceUrl = (mediaid: string) => `${CdnUrl}${mediaid}/${mediaFilePrefix}_${mediaid}.${extensionMap.video}`;
 
-  getMediaFileUrl = (mediaid: string, fileid: string, type: FileType, version: number) =>
+  static getMediaFileUrl = (mediaid: string, fileid: string, type: FileType, version: number) =>
     `${CdnUrl}${mediaid}/${mediaFilePrefix}_${fileid}.${extensionMap[type]}?v=${version}`;
 
   getS3Url = (mediaid: string, fileid: string, type: FileType) =>
@@ -92,6 +85,12 @@ export class MediaProcessorUtils {
   async downloadFromSource(params: DownloadFromSourceArgs) {
     const { mediaid, sourceid, cloudStorageCredentials, bucket } = params;
     const sourcePath = this.getSourcePath(sourceid);
+    // check if file exists
+    const fileExists = await Files.check({ path: sourcePath });
+    if (fileExists.isExists) {
+      console.log(`File already exists: ${sourcePath}`);
+      return sourceid;
+    }
     console.log(`Source path: ${sourcePath}`);
     const filePath = `${tempPath}/${sourcePath}`;
     console.log(`File path: ${filePath}`);
@@ -106,7 +105,7 @@ export class MediaProcessorUtils {
   }
 
   async getRelativeScore(payload: IRelativeScore) {
-    const { originalFile, compareFile, scale, threads, subsample, model = "vmaf_v0.6.1" } = payload;
+    const { originalFile, compareFile, scale, threads = 8, subsample = 10, model = "vmaf_v0.6.1" } = payload;
 
     const scale_filter = `scale=${scale?.width || -2}:${scale?.height || -2}`;
 
@@ -116,7 +115,9 @@ export class MediaProcessorUtils {
     const modelPath = path.join(__dirname, "..", "models", `${model}.json`);
 
     cmd += ` -i ${tempPath}/${compareFile} -i ${tempPath}/${originalFile} -lavfi "[0:v]${scale_filter}:flags=bicubic,setpts=PTS-STARTPTS[distorted];[1:v]${scale_filter}:flags=bicubic,setpts=PTS-STARTPTS[reference];[distorted][reference]libvmaf=model='path=${modelPath}':n_subsample=${subsample}:n_threads=${threads}" -f null -`;
+    console.log(`Running relative score command: ${cmd}`);
     const data = await runcmd(cmd);
+    console.log(`Relative score data: ${data}`);
     let score = Math.floor(parseFloat(data.split("VMAF score:")[1]));
     score = isNaN(score) ? 0 : score;
     return { score };
@@ -124,7 +125,7 @@ export class MediaProcessorUtils {
 
   async copy(inputFile: string, outputFile: string) {
     const commands = this.ffmpeg.process().input(inputFile).codec("copy").output(outputFile).get();
-    await runProcess(commands);
+    await runProcess(commands, tempPath);
   }
 
   async getInfo(filePath: string, retry = 1): Promise<IFileInfo> {
@@ -190,7 +191,7 @@ export class MediaProcessorUtils {
       .segment(targetChunkDuration)
       .output(`${outputDir}/tmp_${chunkPrefix}_%d.mp4`)
       .get();
-    await runProcess(commands);
+    await runProcess(commands, tempPath);
     const list = await Files.list({ path: outputDir });
     const segments = list
       .filter((item) => item.includes(`tmp_${chunkPrefix}_`))
@@ -265,7 +266,7 @@ export class MediaProcessorUtils {
       .resolution(resolution)
       .output(outputFile)
       .get();
-    await runProcess(commands);
+    await runProcess(commands, tempPath);
   }
 
   getResolutionNumber(resolution: { width: number; height: number }) {
@@ -329,7 +330,7 @@ export class MediaProcessorUtils {
       .codec("copy")
       .output(outputFile)
       .get();
-    await runProcess(commands);
+    await runProcess(commands, tempPath);
   }
   async upload(args: UploadArgs) {
     const { inputFile, bucket, key, contentType, multipart, partSize, batchSize, ttl, cloudStorageCredentials } = args;

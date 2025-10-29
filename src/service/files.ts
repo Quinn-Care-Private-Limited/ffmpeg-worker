@@ -11,11 +11,18 @@ export default class Files {
     return `${tempPath}`;
   }
   static async check({ path }: { path: string }) {
-    const stat = await fs.promises.stat(`${tempPath}/${path}`);
-    return {
-      isExists: true,
-      isDirectory: stat.isDirectory(),
-    };
+    try {
+      const stat = await fs.promises.stat(`${tempPath}/${path}`);
+      return {
+        isExists: true,
+        isDirectory: stat.isDirectory(),
+      };
+    } catch (error) {
+      return {
+        isExists: false,
+        isDirectory: false,
+      };
+    }
   }
   static async create({ path, data, encoding = "utf-8" }: { path: string; data?: string; encoding?: BufferEncoding }) {
     if (data) {

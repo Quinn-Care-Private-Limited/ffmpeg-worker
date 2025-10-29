@@ -13,9 +13,11 @@ import {
   fileConfigs,
   mediaFilePrefix,
   s3Bucket,
+  tempPath,
 } from "./config";
 import { MediaProcessorUtils } from "./MediaProcessingUtil";
 import { runProcess } from "utils/app";
+import Files from "./files";
 type MediaProcessorArgs = {
   mediaid: string;
   fileid: string;
@@ -26,7 +28,6 @@ type MediaProcessorArgs = {
 const MAX_VARIANT_RETRIES = 3;
 export class MediaFileProcessor {
   private ffmpeg: Ffmpeg;
-  private storage: Storage;
   private config: VariantConfig;
   private sourceid: string;
   private sourceInfo: IFileInfo;
@@ -36,8 +37,8 @@ export class MediaFileProcessor {
   private variantConfigType: VariantConfigTypes;
   private cloudStorageCredentials: ICloudStorageCredentials;
   constructor(props: MediaProcessorArgs) {
-    this.ffmpeg = new Ffmpeg(props.storeCredentials);
-    this.utils = new MediaProcessorUtils(props.storeCredentials);
+    this.ffmpeg = new Ffmpeg();
+    this.utils = new MediaProcessorUtils();
     this.mediaid = props.mediaid;
     this.fileid = props.fileid;
     this.variantConfigType = props.variantConfigType;
@@ -55,6 +56,8 @@ export class MediaFileProcessor {
      *
      * This is done to avoid audio and video sync issue in some videos
      */
+    console.log(`Has audio: ${hasAudio}`);
+    console.log(`Audio path: ${audioPath}`);
     if (hasAudio) {
       audioPath = `${tmpDir}/original_audio.aac`;
       const commands = this.ffmpeg
@@ -65,22 +68,27 @@ export class MediaFileProcessor {
         .noVideo() // Only extract audio
         .output(audioPath)
         .get();
-      await runProcess(commands);
+      console.log(`Getting audio commands: ${JSON.stringify(commands)}`);
+      await runProcess(commands, tempPath);
     }
     const extension = extensionMap[this.config.type];
     const output = this.utils.getOutputPath(this.fileid, extension);
+    console.log(`Output: ${output}`);
     const videoOnlyOutput = `${tmpDir}/video_only_output.${extension}`;
+    console.log(`Video only output: ${videoOnlyOutput}`);
     const maxKBitrate = this.getMaxKBitrate(this.sourceInfo);
-
+    console.log(`Max k bitrate: ${maxKBitrate}`);
     let chunks: { chunknumber: number; chunkPath: string }[] = [];
     if (this.sourceInfo.duration > 10) {
       const chunksDir = this.utils.getChunksDir(this.fileid);
+      console.log(`Chunks dir: ${chunksDir}`);
       chunks = await this.utils.segment(sourcePath, chunksDir, "chunk");
     } else {
       chunks = [{ chunknumber: 0, chunkPath: sourcePath }];
     }
+    console.log(`Chunks: ${JSON.stringify(chunks)}`);
     const promises = chunks.map(async (chunk) => {
-      const { data } = await this.utils.getInfo(chunk.chunkPath);
+      const data = await Files.info(chunk.chunkPath);
       return {
         chunknumber: chunk.chunknumber,
         chunkPath: chunk.chunkPath,
@@ -91,8 +99,9 @@ export class MediaFileProcessor {
         height: data.height,
       };
     });
-    const chunksInfo = await Promise.all(promises);
 
+    const chunksInfo = await Promise.all(promises);
+    console.log(`Chunks info: ${JSON.stringify(chunksInfo, null, 2)}`);
     const biggestChunk = chunksInfo.sort((a, b) => b.duration - a.duration)[0];
     console.log(`Getting optimised params for biggest chunk`, { biggestChunk });
     const optimisedParams = await this.getOptimisedParams(
@@ -118,7 +127,8 @@ export class MediaFileProcessor {
       .pixFmt("yuv420p")
       .output(hasAudio ? videoOnlyOutput : output)
       .get();
-    await runProcess(commands);
+    console.log(`Getting commands: ${JSON.stringify(commands, null, 2)}`);
+    await runProcess(commands, tempPath);
     if (hasAudio && audioPath) {
       const commands = this.ffmpeg
         .process()
@@ -130,7 +140,7 @@ export class MediaFileProcessor {
         .movflags("faststart")
         .output(output)
         .get();
-      await runProcess(commands);
+      await runProcess(commands, tempPath);
     }
   };
 
@@ -159,7 +169,7 @@ export class MediaFileProcessor {
       .pixFmt("yuv420p")
       .output(output)
       .get();
-    await runProcess(commands);
+    await runProcess(commands, tempPath);
   };
 
   private processImage = async () => {
@@ -181,16 +191,13 @@ export class MediaFileProcessor {
       .filter()
       .output(output)
       .get();
-    await runProcess(commands);
+    await runProcess(commands, tempPath);
   };
 
-  processVariant = async (
-    sourceid: string,
-    sourceInfo: IFileInfo,
-    config: Partial<VariantConfig> = {},
-    attempt = 0,
-  ) => {
+  processVariant = async (args: ProcessVariantArgs) => {
+    const { sourceid, sourceInfo, config = {}, attempt = 0 } = args;
     try {
+      console.log(`Processing variant ${this.variantConfigType}`);
       this.config = { ...fileConfigs[this.variantConfigType], ...config };
       this.sourceid = sourceid;
       this.sourceInfo = sourceInfo;
@@ -220,7 +227,7 @@ export class MediaFileProcessor {
         error.message.toLowerCase().includes("write econnreset") &&
         attempt < MAX_VARIANT_RETRIES
       ) {
-        await this.processVariant(sourceid, sourceInfo, config, attempt + 1);
+        await this.processVariant({ sourceid, sourceInfo, config, attempt: attempt + 1 });
       } else {
         return false;
       }
@@ -263,9 +270,10 @@ export class MediaFileProcessor {
     if (sourceResNumber > processResNumber) {
       processSource = true;
     }
-
+    console.log(`Process source: ${processSource}`);
     if (processSource) {
       compareChunk = `${tmpDir}/chunk_${chunkNumber}_original.mp4`;
+      console.log(`Compare chunk output path: ${compareChunk}`);
       const commands = this.ffmpeg
         .process()
         .input(chunkPath)
@@ -277,7 +285,7 @@ export class MediaFileProcessor {
         .filter()
         .output(compareChunk)
         .get();
-      await runProcess(commands);
+      await runProcess(commands, tempPath);
     }
 
     let currentCrf = desiredCrf;
@@ -293,7 +301,9 @@ export class MediaFileProcessor {
       resolution: { width: number; height: number };
       bitrate: number;
     }[] = [];
-
+    console.log(
+      `Iterations: ${iterations}, SCORE_ITERATIONS: ${SCORE_ITERATIONS}, MIN_CRF: ${MIN_CRF}, MAX_CRF: ${MAX_CRF}`,
+    );
     while (iterations < SCORE_ITERATIONS && currentCrf >= MIN_CRF && currentCrf <= MAX_CRF) {
       const iterationPath = `${tmpDir}/chunk_${chunkNumber}_${currentResolution.width}x${currentResolution.height}_${currentCrf}.mp4`;
       const commands = this.ffmpeg
@@ -308,15 +318,18 @@ export class MediaFileProcessor {
         .flag("vsync", "vfr")
         .output(iterationPath)
         .get();
-      await runProcess(commands);
-      const data = await this.utils.getInfo(iterationPath);
+      await runProcess(commands, tempPath);
+      console.log(`Iteration path: ${iterationPath}`);
+      const data = await Files.info(iterationPath);
+      console.log(`Data: ${JSON.stringify(data, null, 2)}`);
       currentSize = data.size;
+      console.log(`Getting relative score`);
       const { score } = await this.utils.getRelativeScore({
         originalFile: compareChunk,
         compareFile: iterationPath,
         scale: processResolution,
       });
-
+      console.log(`Score: ${score}`);
       processes.push({
         crf: currentCrf,
         score,
@@ -349,7 +362,7 @@ export class MediaFileProcessor {
       }
       iterations++;
     }
-
+    console.log(`Processes: ${JSON.stringify(processes, null, 2)}`);
     // sort processes based on scores closer to desired score and size ascending
     processes.sort((a, b) => {
       let aScore = Math.abs(processScore - a.score);
@@ -398,9 +411,9 @@ export class MediaFileProcessor {
             .flag("vsync", "vfr")
             .output(iterationPath)
             .get();
-          await runProcess(commands);
+          await runProcess(commands, tempPath);
 
-          const data = await this.utils.getInfo(iterationPath);
+          const data = await Files.info(iterationPath);
           currentSize = data.size;
           currentBitrate = data.avgbitrate;
         }
@@ -408,8 +421,13 @@ export class MediaFileProcessor {
       }
 
       if (currentBitrate < maxKBitrate) {
+        console.log(`Current bitrate: ${currentBitrate}`);
+        console.log(`Current size: ${currentSize}`);
+        console.log(`Current resolution: ${currentResolution}`);
+        console.log(`Current crf: ${currentCrf}`);
         return { crf: currentCrf, resolution: currentResolution, size: currentSize };
       } else {
+        console.log(`Unable to find optimal size`);
         throw new Error(`Unable to find optimal size`);
       }
     }
@@ -431,3 +449,10 @@ export class MediaFileProcessor {
     return KBitrate;
   };
 }
+
+type ProcessVariantArgs = {
+  sourceid: string;
+  sourceInfo: IFileInfo;
+  config: Partial<VariantConfig>;
+  attempt: number;
+};
