@@ -7,12 +7,11 @@ import cuid2 from "@paralleldrive/cuid2";
 import { sendWebhook } from "utils/webhook";
 import { WebhookType } from "types";
 import { MediaProcessorUtils } from "service/MediaProcessingUtil";
-import { File } from "winston/lib/winston/transports";
 import Files from "service/files";
 import { VariantConfig, VariantConfigTypes } from "service/types";
 import { MediaFileProcessor } from "service/MediaProcessor";
-import { fileConfigs } from "service/config";
-
+import { fileConfigs, tempPath } from "service/config";
+import fs from "fs";
 export const ffmpegRoutes = express.Router();
 
 const fsPath = process.env.FS_PATH || ".";
@@ -293,5 +292,13 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
   } catch (error) {
     console.log(error);
     return res.status(400).json(error.message);
+  }
+});
+ffmpegRoutes.get("/check-temp", async (req: Request, res: Response) => {
+  // check if tmp directory exists
+  if (fs.existsSync(tempPath)) {
+    return res.status(200).json({ exists: true });
+  } else {
+    return res.status(200).json({ exists: false });
   }
 });
