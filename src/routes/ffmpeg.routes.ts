@@ -252,12 +252,12 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
     }
     // this is where original file is stored
     const sourcePath = mediaProcessorUtils.getSourcePath(mediaid);
+
     const fileInfo = await Files.info(sourcePath);
     const processedVariants: { type: VariantConfigTypes; fileId: string; url: string; status: "success" | "error" }[] =
       [];
     for (const variant of variants) {
       try {
-        console.log(`Processing variant: ${variant.type}`);
         const mediaFileProcessor = new MediaFileProcessor({
           mediaid,
           fileid: variant.fileid,
@@ -274,7 +274,7 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
         processedVariants.push({
           type: variant.type,
           fileId: variant.fileid,
-          url: MediaProcessorUtils.getMediaFileUrl(mediaid, variant.fileid, fileConfigs[variant.type].type, 1),
+          url: MediaProcessorUtils.getMediaFileUrl(mediaid, variant.fileid, fileConfigs[variant.type].type, Date.now()),
           status: "success",
         });
         console.log(`Processing done variant: ${variant.type}`);
