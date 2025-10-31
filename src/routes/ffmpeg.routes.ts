@@ -288,6 +288,20 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
         });
       }
     }
+    const sourceDir = `source/${mediaid}`;
+    try {
+      if (fs.existsSync(sourceDir)) {
+        fs.rmdirSync(sourceDir, { recursive: true });
+      }
+      for (const variant of variants) {
+        const outputDir = `output/${variant.fileid}`;
+        if (fs.existsSync(outputDir)) {
+          fs.rmdirSync(outputDir, { recursive: true });
+        }
+      }
+    } catch (err) {
+      console.log(err);
+    }
     return res.status(200).json({ variants: processedVariants });
   } catch (error) {
     console.log(error);

@@ -79,6 +79,7 @@ export class MediaFileProcessor {
     } else {
       chunks = [{ chunknumber: 0, chunkPath: sourcePath }];
     }
+    await sleep(3000);
     const promises = chunks.map(async (chunk) => {
       const data = await Files.info(chunk.chunkPath);
       return {
