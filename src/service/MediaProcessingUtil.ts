@@ -318,6 +318,7 @@ export class MediaProcessorUtils {
       .flag("safe", "0")
       .input(concatFilePath)
       .codec("copy")
+      .movflags("faststart") // Ensure moov atom is at the beginning
       .output(outputFile)
       .get();
     await runProcess(commands, tempPath);

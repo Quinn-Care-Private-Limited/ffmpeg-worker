@@ -233,10 +233,8 @@ const processV2Schema = z.object({
 });
 
 ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: Request, res: Response) => {
+  const { mediaid, sourceurl, bucket, cloudStorageCredentials, variants } = req.body as z.infer<typeof processV2Schema>;
   try {
-    const { mediaid, sourceurl, bucket, cloudStorageCredentials, variants } = req.body as z.infer<
-      typeof processV2Schema
-    >;
     const mediaProcessorUtils = new MediaProcessorUtils();
     if (sourceurl) {
       // download from source url
@@ -288,23 +286,10 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
         });
       }
     }
-    const sourceDir = `source/${mediaid}`;
-    try {
-      if (fs.existsSync(sourceDir)) {
-        fs.rmdirSync(sourceDir, { recursive: true });
-      }
-      for (const variant of variants) {
-        const outputDir = `output/${variant.fileid}`;
-        if (fs.existsSync(outputDir)) {
-          fs.rmdirSync(outputDir, { recursive: true });
-        }
-      }
-    } catch (err) {
-      console.log(err);
-    }
+
     return res.status(200).json({ variants: processedVariants });
   } catch (error) {
-    console.log(error);
+    console.log(`error processing mediaid: ${mediaid}`, error);
     return res.status(400).json(error.message);
   }
 });
