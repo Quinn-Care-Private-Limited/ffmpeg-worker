@@ -166,13 +166,14 @@ export class MediaProcessorUtils {
     return data;
   }
 
-  async segment(
-    inputFile: string,
-    outputDir: string,
-    chunkPrefix: string,
-    targetChunkDuration = 4,
-    minChunkDuration = 2,
-  ) {
+  async segment({
+    inputFile,
+    outputDir,
+    chunkPrefix,
+    targetChunkDuration = 8,
+    minChunkDuration = 4,
+    dontCombine = false,
+  }: SegmentArgs) {
     const commands = this.ffmpeg
       .process()
       .input(inputFile)
@@ -201,6 +202,17 @@ export class MediaProcessorUtils {
         return { ...segment, duration: data.duration };
       }),
     );
+    if (dontCombine) {
+      /**
+       * Don't combine the task, we only need largest chunk, and for processing we are anyway not segmenting video that are
+       * less than 10 seconds, to chunk will alwyas be large enough for vmaf processing.
+       */
+      return chunks.map((chunk) => ({
+        chunknumber: chunk.chunknumber,
+        chunkPath: chunk.chunkPath,
+        duration: chunk.duration,
+      }));
+    }
 
     // Merge chunks
     let chunkIndex = 0;
@@ -234,11 +246,15 @@ export class MediaProcessorUtils {
         if (mergeChunks.length === 1) {
           const chunk = mergeChunks[0];
           await this.copy(chunk.chunkPath, chunkPath);
-          return { chunknumber: index, chunkPath };
+          return { chunknumber: index, chunkPath, duration: chunk.duration };
         } else {
           const chunkPaths = mergeChunks.map((chunk) => chunk.chunkPath);
           await this.concat(chunkPaths, chunkPath);
-          return { chunknumber: index, chunkPath };
+          return {
+            chunknumber: index,
+            chunkPath,
+            duration: mergeChunks.reduce((acc, chunk) => acc + chunk.duration, 0),
+          };
         }
       }),
     );
@@ -383,3 +399,12 @@ type UploadArgs = {
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+type SegmentArgs = {
+  inputFile: string;
+  outputDir: string;
+  chunkPrefix: string;
+  targetChunkDuration?: number;
+  minChunkDuration?: number;
+  dontCombine?: boolean;
+};

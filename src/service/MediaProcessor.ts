@@ -72,28 +72,21 @@ export class MediaFileProcessor {
     const output = this.utils.getOutputPath(this.fileid, extension);
     const videoOnlyOutput = `${tmpDir}/video_only_output.${extension}`;
     const maxKBitrate = this.getMaxKBitrate(this.sourceInfo);
-    let chunks: { chunknumber: number; chunkPath: string }[] = [];
+    let chunks: { chunknumber: number; chunkPath: string; duration: number }[] = [];
     if (this.sourceInfo.duration > 10) {
       const chunksDir = this.utils.getChunksDir(this.fileid);
-      chunks = await this.utils.segment(sourcePath, chunksDir, "chunk");
+      // chunks = await this.utils.segment(sourcePath, chunksDir, "chunk");
+      chunks = await this.utils.segment({
+        inputFile: sourcePath,
+        outputDir: chunksDir,
+        chunkPrefix: "chunk",
+        dontCombine: true,
+      });
     } else {
-      chunks = [{ chunknumber: 0, chunkPath: sourcePath }];
+      chunks = [{ chunknumber: 0, chunkPath: sourcePath, duration: this.sourceInfo.duration }];
     }
-    const promises = chunks.map(async (chunk) => {
-      const data = await Files.info(chunk.chunkPath);
-      return {
-        chunknumber: chunk.chunknumber,
-        chunkPath: chunk.chunkPath,
-        duration: data.duration,
-        bitrate: data.avgbitrate,
-        size: data.size,
-        width: data.width,
-        height: data.height,
-      };
-    });
 
-    const chunksInfo = await Promise.all(promises);
-    const biggestChunk = chunksInfo.sort((a, b) => b.duration - a.duration)[0];
+    const biggestChunk = chunks.sort((a, b) => b.duration - a.duration)[0];
     const optimisedParams = await this.getOptimisedParams(
       biggestChunk.chunknumber,
       biggestChunk.chunkPath,
