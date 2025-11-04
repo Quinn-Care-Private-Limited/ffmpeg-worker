@@ -305,7 +305,7 @@ ffmpegRoutes.get("/check-temp", async (req: Request, res: Response) => {
 });
 
 function removeSourceDir(variants: { type: VariantConfigTypes; fileid: string }[], mediaid: string) {
-  console.log(`Cleaning source and tmp directories for mediaid: ${mediaid}`);
+  console.log(`Cleaning up temporary files for mediaid: ${mediaid}`);
   const tempPath = process.env.TEMP_PATH;
   const sourceDir = `${tempPath}/source/${mediaid}`;
   if (fs.existsSync(sourceDir)) {
