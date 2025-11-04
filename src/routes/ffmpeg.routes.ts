@@ -2,7 +2,7 @@ import path from "path";
 import { z } from "zod";
 import express, { Request, Response } from "express";
 import { validateRequest } from "middlewares/req-validator";
-import { getWebhookResponsePayload, runProcess, runcmd } from "utils/app";
+import { getWebhookResponsePayload, runProcess, runcmd, sleep } from "utils/app";
 import cuid2 from "@paralleldrive/cuid2";
 import { sendWebhook } from "utils/webhook";
 import { WebhookType } from "types";
@@ -249,6 +249,11 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
         bucket: bucket,
       });
     }
+    // get folder size of tmp
+    const tmpSize = getFolderSize(`${tempPath}`);
+    const inMb = tmpSize / 1024 / 1024;
+    console.log(`tmpSize: ${inMb} MB`);
+    await sleep(3000);
     // this is where original file is stored
     const sourcePath = mediaProcessorUtils.getSourcePath(mediaid);
 
@@ -317,4 +322,20 @@ function removeSourceDir(variants: { type: VariantConfigTypes; fileid: string }[
       fs.rmdirSync(tmpDir, { recursive: true });
     }
   }
+}
+
+function getFolderSize(folderPath: string) {
+  let size = 0;
+  // get all nested files and directories
+  const nestedFiles = fs.readdirSync(folderPath, { withFileTypes: true });
+  for (const file of nestedFiles) {
+    if (file.isDirectory()) {
+      size += getFolderSize(path.join(folderPath, file.name));
+    } else {
+      const filePath = path.join(folderPath, file.name);
+      const stats = fs.statSync(filePath);
+      size += stats.size;
+    }
+  }
+  return size;
 }
