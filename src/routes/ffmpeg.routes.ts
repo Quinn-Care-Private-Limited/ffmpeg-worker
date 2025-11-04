@@ -234,6 +234,7 @@ const processV2Schema = z.object({
 
 ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: Request, res: Response) => {
   const { mediaid, sourceurl, bucket, cloudStorageCredentials, variants } = req.body as z.infer<typeof processV2Schema>;
+
   try {
     const mediaProcessorUtils = new MediaProcessorUtils();
     if (sourceurl) {
@@ -286,9 +287,10 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
         });
       }
     }
-
+    removeSourceDir(variants, mediaid);
     return res.status(200).json({ variants: processedVariants });
   } catch (error) {
+    removeSourceDir(variants, mediaid);
     console.log(`error processing mediaid: ${mediaid}`, error);
     return res.status(400).json(error.message);
   }
@@ -301,3 +303,18 @@ ffmpegRoutes.get("/check-temp", async (req: Request, res: Response) => {
     return res.status(200).json({ exists: false });
   }
 });
+
+function removeSourceDir(variants: { type: VariantConfigTypes; fileid: string }[], mediaid: string) {
+  console.log(`Cleaning source and tmp directories for mediaid: ${mediaid}`);
+  const tempPath = process.env.TEMP_PATH;
+  const sourceDir = `${tempPath}/source/${mediaid}`;
+  if (fs.existsSync(sourceDir)) {
+    fs.rmdirSync(sourceDir, { recursive: true });
+  }
+  for (const variant of variants) {
+    const tmpDir = `${tempPath}/output/${variant.fileid}`;
+    if (fs.existsSync(tmpDir)) {
+      fs.rmdirSync(tmpDir, { recursive: true });
+    }
+  }
+}
