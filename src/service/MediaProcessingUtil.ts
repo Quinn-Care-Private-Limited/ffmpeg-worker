@@ -92,7 +92,6 @@ export class MediaProcessorUtils {
     await fs.promises.mkdir(dirPath, { recursive: true });
     const storage = getStorageConnector(process.env.CLOUD_STORAGE as CloudStorageType);
     const key = `${mediaid}/${mediaFilePrefix}_${mediaid}.mp4`;
-    console.log(`Downloading file from bucket: ${bucket} with key: ${key}`, cloudStorageCredentials);
     await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath }, cloudStorageCredentials);
     return sourceid;
   }
@@ -345,7 +344,6 @@ export class MediaProcessorUtils {
     const storage = getStorageConnector(process.env.CLOUD_STORAGE as CloudStorageType);
     const filePath = `${tempPath}/${inputFile}`;
     if (multipart) {
-      console.log(`Multipart upload`);
       await storage.uploadMultipartObject(
         {
           bucketName: bucket,
@@ -359,7 +357,6 @@ export class MediaProcessorUtils {
         cloudStorageCredentials,
       );
     } else {
-      console.log(`Single upload`);
       await storage.uploadObject(
         {
           bucketName: bucket,

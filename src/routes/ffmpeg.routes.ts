@@ -252,7 +252,6 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
     // get folder size of tmp
     const tmpSize = getFolderSize(`${tempPath}`);
     const inMb = tmpSize / 1024 / 1024;
-    console.log(`tmpSize: ${inMb} MB`);
     await sleep(3000);
     // this is where original file is stored
     const sourcePath = mediaProcessorUtils.getSourcePath(mediaid);
@@ -260,7 +259,6 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
     const fileInfo = await Files.info(sourcePath);
     const processedVariants: { type: VariantConfigTypes; fileId: string; url: string; status: "success" | "error" }[] =
       [];
-    console.log(`Starting to process variants`);
     for (const variant of variants) {
       try {
         const mediaFileProcessor = new MediaFileProcessor({
@@ -282,7 +280,6 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
           url: MediaProcessorUtils.getMediaFileUrl(mediaid, variant.fileid, fileConfigs[variant.type].type, Date.now()),
           status: "success",
         });
-        console.log(`Processing done variant: ${variant.type}`);
       } catch (err) {
         console.log(err);
         processedVariants.push({
@@ -296,8 +293,8 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
     removeSourceDir(variants, mediaid);
     return res.status(200).json({ variants: processedVariants });
   } catch (error) {
-    removeSourceDir(variants, mediaid);
     console.log(`error processing mediaid: ${mediaid}`, error);
+    removeSourceDir(variants, mediaid);
     return res.status(400).json(error.message);
   }
 });
@@ -311,7 +308,6 @@ ffmpegRoutes.get("/check-temp", async (req: Request, res: Response) => {
 });
 
 function removeSourceDir(variants: { type: VariantConfigTypes; fileid: string }[], mediaid: string) {
-  console.log(`Cleaning up temporary files for mediaid: ${mediaid}`);
   const tempPath = process.env.TEMP_PATH;
   const sourceDir = `${tempPath}/source/${mediaid}`;
   if (fs.existsSync(sourceDir)) {
