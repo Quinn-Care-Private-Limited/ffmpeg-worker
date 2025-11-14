@@ -1,6 +1,6 @@
 import { VariantConfigTypes, VariantConfig, FileType, ResolutionTypes, CodecTypes } from "./types";
 
-export const s3Bucket = "videocdn.quinn.live";
+export const s3Bucket = "shopify-videos";
 export const dynamoDbTableName = "quinnlive_media";
 export const mediaFilePrefix = "quinn";
 export const tempPath = process.env.TEMP_PATH || "/tmp";
