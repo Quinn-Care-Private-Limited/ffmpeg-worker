@@ -90,8 +90,9 @@ export class MediaProcessorUtils {
     const filePath = `${tempPath}/${sourcePath}`;
     const dirPath = filePath.split("/").slice(0, -1).join("/");
     await fs.promises.mkdir(dirPath, { recursive: true });
-    const storage = getStorageConnector("GCS" as CloudStorageType);
+    const storage = getStorageConnector(process.env.CLOUD_STORAGE as CloudStorageType);
     const key = `${mediaid}/${mediaFilePrefix}_${mediaid}.mp4`;
+    console.log(`Downloading file from bucket: ${bucket} with key: ${key}`, cloudStorageCredentials);
     await storage.downloadMultipartObject({ bucketName: bucket, objectKey: key, filePath }, cloudStorageCredentials);
     return sourceid;
   }
@@ -341,9 +342,10 @@ export class MediaProcessorUtils {
   }
   async upload(args: UploadArgs) {
     const { inputFile, bucket, key, contentType, multipart, partSize, batchSize, ttl, cloudStorageCredentials } = args;
-    const storage = getStorageConnector("GCS" as CloudStorageType);
+    const storage = getStorageConnector(process.env.CLOUD_STORAGE as CloudStorageType);
     const filePath = `${tempPath}/${inputFile}`;
     if (multipart) {
+      console.log(`Multipart upload`);
       await storage.uploadMultipartObject(
         {
           bucketName: bucket,
@@ -357,6 +359,7 @@ export class MediaProcessorUtils {
         cloudStorageCredentials,
       );
     } else {
+      console.log(`Single upload`);
       await storage.uploadObject(
         {
           bucketName: bucket,

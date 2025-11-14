@@ -224,7 +224,7 @@ export class MediaFileProcessor {
       key: `${this.mediaid}/${mediaFilePrefix}_${this.fileid}.${extension}`,
       contentType: contentTypeMap[config.type],
       inputFile: this.utils.getOutputPath(this.fileid, extension),
-      multipart: config.type === FileType.video,
+      multipart: false,
       cloudStorageCredentials: this.cloudStorageCredentials,
     });
   };

@@ -260,6 +260,7 @@ ffmpegRoutes.post(`/process/v2`, validateRequest(processV2Schema), async (req: R
     const fileInfo = await Files.info(sourcePath);
     const processedVariants: { type: VariantConfigTypes; fileId: string; url: string; status: "success" | "error" }[] =
       [];
+    console.log(`Starting to process variants`);
     for (const variant of variants) {
       try {
         const mediaFileProcessor = new MediaFileProcessor({

@@ -21,7 +21,12 @@ export class S3Connector implements CloudStorageConnector {
     payload: { bucketName: string; objectKey: string; filePath: string },
     credentials?: IAWSCredentials,
   ) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    console.log(`Inside connecteor`);
+    const s3Client = new S3Client({
+      credentials,
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      region: "auto",
+    });
     const { bucketName, objectKey } = payload;
     const params = {
       Bucket: bucketName,
@@ -48,7 +53,11 @@ export class S3Connector implements CloudStorageConnector {
     payload: { bucketName: string; objectKey: string; filePath: string; contentType: string },
     credentials?: IAWSCredentials,
   ) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    const s3Client = new S3Client({
+      credentials,
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      region: "auto",
+    });
     const { bucketName, objectKey, filePath, contentType } = payload;
     const data: Buffer = await new Promise((resolve, reject) => {
       fs.readFile(filePath, (err, data) => {
@@ -65,6 +74,13 @@ export class S3Connector implements CloudStorageConnector {
       Body: data,
       ContentType: contentType,
     };
+    console.log(
+      `Params: ${JSON.stringify({
+        Bucket: bucketName,
+        Key: objectKey,
+        ContentType: contentType,
+      })}`,
+    );
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
   }
@@ -80,7 +96,12 @@ export class S3Connector implements CloudStorageConnector {
     },
     credentials?: IAWSCredentials,
   ) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    const s3Client = new S3Client({
+      credentials,
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      region: "auto",
+    });
+    console.log(`Inside downloadMultipartObject`);
     let { bucketName, objectKey, filePath, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
 
     const headObjectCommand = new HeadObjectCommand({
@@ -156,7 +177,12 @@ export class S3Connector implements CloudStorageConnector {
     },
     credentials?: IAWSCredentials,
   ) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    console.log(`Inside uploadMultipartObject`);
+    const s3Client = new S3Client({
+      credentials,
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      region: "auto",
+    });
     let { bucketName, objectKey, filePath, contentType, debug, partSize = 5 * 1024 * 1024, batchSize = 10 } = payload;
 
     const { size: fileSize } = await fs.promises.stat(filePath);
@@ -330,7 +356,11 @@ export class S3Connector implements CloudStorageConnector {
     await runcmd(ffmpegCmd);
   }
   async generateV4ReadSignedUrl(bucketName: string, fileName: string, credentials?: IAWSCredentials) {
-    const s3Client = new S3Client({ credentials, region: credentials?.region });
+    const s3Client = new S3Client({
+      credentials,
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      region: "auto",
+    });
     const command = new GetObjectCommand({
       Bucket: bucketName,
       Key: fileName,
