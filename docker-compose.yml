@@ -1,0 +1,12 @@
+services:
+  ffmpeg-worker:
+    env_file: .env
+    build:
+      context: .
+    image: quinninc/ffmpeg-worker:${VERSION}
+    container_name: ffmpeg-worker
+    privileged: true
+    runtime: nvidia
+    network_mode: "host"
+    volumes:
+      - ./examples/${TEST_INPUT_FILE_NAME}:/app/test_input.json

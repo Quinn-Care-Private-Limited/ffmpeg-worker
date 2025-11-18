@@ -1,5 +1,12 @@
 FROM quinninc/ffmpeg:latest
+ENV FS_PATH=/volume
+ENV PORT=3000
+
 RUN apt-get update -y && apt-get install -y tini nfs-common libtool \
+    # Python dependencies
+    python3 \
+    python3-pip \
+    python3-venv \
     # Chrome dependencies
     ca-certificates \
     fonts-liberation \
@@ -38,10 +45,19 @@ RUN apt-get update -y && apt-get install -y tini nfs-common libtool \
     lsb-release \
     wget \
     xdg-utils
+
 WORKDIR /app
 COPY . .
 RUN npm install && npm run build
 RUN npx puppeteer browsers install chrome
+
+# Install Python dependencies for RunPod handler
+RUN pip3 install --no-cache-dir -r runpod/requirements.txt
+
+RUN wget -O ${FS_PATH}/index.html "https://storage.googleapis.com/lamar-infra-assets/index.html?v=42"
+RUN wget -O ${FS_PATH}/bundle.min.js "https://storage.googleapis.com/lamar-infra-assets/bundle.min.js?v=42"
+
 RUN chmod +x /app/scripts/run.sh
+
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/app/scripts/run.sh"]
