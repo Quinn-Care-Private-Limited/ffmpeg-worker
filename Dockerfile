@@ -47,15 +47,27 @@ RUN apt-get update -y && apt-get install -y tini nfs-common libtool \
     xdg-utils
 
 WORKDIR /app
-COPY . .
-RUN npm install && npm run build
-RUN npx puppeteer browsers install chrome
+
+# Set Puppeteer cache directory to avoid path issues
+ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
+
+COPY package.json .
+RUN npm install
+
+# Install Chrome with version matching the installed puppeteer version
+# Using --install-deps=false to skip redundant dependency installation
+RUN npx puppeteer browsers install chrome@136.0.7103.49 --path /app/.cache/puppeteer
 
 # Install Python dependencies for RunPod handler
-RUN pip3 install --no-cache-dir -r runpod/requirements.txt
+COPY runpod/requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-RUN wget -O ${FS_PATH}/index.html "https://storage.googleapis.com/lamar-infra-assets/index.html?v=42"
-RUN wget -O ${FS_PATH}/bundle.min.js "https://storage.googleapis.com/lamar-infra-assets/bundle.min.js?v=42"
+RUN mkdir -p ${FS_PATH} && \
+wget -O ${FS_PATH}/index.html "https://common-bucket.quinn.live/pixie.html" && \
+wget -O ${FS_PATH}/bundle.min.js "https://common-bucket.quinn.live/pixie.min.js"
+
+COPY . .
+RUN npm run build
 
 RUN chmod +x /app/scripts/run.sh
 

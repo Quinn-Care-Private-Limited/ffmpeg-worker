@@ -52,6 +52,7 @@ def upload_file(bucket, key, file_path, cloud_type="GCP", credentials=None):
 
         # Initialize S3 client
         aws_url = credentials.get("aws_url") if credentials else None
+        aws_public_url = credentials.get("aws_public_url") if credentials else None
 
         if credentials:
             # Check if custom endpoint URL is provided (for S3-compatible services)
@@ -79,9 +80,11 @@ def upload_file(bucket, key, file_path, cloud_type="GCP", credentials=None):
         logger.info(f"File {file_path} uploaded to S3 bucket {bucket} at {key}.")
 
         # Generate the S3 URL
-        if aws_url:
-            # For custom endpoints, construct URL using the endpoint
-            url = f"{aws_url}/{bucket}/{key}"
+        if aws_public_url:
+            url = f"{aws_public_url}/{key}"
+        elif aws_url:
+            # Cloudflare doesn't provide a default URL for R2 buckets
+            url = None
         else:
             region = (
                 credentials.get("region_name", "us-east-1")

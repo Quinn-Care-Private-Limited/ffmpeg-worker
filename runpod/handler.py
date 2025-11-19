@@ -11,14 +11,14 @@ import os
 import logging
 from typing import Dict, Any
 import time
-from .storage import setup_storage_credentials, upload_file
+from storage import setup_storage_credentials, upload_file
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-FFMPEG_API_BASE_URL = f"http://127.0.0.1:{os.getenv('PORT', '3000')}/api"
+FFMPEG_API_BASE_URL = f"http://127.0.0.1:{os.getenv('PORT', '3000')}"
 FFMPEG_API_TIMEOUT = 900 # 15 minutes
 
 HEALTH_TIMEOUT = 30  # seconds
@@ -40,7 +40,8 @@ class FFmpegWorkerClient:
     def health_check(self) -> bool:
         """Check if the FFmpeg worker is healthy"""
         try:
-            response = self.session.get(f"{self.base_url.replace('/api', '')}/health", timeout=4)
+            # Health endpoint is at root level, not under /api
+            response = self.session.get(f"{self.base_url}/health", timeout=4)
             return response.status_code == 200
         except Exception as e:
             logger.error(f"Health check failed: {e}")
@@ -49,8 +50,39 @@ class FFmpegWorkerClient:
     def handle_request(self, path: str, body: Dict[str, Any]) -> Dict[str, Any]:
         """Handle a request to the FFmpeg worker API"""
         try:
-            response = self.session.post(f"{self.base_url.replace('/api', '')}/{path}", json=body, timeout=FFMPEG_API_TIMEOUT)
-            return response.json()
+            url = f"{self.base_url}/api/{path.lstrip('/')}"
+            logger.info(f"Making request to: {url}")
+            response = self.session.post(url, json=body, timeout=FFMPEG_API_TIMEOUT)
+            
+            # Log response details for debugging
+            logger.info(f"Response status: {response.status_code}")
+            logger.debug(f"Response body: {response.text[:500]}")  # First 500 chars
+            
+            # Check if response has content
+            if not response.text or response.text.strip() == "":
+                return {
+                    "error": f"Empty response from API (status: {response.status_code})"
+                }
+            
+            # Try to parse JSON
+            try:
+                return response.json()
+            except json.JSONDecodeError as je:
+                logger.error(f"JSON decode error: {je}. Response text: {response.text[:200]}")
+                return {
+                    "error": f"Invalid JSON response (status: {response.status_code}): {response.text[:200]}"
+                }
+                
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Request timeout: {e}")
+            return {
+                "error": f"Request timeout after {FFMPEG_API_TIMEOUT}s"
+            }
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error: {e}")
+            return {
+                "error": f"Cannot connect to FFmpeg worker API at {self.base_url}"
+            }
         except Exception as e:
             logger.error(f"Request failed: {e}")
             return {
