@@ -23,6 +23,7 @@ import { runcmd, runProcess } from "utils";
 let window: any;
 let fileServerStarted = false;
 const fsPath = process.env.FS_PATH || ".";
+const useFileServer = process.env.USE_FILE_SERVER === "true";
 
 // ============================================================================
 // Types and Schemas
@@ -134,7 +135,9 @@ const closeServer = () =>
     });
   });
 
-listenServer();
+if (useFileServer) {
+  listenServer();
+}
 
 // ============================================================================
 // Audio Processing Helpers
@@ -148,22 +151,27 @@ async function downloadAudioFiles(
   audioTempDir: string
 ): Promise<string[]> {
   await fs.promises.mkdir(audioTempDir, { recursive: true });
-  const audioPaths: string[] = [];
-
-  for (let i = 0; i < audioConfigs.length; i++) {
-    const audioConfig = audioConfigs[i];
+  
+  console.log(`Downloading ${audioConfigs.length} audio file(s) in parallel...`);
+  
+  const downloadPromises = audioConfigs.map(async (audioConfig, i) => {
     const extension = audioConfig.url.split('.').pop()?.split('?')[0] || 'mp3';
     const audioPath = `${audioTempDir}/audio_${i}.${extension}`;
     
-    console.log(`Downloading audio ${i + 1}/${audioConfigs.length} from ${audioConfig.url}...`);
     try {
       await runcmd(`wget -O "${audioPath}" "${audioConfig.url}"`);
-      audioPaths.push(audioPath);
+      console.log(`✓ Downloaded audio ${i + 1}/${audioConfigs.length}`);
+      return audioPath;
     } catch (error) {
-      console.log(`Warning: Failed to download audio ${i + 1}:`, error);
+      console.log(`✗ Failed to download audio ${i + 1}:`, error);
+      return null;
     }
-  }
+  });
 
+  const results = await Promise.all(downloadPromises);
+  const audioPaths = results.filter((path): path is string => path !== null);
+  
+  console.log(`Successfully downloaded ${audioPaths.length}/${audioConfigs.length} audio file(s)`);
   return audioPaths;
 }
 
@@ -359,7 +367,7 @@ async function generateVideoWithFFmpeg(
             width: json.dimensions.width,
             height: json.dimensions.height,
             vfi: body.vfi,
-            crf: body.crf || 19,
+            crf: body.crf || 16,
           },
           audioPaths,
           audioFilterData
@@ -373,7 +381,7 @@ async function generateVideoWithFFmpeg(
           width: json.dimensions.width,
           height: json.dimensions.height,
           vfi: body.vfi,
-          crf: body.crf || 19,
+          crf: body.crf || 16,
         });
       }
     } else {
@@ -384,7 +392,7 @@ async function generateVideoWithFFmpeg(
         width: json.dimensions.width,
         height: json.dimensions.height,
         vfi: body.vfi,
-        crf: body.crf || 19,
+        crf: body.crf || 16,
       });
     }
 
@@ -498,8 +506,18 @@ async function setupBrowserPage(browser: any, json: any): Promise<any> {
  * Initializes the canvas on the page
  */
 async function initializeCanvas(page: any, json: any): Promise<void> {
-  await page.goto(`${host}/index.html`);
-  await page.addScriptTag({ url: `${host}/bundle.min.js` });
+  if (useFileServer) {
+    // Use HTTP server
+    await page.goto(`${host}/index.html`);
+    await page.addScriptTag({ url: `${host}/bundle.min.js` });
+  } else {
+    // Use local file:// protocol
+    const indexPath = path.resolve(fsPath, 'index.html');
+    const bundlePath = path.resolve(fsPath, 'bundle.min.js');
+    await page.goto(`file://${indexPath}`);
+    await page.addScriptTag({ path: bundlePath });
+  }
+  
   await page.waitForFunction(() => window.processCanvas);
   await page.evaluate((json: any) => window.initCanvas(json), json);
   await page.waitForFunction(
@@ -585,7 +603,9 @@ export const processHandler = async (body: ProcessConfig): Promise<IHandlerRespo
 
   try {
     // Wait for file server to be ready
-    await waitForFileServer();
+    if (useFileServer) {
+      await waitForFileServer();
+    }
 
     // Process JSON configuration
     const json = body.json as any;

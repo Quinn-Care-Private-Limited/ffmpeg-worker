@@ -1,6 +1,10 @@
 FROM quinninc/ffmpeg:latest
+
 ENV FS_PATH=/volume
 ENV PORT=3000
+ENV USE_FILE_SERVER=false
+# Set Puppeteer cache directory to avoid path issues
+ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
 
 RUN apt-get update -y && apt-get install -y tini nfs-common libtool \
     # Python dependencies
@@ -47,9 +51,6 @@ RUN apt-get update -y && apt-get install -y tini nfs-common libtool \
     xdg-utils
 
 WORKDIR /app
-
-# Set Puppeteer cache directory to avoid path issues
-ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
 
 COPY package.json .
 RUN npm install
