@@ -662,7 +662,10 @@ export const processHandler = async (body: ProcessConfig): Promise<IHandlerRespo
     return {
       status: 200,
       data: {
-        output: `${fsPath}/${body.output}`,
+        outputs: [{
+          filename: path.basename(body.output),
+          path: `${fsPath}/${body.output}`,
+        }],
       },
     };
   } catch (error) {

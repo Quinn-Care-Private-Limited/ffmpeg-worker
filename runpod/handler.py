@@ -195,17 +195,37 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
             return {"error": response.get("error")}
 
 
-        output = response.get("output")
+        files = []
+        outputs = response.get("outputs")
         if upload:
-           output = upload_file(upload.get("bucket"), upload.get("key"), output, upload.get("cloud_type"), upload.get("credentials"))
+            base_key = upload.get("key")
+            has_extension = "." in base_key
+            if len(outputs) == 1 and has_extension:
+                output = outputs[0]
+                url = upload_file(upload.get("bucket"), upload.get("key"), output.get("path"), upload.get("cloud_type"), upload.get("credentials"))
+                files.append({
+                    "name": output.get("filename"),
+                    "path": output.get("path"),
+                    "url": url,
+                })
+            else:
+                key_prefix = base_key.split(".")[0]
+                for output in outputs:
+                    key = f"{key_prefix}/{output.get('filename')}"
+                    url = upload_file(upload.get("bucket"), key, output.get("path"), upload.get("cloud_type"), upload.get("credentials"))
+                    files.append({
+                        "name": output.get("filename"),
+                        "path": output.get("path"),
+                        "url": url,
+                    })
 
         callback({
             "run_id": run_id,
             "status": "completed",
-            "data": {"output": output},
+            "data": {"output": files},
             "metadata": metadata,
         })
-        return {"output": output}
+        return {"output": files}
             
     except Exception as e:
         logger.error(f"Handler error: {e}")
