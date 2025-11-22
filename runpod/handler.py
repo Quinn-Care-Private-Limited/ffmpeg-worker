@@ -11,6 +11,7 @@ import os
 import logging
 from typing import Dict, Any
 import time
+from collections import deque
 from storage import setup_storage_credentials, upload_file
 
 # Configure logging
@@ -30,6 +31,93 @@ ALLOWED_PATHS = [
 ]
 
 setup_storage_credentials()
+
+# Concurrency control for RunPod serverless
+request_history = deque(maxlen=1000)  # Track recent request timestamps
+current_request_rate = 0
+
+# Concurrency configuration from environment variables
+# FFmpeg operations are CPU-intensive and I/O bound, so we can handle multiple concurrent requests
+MAX_CONCURRENCY = int(
+    os.getenv("MAX_CONCURRENCY", "5")
+)  # Conservative for video processing
+MIN_CONCURRENCY = int(
+    os.getenv("MIN_CONCURRENCY", "2")
+)  # Minimum concurrent requests
+HIGH_REQUEST_RATE_THRESHOLD = int(
+    os.getenv("HIGH_REQUEST_RATE_THRESHOLD", "5")
+)  # Requests per minute
+LOW_REQUEST_RATE_THRESHOLD = int(
+    os.getenv("LOW_REQUEST_RATE_THRESHOLD", "2")
+)  # Scale down threshold
+
+
+def update_request_rate():
+    """
+    Updates the request rate based on recent request history.
+    Calculates requests per minute for the last 60 seconds.
+    """
+    global current_request_rate
+    current_time = time.time()
+
+    # Count requests in the last 60 seconds
+    recent_requests = [r for r in request_history if r > current_time - 60]
+    current_request_rate = len(recent_requests)
+
+    return current_request_rate
+
+
+def adjust_concurrency(current_concurrency):
+    """
+    Dynamically adjusts worker concurrency based on request load.
+
+    For FFmpeg/video processing:
+    - Moderate concurrency since operations are CPU/I/O intensive
+    - Configurable via environment variables:
+      * MAX_CONCURRENCY: Maximum concurrent requests (default: 5)
+      * MIN_CONCURRENCY: Minimum concurrent requests (default: 2)
+      * HIGH_REQUEST_RATE_THRESHOLD: Scale up threshold in req/min (default: 5)
+      * LOW_REQUEST_RATE_THRESHOLD: Scale down threshold in req/min (default: 2)
+
+    Args:
+        current_concurrency (int): The current concurrency level
+
+    Returns:
+        int: The new concurrency level
+    """
+    update_request_rate()
+
+    logger.debug(
+        f"Request rate: {current_request_rate}/min, "
+        f"Concurrency: {current_concurrency}, "
+        f"Thresholds: High={HIGH_REQUEST_RATE_THRESHOLD}, Low={LOW_REQUEST_RATE_THRESHOLD}"
+    )
+
+    # Scale up for high request rate
+    if (
+        current_request_rate > HIGH_REQUEST_RATE_THRESHOLD
+        and current_concurrency < MAX_CONCURRENCY
+    ):
+        new_concurrency = min(current_concurrency + 1, MAX_CONCURRENCY)
+        logger.info(
+            f"⬆️  Scaling UP concurrency: {current_concurrency} -> {new_concurrency} "
+            f"(rate: {current_request_rate}/min)"
+        )
+        return new_concurrency
+
+    # Scale down for low request rate
+    elif (
+        current_request_rate <= LOW_REQUEST_RATE_THRESHOLD
+        and current_concurrency > MIN_CONCURRENCY
+    ):
+        new_concurrency = max(current_concurrency - 1, MIN_CONCURRENCY)
+        logger.info(
+            f"⬇️  Scaling DOWN concurrency: {current_concurrency} -> {new_concurrency} "
+            f"(rate: {current_request_rate}/min)"
+        )
+        return new_concurrency
+
+    return current_concurrency
 
 class FFmpegWorkerClient:
     """Client to interact with the local FFmpeg worker API"""
@@ -94,7 +182,7 @@ class FFmpegWorkerClient:
 
 def handler(job: Dict[str, Any]) -> Dict[str, Any]:
     """
-    RunPod handler function
+    RunPod handler function with concurrent processing support.
     
     Expected job input format:
     {
@@ -116,6 +204,9 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         }
     }
     """
+    # Track this request for concurrency metrics
+    request_history.append(time.time())
+    
     try:
         run_id = job["id"]
         job_input = job.get("input", {})
@@ -243,5 +334,17 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    logger.info("Starting RunPod handler for FFmpeg Worker")
-    runpod.serverless.start({"handler": handler})
+    logger.info("🟢 Starting RunPod handler for FFmpeg Worker")
+    logger.info("🚀 Dynamic concurrency enabled")
+    logger.info(f"   ├─ Min Concurrency: {MIN_CONCURRENCY}")
+    logger.info(f"   ├─ Max Concurrency: {MAX_CONCURRENCY}")
+    logger.info(
+        f"   ├─ Scale Up Threshold: >{HIGH_REQUEST_RATE_THRESHOLD} req/min"
+    )
+    logger.info(
+        f"   └─ Scale Down Threshold: ≤{LOW_REQUEST_RATE_THRESHOLD} req/min"
+    )
+    
+    runpod.serverless.start(
+        {"handler": handler, "concurrency_modifier": adjust_concurrency}
+    )
