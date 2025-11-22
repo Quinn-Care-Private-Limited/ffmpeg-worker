@@ -194,3 +194,36 @@ The handler uses Python's logging module to provide detailed information about:
 - API communication
 - Error conditions
 - Performance metrics
+
+
+## Example Runpod JSON
+
+```json
+{
+  "input": {
+    "path": "/canvas/process",
+    "body": {},
+    "upload": {
+      "bucket": "shoppable-app-assets",
+      "key": "test/test.mp4",
+      "cloud_type": "AWS",
+      "credentials": {
+        "aws_access_key_id": "",
+        "aws_secret_access_key": "",
+        "aws_url": "",
+        "aws_public_url": ""
+      }
+    }
+  }
+}
+
+```
+
+### Sample .env
+
+```
+ENV=development
+
+VERSION=1.0.1
+TEST_INPUT_FILE_NAME=test-input-with-audio.json
+```
