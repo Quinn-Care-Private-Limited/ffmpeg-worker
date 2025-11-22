@@ -17,11 +17,6 @@ app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
 
-app.post("/test", (req, res) => {
-  console.log(req.body);
-  res.status(200).send("OK");
-});
-
 app.use((req, res) => {
   res.status(404).send("Not found");
 });

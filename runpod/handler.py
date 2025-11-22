@@ -18,13 +18,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
+env = os.getenv("ENV", "production")
 FFMPEG_API_BASE_URL = f"http://127.0.0.1:{os.getenv('PORT', '3000')}"
 FFMPEG_API_TIMEOUT = 900 # 15 minutes
-
 HEALTH_TIMEOUT = 30  # seconds
 HEALTH_POLL_INTERVAL = 5  # seconds
 
 ALLOWED_PATHS = [
+    "/ffmpeg/process",
     "/canvas/process",
 ]
 
@@ -126,7 +127,12 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         callback_auth_header = job_input.get("callback_auth_header", None)
 
         def callback(data):
-            runpod.serverless.progress_update({"id": data["run_id"]}, data)
+            progress = data.get("data", {}).get("progress", 0)
+            if data.get("status") == "processing":
+                if env == "development":
+                    logger.info({"progress": progress})
+                else:
+                    runpod.serverless.progress_update({"id": data["run_id"]}, {"progress": progress})
 
             if callback_url is None:
                 return
@@ -158,7 +164,9 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         callback({
             "run_id": run_id,
             "status": "processing",
-            "data": {},
+            "data": {
+                "progress": 10,
+            },
             "metadata": metadata,
         })
         
@@ -225,7 +233,7 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
             "data": {"output": files},
             "metadata": metadata,
         })
-        return {"output": files}
+        return files
             
     except Exception as e:
         logger.error(f"Handler error: {e}")

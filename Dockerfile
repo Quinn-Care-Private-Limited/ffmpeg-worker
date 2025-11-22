@@ -2,6 +2,7 @@ FROM quinninc/ffmpeg:latest
 
 ENV FS_PATH=/volume
 ENV PORT=3000
+ENV CLOUD_TYPE=RUNPOD
 ENV USE_FILE_SERVER=false
 # Set Puppeteer cache directory to avoid path issues
 ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
