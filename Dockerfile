@@ -1,7 +1,9 @@
 FROM quinninc/ffmpeg:latest
 
 ENV FS_PATH=/volume
-ENV PORT=3000
+ENV PORT=80
+ENV NODE_PORT=8000
+
 ENV CLOUD_TYPE=RUNPOD
 ENV USE_FILE_SERVER=false
 # Set Puppeteer cache directory to avoid path issues
@@ -60,8 +62,8 @@ RUN npm install
 # Using --install-deps=false to skip redundant dependency installation
 RUN npx puppeteer browsers install chrome@136.0.7103.49 --path /app/.cache/puppeteer
 
-# Install Python dependencies for RunPod handler
-COPY runpod/requirements.txt .
+# Install Python dependencies for handler
+COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p ${FS_PATH} && \
