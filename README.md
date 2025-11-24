@@ -217,13 +217,29 @@ The handler uses Python's logging module to provide detailed information about:
   }
 }
 
+## Example Standard API Request
+
+```
+# Health check
+GET /health
+
+# Process FFmpeg/Canvas request
+POST /api/process
+{
+  "path": "/ffmpeg/process",  # or "/canvas/process"
+  "body": { ... },
+  "upload": { ... },  # optional
+  "metadata": { ... }  # optional
+}
+```
+
 ```
 
 ### Sample .env
 
 ```
 ENV=development
-
+CLOUD_TYPE=RUNPOD # GCP,AWS
 VERSION=1.0.1
 TEST_INPUT_FILE_NAME=test-input-with-audio.json
 ```
