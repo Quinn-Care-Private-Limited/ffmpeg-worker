@@ -4,7 +4,7 @@ ENV FS_PATH=/volume
 ENV PORT=80
 ENV NODE_PORT=8000
 
-ENV CLOUD_TYPE=RUNPOD
+ENV CLOUD_TYPE=GCP
 ENV USE_FILE_SERVER=false
 # Set Puppeteer cache directory to avoid path issues
 ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
