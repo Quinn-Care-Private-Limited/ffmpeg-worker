@@ -252,8 +252,11 @@ export const processHandler = async (
   const outDir = `${fsPath}/tmp/scene-split-out_${stamp}`;
 
   try {
-    const opts = body.options;
-    const inputPath = await downloadInput(body.inputs[0].url, inputTempDir);
+    // Re-parse to apply zod defaults: validateRequest only safeParses, it doesn't write the parsed
+    // (defaulted) body back onto req.body, so `body.options.threshold` etc. would be undefined.
+    const cfg = sceneSplitSchema.parse(body);
+    const opts = cfg.options;
+    const inputPath = await downloadInput(cfg.inputs[0].url, inputTempDir);
     await fs.promises.mkdir(outDir, { recursive: true });
 
     const info = await probe(inputPath);
