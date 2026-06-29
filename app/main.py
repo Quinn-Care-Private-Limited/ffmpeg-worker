@@ -44,6 +44,7 @@ IS_DEV = ENV == "dev"
 ALLOWED_PATHS = [
     "/ffmpeg/process",
     "/canvas/process",
+    "/scene-split/process",
 ]
 
 setup_storage_credentials()
@@ -361,12 +362,15 @@ async def process_endpoint(request: ProcessRequest):
                         upload.get("cloud_type"),
                         upload.get("credentials")
                     )
+                    # Preserve any per-output metadata the handler attached (e.g. scene-split's
+                    # sceneIndex/role/start/end/duration/score) so callers can map outputs to scenes.
                     files.append({
+                        **{k: v for k, v in output.items() if k != "path"},
                         "name": output.get("filename"),
-                        "path": output.get("path"),
+                        "key": key,
                         "url": url,
                     })
-            
+
             return {"outputs": files}
         
         return response
